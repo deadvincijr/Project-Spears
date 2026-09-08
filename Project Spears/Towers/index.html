@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Towers - 2D Stick Figure Citadel War</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Outfit:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Main Game Canvas Container -->
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Minimal Master HUD -->
+    <header id="top-hud">
+      <!-- Left: Resources & Economy -->
+      <div class="hud-pill economy-pill">
+        <div class="stat-badge gold-badge" id="gold-badge" title="Citadel Treasury">
+          <span class="icon">🪙</span>
+          <div class="badge-content">
+            <span class="label">TREASURY</span>
+            <span class="value" id="gold-value">$25</span>
+          </div>
+        </div>
+        <div class="income-rate" id="income-rate">+$0.0/s</div>
+      </div>
+
+      <!-- Center: Tactical Minimap -->
+      <div class="hud-pill minimap-pill">
+        <div class="minimap-header">
+          <span class="minimap-title">TACTICAL RADAR</span>
+          <span class="minimap-hint">Click to pan</span>
+        </div>
+        <canvas id="minimapCanvas" width="220" height="34"></canvas>
+      </div>
+
+      <!-- Truce Countdown Pill (5-Minute Peace Period) -->
+      <div class="hud-pill truce-pill" id="truce-pill" title="5-Minute Truce: Enemies will not raid. Prepare your Citadel defenses!">
+        <span class="truce-icon" id="truce-icon">🕊️</span>
+        <div class="truce-content">
+          <span class="truce-label">TRUCE</span>
+          <span class="truce-timer" id="truce-timer">05:00</span>
+        </div>
+      </div>
+
+      <!-- Right: Squad Counter & [Q] Shop Open Button & Quick Utils -->
+      <div class="hud-pill actions-pill">
+        <div class="stat-badge pop-badge" title="Squad Pop / Citadel Capacity">
+          <span class="icon">⚔️</span>
+          <div class="badge-content">
+            <span class="label">SQUAD</span>
+            <span class="value" id="pop-value">5 / 20</span>
+          </div>
+        </div>
+
+        <button id="btn-open-shop" class="glow-btn shop-trigger-btn" title="Open Build & Recruitment Shop [Q]">
+          <span class="shop-icon">🛒</span>
+          <span class="shop-btn-text">SHOP</span>
+          <kbd class="key-hint">Q</kbd>
+        </button>
+
+        <div class="utility-icons">
+          <button id="btn-cam-citadel" class="mini-util-btn" title="Center on Citadel [C / Space]">🏢</button>
+          <button id="btn-audio" class="mini-util-btn" title="Toggle Sound">🔊</button>
+          <button id="btn-pause" class="mini-util-btn" title="Pause Game [P]">⏸️</button>
+          <button id="btn-help" class="mini-util-btn" title="Help [H]">❓</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Bottom Command Deck -->
+    <footer id="bottom-deck">
+      <!-- Direct Control Status Card (Visible when controlling a stick figure) -->
+      <div id="direct-control-hud" class="deck-section unit-card hidden">
+        <div class="unit-portrait">
+          <canvas id="portraitCanvas" width="40" height="40"></canvas>
+          <div class="control-badge" id="control-badge">WASD ACTIVE</div>
+        </div>
+        <div class="unit-details">
+          <div class="unit-title-row">
+            <span class="unit-name" id="unit-name">Stick Figure #1</span>
+            <span class="unit-role-tag" id="unit-role-tag">COMMANDER</span>
+          </div>
+          <div class="unit-bars">
+            <div class="health-bar-container">
+              <div class="health-bar-fill" id="unit-hp-fill" style="width: 100%;"></div>
+              <span class="health-text" id="unit-hp-text">100 / 100 HP</span>
+            </div>
+          </div>
+          <div class="control-hints" id="control-hints">
+            <span><b>[A/D]</b> Walk</span>
+            <span><b>[W/S]</b> Climb</span>
+            <span><b>[Space/Click]</b> Action</span>
+            <span><b>[G]</b> Stand Ground</span>
+          </div>
+        </div>
+        <div class="direct-control-actions">
+          <button id="btn-stand-ground" class="glow-btn stand-btn" title="Order this operative to stand ground and hold position [G]">
+            🛡️ STAND GROUND
+          </button>
+          <button id="btn-release-control" class="glow-btn danger-btn" title="Release Direct Control [ESC]">
+            RELEASE [ESC]
+          </button>
+        </div>
+      </div>
+
+      <!-- Minimal Global Army Commands Bar -->
+      <div id="squad-commands-hud" class="deck-section compact-commands">
+        <button class="glow-btn cmd-btn" data-order="work_basement" title="Order all available units to work in basement vault">
+          <span class="cmd-icon">⛏️</span>
+          <span class="cmd-label">BASEMENT</span>
+        </button>
+        <button class="glow-btn cmd-btn" data-order="guard_tower" title="Garrison Citadel and man all turrets">
+          <span class="cmd-icon">🛡️</span>
+          <span class="cmd-label">DEFEND & MAN TURRETS</span>
+        </button>
+        <button class="glow-btn cmd-btn assault-left" data-order="attack_west" title="March army to attack active West frontier fortress">
+          <span class="cmd-icon">⚔️</span>
+          <span class="cmd-label" id="cmd-label-west">ASSAULT WEST [TIER I]</span>
+        </button>
+        <button class="glow-btn cmd-btn assault-right" data-order="attack_east" title="March army to attack active East frontier fortress">
+          <span class="cmd-icon">🔥</span>
+          <span class="cmd-label" id="cmd-label-east">ASSAULT EAST [TIER I]</span>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Shop & Build Modal [Q] -->
+    <div id="shop-modal" class="modal-backdrop hidden">
+      <div class="modal-card shop-card">
+        <div class="modal-header">
+          <div class="shop-title-group">
+            <h2>🛒 CITADEL HEADQUARTERS SHOP</h2>
+            <span class="shop-subtitle">Press <kbd>Q</kbd> or <kbd>ESC</kbd> to return to battle</span>
+          </div>
+          <button id="btn-close-shop" class="modal-close-btn">&times;</button>
+        </div>
+
+        <div class="modal-body shop-body">
+          <!-- SHOP ITEM 1: RECRUIT STICK FIGURE ($75) -->
+          <div class="shop-item-card recruit-shop-card">
+            <div class="shop-item-header">
+              <div class="item-icon">⚔️</div>
+              <div class="item-info">
+                <h3>RECRUIT STICK FIGURE</h3>
+                <p>Deploy an operative to work in the crypto vault, guard floors, man wall turrets, or assault enemies.</p>
+                <div class="item-meta">
+                  <span class="meta-tag">Cost: <b>$75</b></span>
+                  <span class="meta-tag">Location: <b id="shop-recruit-location">Floor 1 (Recruitment HQ)</b></span>
+                  <span class="meta-tag">Population: <b id="shop-pop-counter">5 / 20</b></span>
+                </div>
+              </div>
+            </div>
+            <div class="shop-action">
+              <button id="btn-shop-recruit" class="glow-btn primary-btn shop-buy-btn">
+                <span class="cost-tag">$75</span>
+                <span class="action-text">RECRUIT ($75)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- SHOP ITEM 2: EXPAND CITADEL (BUILD FLOOR) -->
+          <div class="shop-item-card floor-shop-card" id="shop-floor-card">
+            <div class="shop-item-header">
+              <div class="item-icon">🏢</div>
+              <div class="item-info">
+                <h3>BUILD FLOOR <span id="shop-next-floor-num">2</span></h3>
+                <p>Expand your skyscraper upwards to gain tactical advantages and specialized stations.</p>
+                <div class="floor-purpose-selector" id="floor-purpose-selector">
+                  <div class="purpose-selector-title">CHOOSE PURPOSE FOR FLOOR <span id="purpose-floor-label">2</span>:</div>
+                  <div class="purpose-options" id="purpose-options">
+                    <!-- Populated dynamically via JS -->
+                  </div>
+                </div>
+                <div class="citadel-floors-manager" id="built-floors-manager" style="display: none !important;">
+                  <div class="purpose-selector-title">REPURPOSE BUILT CITADEL FLOORS:</div>
+                  <div class="built-floors-list" id="built-floors-list">
+                    <!-- Repurposing disabled for now -->
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="shop-action">
+              <button id="btn-shop-buy-floor" class="glow-btn floor-btn shop-buy-btn">
+                <span class="cost-tag" id="shop-floor-cost-tag">$150</span>
+                <span class="action-text">CONSTRUCT FLOOR</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- SHOP ITEM 3: WALL TURRETS -->
+          <div class="shop-item-card turret-shop-card" id="shop-turret-card">
+            <div class="shop-item-header">
+              <div class="item-icon">🎯</div>
+              <div class="item-info">
+                <h3>INSTALL WALL TURRET (<span id="shop-turret-count">0</span> / <span id="shop-max-turrets">0</span>)</h3>
+                <p>Heavy laser sentry mounted on exterior citadel walls. <b>Must be manned by an AI stick figure to fire, or direct-control a stick figure on the turret to aim and fire manually!</b></p>
+                <div class="turret-restriction-note" id="turret-restriction-note">
+                  🔒 Turrets can only be installed on floors designated as a <b>Turret Platform</b>!
+                </div>
+              </div>
+            </div>
+            <div class="shop-action">
+              <button id="btn-shop-buy-turret" class="glow-btn turret-btn shop-buy-btn">
+                <span class="cost-tag">$150</span>
+                <span class="action-text">INSTALL TURRET</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer shop-footer">
+          <div class="treasury-status">Treasury: <span id="shop-treasury-val">$25</span></div>
+          <button id="btn-dismiss-shop" class="glow-btn secondary-btn">CLOSE SHOP [Q]</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructions / Help Modal -->
+    <div id="help-modal" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>🏰 HOW TO PLAY TOWERS</h2>
+          <button id="btn-close-help" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="help-section">
+            <h3>🕊️ 5-Minute Truce</h3>
+            <p>• You start with a <b>5-Minute Truce (05:00)</b>. Enemies will not raid during this time.</p>
+            <p>• Use this time to mine gold in the basement, construct floors, and recruit your army!</p>
+            <p>• Attacking enemy fortresses will break the truce early.</p>
+          </div>
+          <div class="help-section">
+            <h3>🎮 Direct Control & Movement</h3>
+            <p>• <b>Click any stick figure</b> to instantly take direct control of them!</p>
+            <p>• Use <b>A / D</b> to run left and right.</p>
+            <p>• Use <b>W / S</b> to climb ladders connecting the basement and all tower floors.</p>
+            <p>• Press <b>Space</b> or <b>Left Click</b> to swing your weapon or mine the gold vault in the basement.</p>
+            <p>• Press <b>ESC</b> to release direct control.</p>
+          </div>
+          <div class="help-section">
+            <h3>💰 Basement Treasury & Tower Floors</h3>
+            <p>• The <b>Basement Vault</b> generates money! Order stick figures down there to work, or manually strike the gold vein yourself.</p>
+            <p>• Buy new floors for your tower to unlock archer balconies, armory stat boosts, and roof ballistas.</p>
+            <p>• Stick figures can traverse all floors and ladders seamlessly.</p>
+          </div>
+          <div class="help-section">
+            <h3>⚔️ AI Conquest & War</h3>
+            <p>• <b>West AI (Red Vanguard)</b> and <b>East AI (Shadow Legion)</b> will periodically raid your citadel!</p>
+            <p>• Order your stick figures to assault their fortresses, breach their gates, and destroy their cores to conquer them.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-dismiss-help" class="glow-btn primary-btn">LET'S BATTLE!</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pause Modal -->
+    <div id="pause-modal" class="modal-backdrop hidden">
+      <div class="modal-card pause-card">
+        <div class="modal-header">
+          <h2>⏸️ SKYSCRAPER HEADQUARTERS PAUSED</h2>
+        </div>
+        <div class="modal-body">
+          <p>Tower operations and tactical combat are paused.</p>
+          <div class="pause-hints">
+            <p>Press <b>[P]</b> or click the button below to resume action.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-resume" class="glow-btn primary-btn">RESUME DEFENSE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Victory / Game Over Overlay -->
+    <div id="victory-modal" class="modal-backdrop hidden">
+      <div class="modal-card victory-card">
+        <div class="modal-header">
+          <h1 id="victory-title">👑 CITADEL VICTORIOUS!</h1>
+        </div>
+        <div class="modal-body">
+          <p id="victory-message">Both enemy fortresses have been crushed and conquered!</p>
+          <div class="victory-stats">
+            <div class="vstat"><span class="vlabel">Floors Built:</span> <span id="vstat-floors" class="vval">1</span></div>
+            <div class="vstat"><span class="vlabel">Total Gold Mined:</span> <span id="vstat-gold" class="vval">$0</span></div>
+            <div class="vstat"><span class="vlabel">Units Recruited:</span> <span id="vstat-units" class="vval">0</span></div>
+            <div class="vstat"><span class="vlabel">Enemies Slain:</span> <span id="vstat-kills" class="vval">0</span></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-restart" class="glow-btn primary-btn">PLAY AGAIN</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
