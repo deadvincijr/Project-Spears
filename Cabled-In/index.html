@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Cabled In - A high-stakes 2D top-down server warehouse simulation where you slide across slick data center floors dragging patch cables to prevent critical cascade failures.">
+  <title>Cabled In | Data Center Emergency Response</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Orbitron:wght@600;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Main Game Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Scanline & Ambient Overlay Effect -->
+    <div class="crt-overlay" aria-hidden="true"></div>
+
+    <!-- Screen Damage Vignette Flash -->
+    <div id="damage-vignette" class="damage-vignette" aria-hidden="true"></div>
+
+    <!-- Heads-Up Display (HUD) -->
+    <header class="hud-layer" id="hud-overlay">
+      <div class="hud-top-bar">
+        <div class="hud-brand">
+          <h1 class="hud-title">CABLED IN</h1>
+          <div class="brand-tags">
+            <span class="hud-badge" id="system-status">SYS.ACTV // SECTOR 07</span>
+            <span class="hud-badge threat-badge" id="threat-level-badge">DEFCON 5 // STABLE</span>
+          </div>
+        </div>
+
+        <div class="hud-metrics">
+          <div class="metric-card" id="health-card">
+            <span class="metric-label">SYSTEM INTEGRITY</span>
+            <div class="meter-bar">
+              <div class="meter-fill hp-fill" id="hp-fill" style="width: 100%;"></div>
+            </div>
+            <span class="metric-value" id="hp-val">100 HP</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">UPTIME INTEGRITY</span>
+            <div class="meter-bar">
+              <div class="meter-fill" id="uptime-fill" style="width: 98%;"></div>
+            </div>
+            <span class="metric-value" id="uptime-val">98.4%</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">ACTIVE ALERTS</span>
+            <span class="metric-value alert-text" id="alert-count">0 CRITICAL</span>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-label">VELOCITY</span>
+            <span class="metric-value" id="speed-readout">0.0 m/s</span>
+          </div>
+
+          <div class="metric-card" id="memo-card">
+            <span class="metric-label">COMS LOG / CODE</span>
+            <span class="metric-value" id="memo-code-val" style="color: #ffb800; font-size: 0.95rem;">--</span>
+          </div>
+
+          <div class="metric-card" id="credits-card">
+            <span class="metric-label">DATA CREDITS</span>
+            <span class="metric-value" id="credits-val" style="color: #00ff9d; font-size: 1.05rem;">100 ⚡</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Corrupted Bug Boss Active Encounter Banner -->
+      <div id="boss-hud-banner" class="boss-hud-banner hidden" role="region" aria-label="Boss Threat">
+        <div class="boss-banner-header">
+          <span class="boss-banner-icon">👾</span>
+          <span class="boss-banner-title">DEFCON 1 ANOMALY // CORRUPTED BUG BOSS</span>
+          <span class="boss-banner-status" id="boss-status-text">HOSTILE BREACH // RESTRAIN WITH WIRE!</span>
+        </div>
+        <div class="boss-hud-meters">
+          <div class="boss-meter-wrapper">
+            <span class="boss-meter-label">BOSS STABILITY</span>
+            <div class="boss-hp-bar">
+              <div class="boss-hp-fill" id="boss-hp-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+          <div class="boss-meter-wrapper">
+            <span class="boss-meter-label">RESTRAINT COILS</span>
+            <div class="boss-coils-track" id="boss-coils-track"></div>
+            <span class="boss-coils-count" id="boss-coils-count">0 / 4 WRAPS</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Powerups Buff Badges -->
+      <div id="active-buffs-container" class="active-buffs-container"></div>
+
+
+
+      <!-- Emergency Directional Alerts Container (populated dynamically) -->
+      <div id="alert-indicators-container" aria-live="polite"></div>
+
+      <!-- NOC Console Minigame Terminal Dialog -->
+      <div id="terminal-modal" class="terminal-modal hidden" role="dialog" aria-modal="true" aria-labelledby="terminal-title">
+        <div class="terminal-window">
+          <div class="terminal-header">
+            <div class="terminal-status-dot"></div>
+            <span id="terminal-title" class="terminal-title">NOC MASTER CONSOLE // AUTH OVERRIDE TERMINAL</span>
+            <button type="button" id="btn-close-terminal" class="terminal-close-btn" aria-label="Close Terminal">[ESC] EXIT</button>
+          </div>
+
+          <div class="terminal-body">
+            <div class="terminal-screen-glow">
+              <div class="terminal-row">
+                <span class="term-lbl">LOCATION:</span>
+                <span class="term-val">DATA CENTER FLOOR - SOUTH NOC DESK</span>
+              </div>
+              <div class="terminal-row">
+                <span class="term-lbl">SELECT FAULT:</span>
+                <select id="terminal-rack-select" class="terminal-select"></select>
+              </div>
+              <div class="terminal-row" id="terminal-countdown-row">
+                <span class="term-lbl">CRITICAL COUNTDOWN:</span>
+                <span id="terminal-countdown-val" class="term-val terminal-countdown-val">30.0s [MONITORING]</span>
+              </div>
+              <div class="terminal-progress-track">
+                <div class="terminal-progress-fill" id="terminal-countdown-fill"></div>
+              </div>
+
+              <div class="terminal-display-box">
+                <span class="terminal-prompt">&gt; ENTER AUTH OVERRIDE PIN:</span>
+                <div id="terminal-input-display" class="terminal-digits">_ _ _ _</div>
+                <div id="terminal-feedback" class="terminal-feedback">AWAITING 4-DIGIT AUTHORIZATION CODE</div>
+              </div>
+            </div>
+
+            <!-- Virtual Keypad -->
+            <div class="terminal-keypad">
+              <button type="button" class="numpad-btn" data-key="1">1</button>
+              <button type="button" class="numpad-btn" data-key="2">2</button>
+              <button type="button" class="numpad-btn" data-key="3">3</button>
+              <button type="button" class="numpad-btn" data-key="4">4</button>
+              <button type="button" class="numpad-btn" data-key="5">5</button>
+              <button type="button" class="numpad-btn" data-key="6">6</button>
+              <button type="button" class="numpad-btn" data-key="7">7</button>
+              <button type="button" class="numpad-btn" data-key="8">8</button>
+              <button type="button" class="numpad-btn" data-key="9">9</button>
+              <button type="button" class="numpad-btn action-clear" id="numpad-clear">CLR</button>
+              <button type="button" class="numpad-btn" data-key="0">0</button>
+              <button type="button" class="numpad-btn action-enter" id="numpad-enter">ENTER</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hardware Shop & Powerups Modal -->
+      <div id="shop-modal" class="shop-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shop-title">
+        <div class="shop-window">
+          <div class="shop-header">
+            <div class="shop-status-dot"></div>
+            <span id="shop-title" class="shop-title">IT SUPPLY DEPOT // HARDWARE &amp; POWERUPS</span>
+            <div class="shop-balance">FUNDS: <span id="shop-credits-display">100</span> ⚡</div>
+            <button type="button" id="btn-close-shop" class="shop-close-btn" aria-label="Close Shop">[ESC] EXIT</button>
+          </div>
+
+          <!-- Shop Build Category Filter Tabs -->
+          <div class="shop-tabs" role="tablist">
+            <button type="button" class="shop-tab active" data-category="all">ALL HARDWARE</button>
+            <button type="button" class="shop-tab tab-drift" data-category="drift">🏎️ DRIFT VELOCITY</button>
+            <button type="button" class="shop-tab tab-combat" data-category="combat">🛡️ COMBAT ENFORCER</button>
+            <button type="button" class="shop-tab tab-netops" data-category="netops">⚡ NETOPS ARCHITECT</button>
+          </div>
+
+          <div class="shop-body">
+            <!-- Active Build Synergy Banner -->
+            <div class="shop-synergy-banner" id="shop-synergy-banner">
+              <span>ACTIVE BUILD SYNERGIES:</span>
+              <span id="shop-synergy-text" style="color: #ffb800;">NONE (BUY 2+ MATCHING ITEMS TO UNLOCK SYNERGY BUFFS)</span>
+            </div>
+
+            <div class="shop-grid">
+              <!-- === BUILD 1: DRIFT VELOCITY === -->
+              <!-- Item 1: High-Voltage Energy Drink -->
+              <div class="shop-card cat-drift" data-category="drift" data-item="energy_drink">
+                <div class="card-icon">🥤</div>
+                <div class="card-info">
+                  <div class="card-name">High-Voltage Energy Drink <span style="font-size: 0.68rem; color: #00f3ff;">[DRIFT]</span></div>
+                  <div class="card-desc" id="shop-desc-energy_drink">Permanently boosts top sliding speed by +35 px/s (Base: 150 ⚡, +50 ⚡ per purchase)</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-energy_drink" data-item="energy_drink" data-cost="150">150 ⚡ BUY</button>
+              </div>
+
+              <!-- Item 2: Neodymium Floor Magnet -->
+              <div class="shop-card cat-drift" data-category="drift" data-item="magnet">
+                <div class="card-icon">🧲</div>
+                <div class="card-info">
+                  <div class="card-name">Neodymium Floor Magnet <span style="font-size: 0.68rem; color: #00f3ff;">[DRIFT]</span></div>
+                  <div class="card-desc" id="shop-desc-magnet">Permanently increases ground friction &amp; traction for tighter turns (Base: 150 ⚡, +50 ⚡ per purchase)</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-magnet" data-item="magnet" data-cost="150">150 ⚡ BUY</button>
+              </div>
+
+              <!-- Item 3: Nitrous Afterburners -->
+              <div class="shop-card cat-drift" data-category="drift" data-item="nitrous">
+                <div class="card-icon">🔥</div>
+                <div class="card-info">
+                  <div class="card-name">Overclocked Nitrous Afterburners <span style="font-size: 0.68rem; color: #00f3ff;">[DRIFT]</span></div>
+                  <div class="card-desc">Hold [SHIFT] for a roaring rocket thrust burst (+60% acceleration) powering out of drifts</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-nitrous" data-item="nitrous" data-cost="175">175 ⚡ BUY</button>
+              </div>
+
+              <!-- Item 4: Kinetic Slalom Springs -->
+              <div class="shop-card cat-drift" data-category="drift" data-item="slalom_springs">
+                <div class="card-icon">🌀</div>
+                <div class="card-info">
+                  <div class="card-name">Kinetic Slalom Springs <span style="font-size: 0.68rem; color: #00f3ff;">[DRIFT]</span></div>
+                  <div class="card-desc">Bouncing off server racks converts collision impacts into +25% forward velocity boost</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-slalom_springs" data-item="slalom_springs" data-cost="225">225 ⚡ BUY</button>
+              </div>
+
+              <!-- Item 5: Frictionless Teflon Skids -->
+              <div class="shop-card cat-drift" data-category="drift" data-item="teflon_skids">
+                <div class="card-icon">⛸️</div>
+                <div class="card-info">
+                  <div class="card-name">Frictionless Teflon Skids <span style="font-size: 0.68rem; color: #00f3ff;">[DRIFT]</span></div>
+                  <div class="card-desc">Maintains 100% velocity through sharp 90° aisle slides; spacebar anchors halt without tire drag</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-teflon_skids" data-item="teflon_skids" data-cost="275">275 ⚡ BUY</button>
+              </div>
+
+              <!-- === BUILD 2: COMBAT ENFORCER === -->
+              <!-- Item 6: Kinetic Cannon Slingshot -->
+              <div class="shop-card cat-combat" data-category="combat" data-item="cannon">
+                <div class="card-icon">🎯</div>
+                <div class="card-info">
+                  <div class="card-name">Kinetic Cannon Charge <span style="font-size: 0.68rem; color: #ff2a55;">[COMBAT]</span></div>
+                  <div class="card-desc">Freeze time to aim &amp; slingshot across aisles like an air hockey puck (Press [F] to arm)</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-cannon" data-item="cannon" data-cost="150">150 ⚡ BUY</button>
+              </div>
+
+              <!-- Item 7: Reinforced Spiked Bumper -->
+              <div class="shop-card cat-combat" data-category="combat" data-item="spiked_bumper">
+                <div class="card-icon">🦏</div>
+                <div class="card-info">
+                  <div class="card-name">Reinforced Spiked Bumper <span style="font-size: 0.68rem; color: #ff2a55;">[COMBAT]</span></div>
+                  <div class="card-desc">+80% small bug crush radius, deals 40 ramming damage to bosses on impact, and +50 Max HP</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-spiked_bumper" data-item="spiked_bumper" data-cost="200">200 ⚡ BUY</button>
+              </div>
+
+              <!-- Item 8: EMP Shockwave Emitter -->
+              <div class="shop-card cat-combat" data-category="combat" data-item="emp_shockwave">
+                <div class="card-icon">⚡</div>
+                <div class="card-info">
+                  <div class="card-name">EMP Shockwave Emitter <span style="font-size: 0.68rem; color: #ff2a55;">[COMBAT]</span></div>
+                  <div class="card-desc">Press [V] to emit a 400px electro-magnetic pulse that zaps bugs, clears ghosts, &amp; stuns bosses (3s)</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-emp_shockwave" data-item="emp_shockwave" data-cost="250">250 ⚡ BUY</button>
+              </div>
+
+              <!-- Item 9: Emergency Defibrillator Capacitor -->
+              <div class="shop-card cat-combat" data-category="combat" data-item="defibrillator">
+                <div class="card-icon">🔋</div>
+                <div class="card-info">
+                  <div class="card-name">Emergency Defibrillator Capacitor <span style="font-size: 0.68rem; color: #ff2a55;">[COMBAT]</span></div>
+                  <div class="card-desc">When HP reaches 0, auto-defibrillates cart back to 100 HP with 4s invulnerability &amp; electric blast</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-defibrillator" data-item="defibrillator" data-cost="300">300 ⚡ BUY</button>
+              </div>
+
+              <!-- === BUILD 3: NETOPS ARCHITECT === -->
+              <!-- Item 10: Superconducting Patch Reel -->
+              <div class="shop-card cat-netops" data-category="netops" data-item="super_reel">
+                <div class="card-icon">🔌</div>
+                <div class="card-info">
+                  <div class="card-name">Superconducting Patch Reel <span style="font-size: 0.68rem; color: #00ff9d;">[NETOPS]</span></div>
+                  <div class="card-desc">Zero drag resistance while dragging patch cables, and +120px magnetic snapping radius to target ports</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-super_reel" data-item="super_reel" data-cost="200">200 ⚡ BUY</button>
+              </div>
+
+              <!-- Item 11: Comms Hex-Decoder -->
+              <div class="shop-card cat-netops" data-category="netops" data-item="hex_decoder">
+                <div class="card-icon">📡</div>
+                <div class="card-info">
+                  <div class="card-name">Comms Hex-Decoder <span style="font-size: 0.68rem; color: #00ff9d;">[NETOPS]</span></div>
+                  <div class="card-desc">Scans server diagnostic PINs from 180px away; highlights target keypad digits in green at NOC Desk</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-hex_decoder" data-item="hex_decoder" data-cost="220">220 ⚡ BUY</button>
+              </div>
+
+              <!-- Item 12: Autonomous Patch Sentry Drone -->
+              <div class="shop-card cat-netops" data-category="netops" data-item="patch_drone">
+                <div class="card-icon">🛸</div>
+                <div class="card-info">
+                  <div class="card-name">Autonomous Patch Drone Companion <span style="font-size: 0.68rem; color: #00ff9d;">[NETOPS]</span></div>
+                  <div class="card-desc">Floats alongside your cart; auto-completes 5s breaker reboots and auto-plugs cables if in range</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-patch_drone" data-item="patch_drone" data-cost="350">350 ⚡ BUY</button>
+              </div>
+
+              <!-- Item 13: NetOps High-Yield Bonds -->
+              <div class="shop-card cat-netops" data-category="netops" data-item="yield_bonds">
+                <div class="card-icon">📈</div>
+                <div class="card-info">
+                  <div class="card-name">NetOps High-Yield Bonds <span style="font-size: 0.68rem; color: #00ff9d;">[NETOPS]</span></div>
+                  <div class="card-desc">Pays a passive dividend of +35 ⚡ every 30 seconds as long as global warehouse uptime is above 80%</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-yield_bonds" data-item="yield_bonds" data-cost="250">250 ⚡ BUY</button>
+              </div>
+
+              <!-- Item 14: Enterprise Server Node -->
+              <div class="shop-card cat-netops" data-category="netops" data-item="replacement_chassis">
+                <div class="card-icon">🏗️</div>
+                <div class="card-info">
+                  <div class="card-name">Enterprise Server Node (Hot-Swap Chassis) <span style="font-size: 0.68rem; color: #00ff9d;">[NETOPS]</span></div>
+                  <div class="card-desc">Rebuilds an exploded, destroyed server rack back to 100% operational condition</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-replacement_chassis" data-item="replacement_chassis" data-cost="1000">1000 ⚡ BUY</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Facility Supplies Closet Modal -->
+      <div id="supplies-modal" class="supplies-modal hidden" role="dialog" aria-modal="true" aria-labelledby="supplies-title">
+        <div class="supplies-window">
+          <div class="supplies-header">
+            <div class="supplies-status-dot"></div>
+            <span id="supplies-title" class="supplies-title">🧰 FACILITY SUPPLIES CLOSET // MAINTENANCE &amp; DEFCON LOCKER</span>
+            <div class="supplies-balance">FUNDS: <span id="supplies-credits-display">100</span> ⚡</div>
+            <button type="button" id="btn-close-supplies" class="shop-close-btn" aria-label="Close Supplies Locker">[ESC] EXIT</button>
+          </div>
+
+          <div class="supplies-body">
+            <!-- Active Mission Gear Section (Contextual based on boss) -->
+            <div class="supplies-section-title">🚨 DEFCON EMERGENCY ANOMALY RESPONSE GEAR</div>
+            <div class="supplies-card-grid" id="supplies-boss-gear-grid"></div>
+
+            <!-- General Facility Maintenance Section -->
+            <div class="supplies-section-title" style="margin-top: 14px;">🔧 WAREHOUSE MAINTENANCE &amp; FIRST AID UTILITIES</div>
+            <div class="supplies-card-grid">
+              <div class="shop-card" data-supplies-item="first_aid">
+                <div class="card-icon">🩹</div>
+                <div class="card-info">
+                  <div class="card-name">Emergency Medical Kit <span style="font-size: 0.68rem; color: #00ff9d;">[FIRST AID]</span></div>
+                  <div class="card-desc">Instantly restores +50 System Integrity (Health) to the maintenance cart</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-supplies-first_aid" data-cost="90">90 ⚡ RESTORE</button>
+              </div>
+
+              <div class="shop-card" data-supplies-item="zip_ties">
+                <div class="card-icon">⚡</div>
+                <div class="card-info">
+                  <div class="card-name">Quick-Patch Zip-Ties &amp; Flux <span style="font-size: 0.68rem; color: #38bdf8;">[MAINTENANCE]</span></div>
+                  <div class="card-desc">Instantly clears and resolves 1 random failing server in the warehouse without running a cord</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-supplies-zip_ties" data-cost="80">80 ⚡ DEPLOY</button>
+              </div>
+
+              <div class="shop-card" data-supplies-item="adrenaline">
+                <div class="card-icon">🔋</div>
+                <div class="card-info">
+                  <div class="card-name">Adrenaline Surge Canister <span style="font-size: 0.68rem; color: #ffb800;">[BOOST]</span></div>
+                  <div class="card-desc">Provides 25 seconds of hyper-acceleration, +40 px/s speed, and high-traction braking</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-supplies-adrenaline" data-cost="85">85 ⚡ INJECT</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Status & Controls Bar -->
+      <footer class="hud-bottom-bar">
+        <div class="controls-hint">
+          <span class="key-pill">W</span><span class="key-pill">A</span><span class="key-pill">S</span><span class="key-pill">D</span> : Slide &amp; Drift
+          <span class="separator">|</span>
+          <span class="key-pill">SPACE</span> : Brake
+          <span class="separator">|</span>
+          <span class="key-pill">SHIFT</span> : Boost / Dash
+          <span class="separator">|</span>
+          <span class="key-pill">V</span> : EMP Pulse
+          <span class="separator">|</span>
+          <span class="key-pill">E</span> : Interact / Wire / Reboot
+          <span class="separator">|</span>
+          <span class="key-pill">F</span> : Cannon Slingshot
+          <span class="separator">|</span>
+          <span class="key-pill">T</span> : Teleport
+          <span class="separator">|</span>
+          <span class="key-pill">B</span> : Next Boss (Dev)
+          <span class="separator">|</span>
+          <span class="key-pill">N</span> : Rogue Bug (Dev)
+          <span class="separator">|</span>
+          <span class="key-pill">K</span> : Shop
+          <span class="separator">|</span>
+          <span class="key-pill">Q</span> : Drop Cable
+        </div>
+
+        <!-- In-game Notification Toast (Between Drop Cable and Shop Area) -->
+        <div id="notification-toast" class="notification-toast hidden" role="status" aria-live="polite">
+          <span id="notification-toast-icon" class="toast-icon">⚡</span>
+          <span id="notification-toast-text" class="toast-text"></span>
+        </div>
+
+        <div class="hud-actions">
+          <button type="button" id="btn-open-tutorial" class="hud-btn" style="color: #00f3ff; border-color: rgba(0, 243, 255, 0.4);" aria-label="Open Operations Manual">MANUAL [H]</button>
+          <button type="button" id="btn-open-shop" class="hud-btn" style="color: #ffb800; border-color: rgba(255, 184, 0, 0.4);" aria-label="Open Hardware Shop">SHOP [K]</button>
+          <button type="button" id="btn-toggle-pause" class="hud-btn" aria-label="Pause Game">PAUSE [ESC]</button>
+        </div>
+      </footer>
+    </header>
+
+    <!-- Pause Menu Modal -->
+    <div id="pause-modal" class="pause-modal hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+      <div class="pause-window">
+        <div class="pause-header">
+          <div class="pause-status-dot"></div>
+          <span id="pause-title" class="pause-title">SHIFT SUSPENDED // PAUSED</span>
+        </div>
+        <div class="pause-body">
+          <p class="pause-desc">All warehouse clocks, thermal countdowns, and cart physics halted.</p>
+          <div class="pause-actions">
+            <button type="button" id="btn-pause-resume" class="menu-btn menu-btn-primary">RESUME SHIFT [ESC]</button>
+            <button type="button" id="btn-pause-tutorial" class="menu-btn menu-btn-secondary">OPERATIONS MANUAL [H]</button>
+            <button type="button" id="btn-pause-menu" class="menu-btn menu-btn-danger">RETURN TO MAIN MENU</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Menu Overlay Screen -->
+    <div id="main-menu-overlay" class="main-menu-overlay" role="dialog" aria-modal="true" aria-labelledby="menu-title">
+      <div class="menu-panel">
+        <div class="menu-brand">
+          <div class="menu-badge">NOC EMERGENCY RESPONSE PROTOCOL // SECTOR 07</div>
+          <h1 id="menu-title" class="menu-title">CABLED IN</h1>
+          <p class="menu-desc">Data center uptime simulation, high-speed momentum drift, and cascade failure prevention.</p>
+        </div>
+
+        <div class="menu-actions">
+          <button type="button" id="btn-menu-play" class="menu-btn menu-btn-primary">
+            <span class="btn-text">▶ START SHIFT [PLAY]</span>
+          </button>
+          <button type="button" id="btn-menu-tutorial" class="menu-btn menu-btn-secondary">
+            <span class="btn-text">📖 OPERATIONS MANUAL [TUTORIAL]</span>
+          </button>
+        </div>
+
+        <div class="menu-feature-grid">
+          <div class="feature-card">
+            <span class="feature-icon">🏎️</span>
+            <div class="feature-text">
+              <span class="feature-title">Low-Friction Drift</span>
+              <span class="feature-desc">Slippery raised tile floors with momentum physics &amp; spacebar braking</span>
+            </div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">🚨</span>
+            <div class="feature-text">
+              <span class="feature-title">30s Critical Overheat</span>
+              <span class="feature-desc">Failing servers explode in 30s! Repair quickly to protect warehouse uptime</span>
+            </div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">🛒</span>
+            <div class="feature-text">
+              <span class="feature-title">IT Supply Depot</span>
+              <span class="feature-desc">Upgrade speed, ground traction, air hockey cannon charges, &amp; replacement nodes</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="menu-footer">
+          <div class="menu-controls-bar">
+            <span><span class="key-pill">W</span><span class="key-pill">A</span><span class="key-pill">S</span><span class="key-pill">D</span> Move &amp; Drift</span>
+            <span class="sep">|</span>
+            <span><span class="key-pill">SPACE</span> Brake</span>
+            <span class="sep">|</span>
+            <span><span class="key-pill">E</span> Interact / Wire</span>
+            <span class="sep">|</span>
+            <span><span class="key-pill">F</span> Slingshot</span>
+            <span class="sep">|</span>
+            <span><span class="key-pill">T</span> Teleport</span>
+            <span class="sep">|</span>
+            <span><span class="key-pill">B</span> Boss (Dev)</span>
+            <span class="sep">|</span>
+            <span><span class="key-pill">K</span> IT Depot</span>
+            <span class="sep">|</span>
+            <span><span class="key-pill">H</span> Manual</span>
+          </div>
+          <div class="menu-subtext">CABLED IN // ADVANCED INDUSTRIAL INFRASTRUCTURE SIMULATION</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operations Manual & Tutorial Modal -->
+    <div id="tutorial-modal" class="tutorial-modal hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+      <div class="tutorial-window">
+        <div class="tutorial-header">
+          <div class="tutorial-header-left">
+            <div class="tutorial-status-dot"></div>
+            <span id="tutorial-title" class="tutorial-title">FACILITY OPERATIONS MANUAL // TRAINING PROTOCOLS</span>
+          </div>
+          <button type="button" id="btn-close-tutorial" class="tutorial-close-btn" aria-label="Close Manual">[ESC] EXIT</button>
+        </div>
+
+        <!-- Tab Navigation Bar -->
+        <div class="tutorial-tabs" role="tablist">
+          <button type="button" class="tut-tab active" data-step="0">1. MOVING &amp; DRIFT</button>
+          <button type="button" class="tut-tab" data-step="1">2. BRAKING</button>
+          <button type="button" class="tut-tab" data-step="2">3. IT DEPOT &amp; UPGRADES</button>
+          <button type="button" class="tut-tab" data-step="3">4. ERROR 1: WIRE</button>
+          <button type="button" class="tut-tab" data-step="4">5. ERROR 2: CODE</button>
+          <button type="button" class="tut-tab" data-step="5">6. ERROR 3: REBOOT</button>
+          <button type="button" class="tut-tab" data-step="6">7. 30s OVERHEAT</button>
+          <button type="button" class="tut-tab" data-step="7">8. QUANTUM TELEPORTER</button>
+        </div>
+
+        <!-- Tutorial Body Container -->
+        <div class="tutorial-body">
+          <!-- Step 0: Moving & Drift -->
+          <div class="tut-slide active" data-step="0">
+            <div class="tut-hero-badge">🏎️ MECHANICAL FOUNDATION // PROPULSION</div>
+            <h2 class="tut-slide-title">SLIPPERY RAISED FLOOR &amp; MOMENTUM DRIFT</h2>
+            <div class="tut-key-row">
+              <span class="key-pill">W</span><span class="key-pill">A</span><span class="key-pill">S</span><span class="key-pill">D</span> or <span class="key-pill">Arrow Keys</span> : Slide Cart
+            </div>
+            <div class="tut-card-grid">
+              <div class="tut-card">
+                <span class="card-lead-icon">⛸️</span>
+                <h4>Low-Friction Inertia</h4>
+                <p>The warehouse features polished raised-floor tile cooling with a slip factor of <strong>0.982</strong>. When you accelerate, your cart carries tremendous momentum and slides through turns in sweeping, high-speed drifts.</p>
+              </div>
+              <div class="tut-card">
+                <span class="card-lead-icon">⚡</span>
+                <h4>Slalom Aisles &amp; Corridors</h4>
+                <p>Server racks have solid physical hitboxes spaced by tight gaps. Every 5th rack slot has an open crossways break—drift through these cross-aisles to travel rapidly across the warehouse!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 1: Stopping & Braking -->
+          <div class="tut-slide" data-step="1">
+            <div class="tut-hero-badge" style="color: var(--accent-amber); border-color: rgba(255, 184, 0, 0.4);">🛑 BRAKING &amp; STOPPING MECHANICS</div>
+            <h2 class="tut-slide-title">HYDRAULIC ANCHOR BRAKING</h2>
+            <div class="tut-key-row">
+              <span class="key-pill">SPACE</span> : Hold to Anchor &amp; Stop Immediately
+            </div>
+            <div class="tut-card-grid">
+              <div class="tut-card">
+                <span class="card-lead-icon">⚓</span>
+                <h4>Instant Traction Control</h4>
+                <p>Because the floor is virtually frictionless, releasing movement keys will leave you sliding for hundreds of feet. <strong>Holding [SPACE] engages hydraulic floor anchors</strong> (friction: 0.88) to decelerate immediately.</p>
+              </div>
+              <div class="tut-card">
+                <span class="card-lead-icon">🎯</span>
+                <h4>Stationary Repairs</h4>
+                <p>Braking is vital to prevent overshooting destination racks, avoid bouncing off walls, and hold stationary ground during continuous interactions like the 5-second power breaker reboot!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: IT Depot & Upgrades -->
+          <div class="tut-slide" data-step="2">
+            <div class="tut-hero-badge" style="color: #ffaa00; border-color: rgba(255, 170, 0, 0.4);">🛒 SUPPLY CHAIN &amp; PERMANENT POWERUPS</div>
+            <h2 class="tut-slide-title">IT SUPPLY DEPOT // DATA CREDITS (⚡)</h2>
+            <div class="tut-key-row">
+              <span class="key-pill">B</span> : Open Hardware Shop Anywhere &nbsp;|&nbsp; South Station Kiosk
+            </div>
+            <div class="tut-catalog-grid">
+              <div class="catalog-item">
+                <span class="catalog-icon">🥤</span>
+                <div class="catalog-details">
+                  <strong>High-Voltage Energy Drink</strong> (Base: 150 ⚡, +50⚡ per purchase)
+                  <p>Permanently boosts maximum top speed limit by <strong>+35 px/s</strong> per drink with scaled acceleration.</p>
+                </div>
+              </div>
+              <div class="catalog-item">
+                <span class="catalog-icon">🧲</span>
+                <div class="catalog-details">
+                  <strong>Neodymium Floor Magnet</strong> (Base: 150 ⚡, +50⚡ per purchase)
+                  <p>Permanently increases ground friction and floor traction for razor-sharp steering and cornering.</p>
+                </div>
+              </div>
+              <div class="catalog-item">
+                <span class="catalog-icon">🎯</span>
+                <div class="catalog-details">
+                  <strong>Kinetic Cannon Slingshot</strong> (150 ⚡ fixed)
+                  <p>Press <span class="key-pill">F</span> to freeze time, aim dotted trajectory, and fire at <strong>2150 px/s</strong> with air hockey puck wall ricochets!</p>
+                </div>
+              </div>
+              <div class="catalog-item">
+                <span class="catalog-icon">🏗️</span>
+                <div class="catalog-details">
+                  <strong>Enterprise Server Node Chassis</strong> (1000 ⚡ fixed)
+                  <p>Hot-swap replacement chassis to deploy and rebuild an exploded server node back to 100% operational uptime.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: Error 1 - Connect Wire -->
+          <div class="tut-slide" data-step="3">
+            <div class="tut-hero-badge" style="color: var(--accent-crimson); border-color: rgba(255, 42, 85, 0.4);">🔌 INCIDENT TYPE 1 // HARDWARE LINK</div>
+            <h2 class="tut-slide-title">CONNECT WIRE // PATCH CABLE DISCONNECT</h2>
+            <div class="tut-key-row">
+              <span class="indicator-tag red">RED LED BLINKING 🚨</span>
+              <span class="key-pill">E</span> : Grab / Plug Cable &nbsp;|&nbsp; <span class="key-pill">Q</span> : Drop Cable
+            </div>
+            <div class="tut-workflow-steps">
+              <div class="workflow-step">
+                <span class="step-num">1</span>
+                <div><strong>Grab Cable:</strong> Slide close to the failing red server rack and press <span class="key-pill">E</span> to grab the physical patch cable.</div>
+              </div>
+              <div class="workflow-step">
+                <span class="step-num">2</span>
+                <div><strong>Drag Across Aisle:</strong> Drag the trailing cable across warehouse aisles. Follow the on-screen directional radar pointing to the destination server.</div>
+              </div>
+              <div class="workflow-step">
+                <span class="step-num">3</span>
+                <div><strong>Snap &amp; Restore:</strong> Reach the destination server (highlighted with green target ring) and press <span class="key-pill">E</span> to plug in and restore uptime (+60 ⚡)!</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4: Error 2 - Get Code -->
+          <div class="tut-slide" data-step="4">
+            <div class="tut-hero-badge" style="color: var(--accent-amber); border-color: rgba(255, 184, 0, 0.4);">🔑 INCIDENT TYPE 2 // AUTH LOCKOUT</div>
+            <h2 class="tut-slide-title">GET CODE // 4-DIGIT PIN AUTH OVERRIDE</h2>
+            <div class="tut-key-row">
+              <span class="indicator-tag amber">AMBER LED BLINKING ⚠️</span>
+              <span class="key-pill">E</span> : Scan PIN On-Foot &nbsp;|&nbsp; South NOC Console Desk
+            </div>
+            <div class="tut-workflow-steps">
+              <div class="workflow-step">
+                <span class="step-num">1</span>
+                <div><strong>On-Foot Scan:</strong> Slide directly to the failing amber server rack and press <span class="key-pill">E</span> to read and copy its 4-digit PIN into your HUD Coms Clipboard.</div>
+              </div>
+              <div class="workflow-step">
+                <span class="step-num">2</span>
+                <div><strong>Slide to South NOC Desk:</strong> Travel south to the Master Console Station positioned along the warehouse South wall.</div>
+              </div>
+              <div class="workflow-step">
+                <span class="step-num">3</span>
+                <div><strong>Authorize in Terminal:</strong> Press <span class="key-pill">E</span> at the desk, select the locked rack, and type the 4-digit PIN (keypad or keyboard 0-9) to restore uptime (+75 ⚡)!</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 5: Error 3 - Hard Reboot -->
+          <div class="tut-slide" data-step="5">
+            <div class="tut-hero-badge" style="color: var(--accent-cyan); border-color: rgba(0, 243, 255, 0.4);">⚡ INCIDENT TYPE 3 // THERMAL LOCKUP</div>
+            <h2 class="tut-slide-title">REBOOT // 5-SECOND CONTINUOUS BREAKER HOLD</h2>
+            <div class="tut-key-row">
+              <span class="indicator-tag cyan">CYAN LED BLINKING ❄️</span>
+              <span class="key-pill">E</span> : Hold 5.0 Seconds &nbsp;|&nbsp; <span class="key-pill">SPACE</span> : Brake In-Range
+            </div>
+            <div class="tut-workflow-steps">
+              <div class="workflow-step">
+                <span class="step-num">1</span>
+                <div><strong>Proximity Hold:</strong> Slide into close proximity of the frozen cyan server rack and <strong>hold [E] continuously for 5.0 full seconds</strong>.</div>
+              </div>
+              <div class="workflow-step">
+                <span class="step-num">2</span>
+                <div><strong>Counter-Braking:</strong> The data center floor is slippery! Skillfully hold <span class="key-pill">SPACE</span> to brake and prevent your cart from drifting out of range.</div>
+              </div>
+              <div class="workflow-step">
+                <span class="step-num">3</span>
+                <div><strong>Audio Whine &amp; Restart:</strong> An electrical oscillator whines upward (160Hz ➔ 880Hz). Releasing [E] or drifting away discharges progress. Completing awards +70 ⚡!</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 6: 30s Overheat Explosion Warning -->
+          <div class="tut-slide" data-step="6">
+            <div class="tut-hero-badge" style="color: var(--accent-crimson); border-color: rgba(255, 42, 85, 0.4);">💥 CRITICAL HAZARD // SYSTEM CASCADE</div>
+            <h2 class="tut-slide-title">30-SECOND COUNTDOWN &amp; EXPLOSIONS</h2>
+            <div class="tut-key-row">
+              <span class="indicator-tag red">30s TIMEOUT BEFORE DETONATION 💥</span>
+              <span class="key-pill">1000 ⚡</span> : Enterprise Replacement Chassis
+            </div>
+            <div class="tut-card-grid">
+              <div class="tut-card">
+                <span class="card-lead-icon">💣</span>
+                <h4>Catastrophic Explosion</h4>
+                <p>When ANY rack experiences a fault, an internal <strong>30-second thermal countdown</strong> starts. If 30s elapse without resolution, the server explodes in fire and smoke!</p>
+              </div>
+              <div class="tut-card">
+                <span class="card-lead-icon">📉</span>
+                <h4>Permanent Uptime Drag</h4>
+                <p>Exploded servers become charred ruins locked at <strong>0% uptime</strong>, dragging down global warehouse uptime integrity and dividends until replaced with an Enterprise Chassis (1000 ⚡)!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 7: Quantum Teleporter Post-Boss Unique Item -->
+          <div class="tut-slide" data-step="7">
+            <div class="tut-hero-badge" style="color: #e024c3; border-color: rgba(224, 36, 195, 0.4);">🌀 UNIQUE PROTOTYPE // BOSS DEFEAT REWARD</div>
+            <h2 class="tut-slide-title">PERMANENT QUANTUM TELEPORTER LINK</h2>
+            <div class="tut-key-row">
+              <span class="indicator-tag" style="background: rgba(224, 36, 195, 0.15); border: 1px solid #e024c3; color: #ff5ce4;">CORRUPTED BUG BOSS REWARD 👾</span>
+              <span class="key-pill">T</span> : Place Node / Teleport &nbsp;|&nbsp; <span class="key-pill">E</span> : Proximity Warp
+            </div>
+            <div class="tut-card-grid">
+              <div class="tut-card">
+                <span class="card-lead-icon">⚡</span>
+                <h4>Permanent Node Placement</h4>
+                <p>Purging the Corrupted Bug Boss awards the <strong>Quantum Teleporter Kit</strong>. Press <span class="key-pill">T</span> to drop <strong>Node Alpha [α]</strong>, then glide across the warehouse and press <span class="key-pill">T</span> again to anchor <strong>Node Beta [β]</strong> permanently.</p>
+              </div>
+              <div class="tut-card">
+                <span class="card-lead-icon">🌌</span>
+                <h4>Instant Subspace Travel</h4>
+                <p>Once linked, simply <strong>drift onto either pad</strong> (or press <span class="key-pill">T</span> / <span class="key-pill">E</span>) to instantly warp between them! Off-screen radar beacons point to both nodes from anywhere in the warehouse.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tutorial Footer Navigation -->
+        <div class="tutorial-footer">
+          <button type="button" id="btn-tut-prev" class="tut-nav-btn">◀ PREV</button>
+          <div class="tut-progress-dots" id="tut-progress-dots"></div>
+          <button type="button" id="btn-tut-next" class="tut-nav-btn tut-nav-primary">NEXT ▶</button>
+          <button type="button" id="btn-tut-start" class="tut-nav-btn tut-btn-start">START SHIFT ▶</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

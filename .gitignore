@@ -1,0 +1,21 @@
+# Backups
+_backups/
+
+# Build artifacts & executables
+**/Executable/
+**/node_modules/
+**/dist/
+*.asar
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & temp
+*.log
+*.tmp
+
+# IDE / Editor configuration
+.vscode/
+.gemini/

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<head>
+    <link rel="stylesheet" href="Style.css">
+    
+    <title>Towers</title>
+
+</head>
+<body>
+    <div id="variables">Variables failed to load</div>
+    <div id="moneydiv">Money value failed to load</div>
+    <div id="goldcount"></div>
+    <div id="startbutton" onclick="startgame()">start game</div>
+
+    <div id="gamearea">
+        <div id="sellbox" onclick="selectmine('sellbox')">
+            selling area
+        </div>
+
+        <div id="minearea" onclick="Clickgold()">
+            mining area
+            <div id="minebox1" class="mineboxes" onclick="selectmine(1)">minebox1</div>
+            <div id="minebox2" class="mineboxes" onclick="selectmine(2)">minebox2</div>
+            <div id="minebox3" class="mineboxes" onclick="selectmine(3)">minebox3</div>
+        </div>
+
+        <div id="Man1" class="men" onclick="selectman(1)">
+            Slave1
+        </div>
+    </div>
+    
+    <div id="position"></div>
+    
+    
+
+    <script src="script.js"></script>
+</body>
+</html>
