@@ -71,6 +71,11 @@
             <span class="metric-label">DATA CREDITS</span>
             <span class="metric-value" id="credits-val" style="color: #00ff9d; font-size: 1.05rem;">100 ⚡</span>
           </div>
+
+          <div class="metric-card" id="fps-card" title="Press [O] to toggle Turbo Smooth Mode">
+            <span class="metric-label">PERF / FPS</span>
+            <span class="metric-value" id="fps-val" style="color: #00ff9d; font-size: 0.95rem;">60 FPS</span>
+          </div>
         </div>
       </div>
 
@@ -412,12 +417,84 @@
         </div>
 
         <div class="hud-actions">
+          <button type="button" id="btn-open-settings" class="hud-btn" style="color: #00ff9d; border-color: rgba(0, 255, 157, 0.4);" aria-label="Open System Settings">SETTINGS ⚙️</button>
           <button type="button" id="btn-open-tutorial" class="hud-btn" style="color: #00f3ff; border-color: rgba(0, 243, 255, 0.4);" aria-label="Open Operations Manual">MANUAL [H]</button>
           <button type="button" id="btn-open-shop" class="hud-btn" style="color: #ffb800; border-color: rgba(255, 184, 0, 0.4);" aria-label="Open Hardware Shop">SHOP [K]</button>
           <button type="button" id="btn-toggle-pause" class="hud-btn" aria-label="Pause Game">PAUSE [ESC]</button>
         </div>
       </footer>
     </header>
+
+    <!-- Settings Menu Modal -->
+    <div id="settings-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="settings-window">
+        <div class="settings-header">
+          <div class="settings-status-dot"></div>
+          <span id="settings-title" class="settings-title">SYSTEM CONFIGURATION // GRAPHICS &amp; PERFORMANCE</span>
+          <button type="button" id="btn-close-settings" class="settings-close-btn" aria-label="Close Settings">[ESC] EXIT</button>
+        </div>
+
+        <div class="settings-body">
+          <div class="settings-group">
+            <div class="settings-group-header">
+              <span class="settings-group-icon">⚡</span>
+              <span class="settings-group-title">PERFORMANCE &amp; FIDELITY</span>
+            </div>
+
+            <!-- Turbo Smooth Toggle -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Turbo Smooth Mode (School / Laptop Optimized)</div>
+                <div class="setting-desc">Maximizes FPS and fluidity on school laptops and older hardware. Pre-renders floor tiles (1 draw call vs 2,000+), disables heavy blur shaders, and optimizes particle batching.</div>
+              </div>
+              <div class="setting-control">
+                <button type="button" id="setting-toggle-perf" class="cyber-switch" aria-label="Toggle Turbo Smooth Mode">
+                  <span class="switch-knob"></span>
+                  <span class="switch-label">OFF</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Show FPS Counter -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Show Live FPS Meter</div>
+                <div class="setting-desc">Displays a real-time frame rate monitor in the top HUD metric bar.</div>
+              </div>
+              <div class="setting-control">
+                <button type="button" id="setting-toggle-fps" class="cyber-switch active" aria-label="Toggle FPS Meter">
+                  <span class="switch-knob"></span>
+                  <span class="switch-label">ON</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- CRT Scanline Shader -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">CRT Scanline / Vignette Filter</div>
+                <div class="setting-desc">Retro terminal monitor overlay. (Automatically bypassed in Turbo Smooth mode for maximum GPU efficiency).</div>
+              </div>
+              <div class="setting-control">
+                <button type="button" id="setting-toggle-crt" class="cyber-switch active" aria-label="Toggle CRT Filter">
+                  <span class="switch-knob"></span>
+                  <span class="switch-label">ON</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-status-bar">
+            <span class="status-indicator-dot" id="perf-status-dot"></span>
+            <span id="perf-status-text">ACTIVE PROFILE: 💎 ULTRA GRAPHICS</span>
+          </div>
+
+          <div class="settings-actions">
+            <button type="button" id="btn-save-settings" class="menu-btn menu-btn-primary">APPLY &amp; RETURN [ESC]</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Pause Menu Modal -->
     <div id="pause-modal" class="pause-modal hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title">
@@ -430,6 +507,7 @@
           <p class="pause-desc">All warehouse clocks, thermal countdowns, and cart physics halted.</p>
           <div class="pause-actions">
             <button type="button" id="btn-pause-resume" class="menu-btn menu-btn-primary">RESUME SHIFT [ESC]</button>
+            <button type="button" id="btn-pause-settings" class="menu-btn menu-btn-secondary" style="border-color: rgba(0, 255, 157, 0.6); color: #00ff9d;">⚙️ SYSTEM SETTINGS</button>
             <button type="button" id="btn-pause-tutorial" class="menu-btn menu-btn-secondary">OPERATIONS MANUAL [H]</button>
             <button type="button" id="btn-pause-menu" class="menu-btn menu-btn-danger">RETURN TO MAIN MENU</button>
           </div>
@@ -449,6 +527,9 @@
         <div class="menu-actions">
           <button type="button" id="btn-menu-play" class="menu-btn menu-btn-primary">
             <span class="btn-text">▶ START SHIFT [PLAY]</span>
+          </button>
+          <button type="button" id="btn-menu-settings" class="menu-btn menu-btn-secondary" style="border-color: rgba(0, 255, 157, 0.6); color: #00ff9d;">
+            <span class="btn-text">⚙️ SYSTEM SETTINGS</span>
           </button>
           <button type="button" id="btn-menu-tutorial" class="menu-btn menu-btn-secondary">
             <span class="btn-text">📖 OPERATIONS MANUAL [TUTORIAL]</span>

@@ -1258,15 +1258,25 @@ class ParticleSystem {
     }
   }
 
-  render(ctx, cam) {
-    for (const p of this.particles) {
-      if (!cam.isBoundingBoxVisible(p.x - 5, p.y - 5, 10, 10)) continue;
-      const screenPos = cam.toScreen(p.x, p.y);
-      ctx.fillStyle = p.color;
-      ctx.globalAlpha = Math.max(0, p.life);
-      ctx.beginPath();
-      ctx.arc(screenPos.x, screenPos.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
+  render(ctx, cam, isOptimized = false) {
+    if (isOptimized) {
+      for (const p of this.particles) {
+        if (!cam.isBoundingBoxVisible(p.x - 5, p.y - 5, 10, 10)) continue;
+        const screenPos = cam.toScreen(p.x, p.y);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillRect(screenPos.x - p.size, screenPos.y - p.size, p.size * 2, p.size * 2);
+      }
+    } else {
+      for (const p of this.particles) {
+        if (!cam.isBoundingBoxVisible(p.x - 5, p.y - 5, 10, 10)) continue;
+        const screenPos = cam.toScreen(p.x, p.y);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.beginPath();
+        ctx.arc(screenPos.x, screenPos.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     ctx.globalAlpha = 1.0;
   }
@@ -5263,6 +5273,34 @@ class Game {
     this.sound = new SoundFX();
     this.particles = new ParticleSystem();
 
+    // System Settings & Performance Configuration
+    this.settingsModal = document.getElementById('settings-modal');
+    this.btnOpenSettings = document.getElementById('btn-open-settings');
+    this.btnCloseSettings = document.getElementById('btn-close-settings');
+    this.btnSaveSettings = document.getElementById('btn-save-settings');
+    this.btnPauseSettings = document.getElementById('btn-pause-settings');
+    this.btnMenuSettings = document.getElementById('btn-menu-settings');
+    this.settingTogglePerf = document.getElementById('setting-toggle-perf');
+    this.settingToggleFps = document.getElementById('setting-toggle-fps');
+    this.settingToggleCrt = document.getElementById('setting-toggle-crt');
+    this.perfStatusDot = document.getElementById('perf-status-dot');
+    this.perfStatusText = document.getElementById('perf-status-text');
+    this.fpsCard = document.getElementById('fps-card');
+    this.fpsVal = document.getElementById('fps-val');
+    this.crtOverlay = document.querySelector('.crt-overlay');
+
+    this.isSettingsOpen = false;
+    this.isOptimizedMode = localStorage.getItem('cabled_in_perf_mode') === 'true';
+    this.showFpsMeter = localStorage.getItem('cabled_in_show_fps') !== 'false';
+    this.crtFilterEnabled = localStorage.getItem('cabled_in_crt_filter') !== 'false';
+
+    this.fpsFrames = 0;
+    this.fpsLastTime = performance.now();
+    this.currentFps = 60;
+    this.lowFpsStreak = 0;
+    this.hasWarnedLowFps = false;
+    this.floorPattern = null;
+
     this.isPaused = false;
     this.isTerminalOpen = false;
     this.isShopOpen = false;
@@ -5351,6 +5389,7 @@ class Game {
     this.initShopModal();
     this.initSuppliesModal();
     this.initMenuAndTutorial();
+    this.applySettings(false);
     this.resizeCanvas();
     this.updateCreditsUI();
     this.updateBuffDisplay();
@@ -6520,6 +6559,34 @@ class Game {
       this.returnToMainMenu();
     });
 
+    // Settings modal buttons & triggers
+    document.getElementById('btn-open-settings')?.addEventListener('click', () => {
+      this.sound.init();
+      this.openSettings();
+    });
+    document.getElementById('btn-pause-settings')?.addEventListener('click', () => {
+      this.openSettings();
+    });
+    document.getElementById('btn-menu-settings')?.addEventListener('click', () => {
+      this.sound.init();
+      this.openSettings();
+    });
+    document.getElementById('btn-close-settings')?.addEventListener('click', () => {
+      this.closeSettings();
+    });
+    document.getElementById('btn-save-settings')?.addEventListener('click', () => {
+      this.closeSettings();
+    });
+    this.settingTogglePerf?.addEventListener('click', () => {
+      this.toggleOptimizedMode();
+    });
+    this.settingToggleFps?.addEventListener('click', () => {
+      this.toggleFpsMeter();
+    });
+    this.settingToggleCrt?.addEventListener('click', () => {
+      this.toggleCrtFilter();
+    });
+
     // Tab buttons
     document.querySelectorAll('.tut-tab[data-step]').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -6602,6 +6669,132 @@ class Game {
   closeTutorial() {
     this.isTutorialOpen = false;
     this.tutorialModal?.classList.add('hidden');
+  }
+
+  // ==========================================================================
+  // System Settings & Performance Configuration
+  // ==========================================================================
+  openSettings() {
+    this.isSettingsOpen = true;
+    this.settingsModal?.classList.remove('hidden');
+    this.updateSettingsUI();
+  }
+
+  closeSettings() {
+    this.isSettingsOpen = false;
+    this.settingsModal?.classList.add('hidden');
+  }
+
+  toggleOptimizedMode() {
+    this.isOptimizedMode = !this.isOptimizedMode;
+    localStorage.setItem('cabled_in_perf_mode', this.isOptimizedMode ? 'true' : 'false');
+    this.applySettings(true);
+  }
+
+  toggleFpsMeter() {
+    this.showFpsMeter = !this.showFpsMeter;
+    localStorage.setItem('cabled_in_show_fps', this.showFpsMeter ? 'true' : 'false');
+    this.applySettings(false);
+  }
+
+  toggleCrtFilter() {
+    this.crtFilterEnabled = !this.crtFilterEnabled;
+    localStorage.setItem('cabled_in_crt_filter', this.crtFilterEnabled ? 'true' : 'false');
+    this.applySettings(false);
+  }
+
+  applySettings(showToast = false) {
+    if (this.isOptimizedMode) {
+      document.body.classList.add('perf-optimized');
+    } else {
+      document.body.classList.remove('perf-optimized');
+    }
+
+    if (this.fpsCard) {
+      this.fpsCard.style.display = this.showFpsMeter ? 'flex' : 'none';
+    }
+
+    if (this.crtOverlay) {
+      if (this.isOptimizedMode || !this.crtFilterEnabled) {
+        this.crtOverlay.style.display = 'none';
+      } else {
+        this.crtOverlay.style.display = 'block';
+      }
+    }
+
+    this.updateSettingsUI();
+    this.resizeCanvas();
+
+    if (showToast) {
+      if (this.isOptimizedMode) {
+        this.showTemporaryToast('⚡ TURBO SMOOTH MODE ACTIVE: 60 FPS profile applied!', '🚀');
+      } else {
+        this.showTemporaryToast('💎 ULTRA GRAPHICS PROFILE RESTORED', '✨');
+      }
+    }
+  }
+
+  updateSettingsUI() {
+    if (this.settingTogglePerf) {
+      this.settingTogglePerf.classList.toggle('active', this.isOptimizedMode);
+      const lbl = this.settingTogglePerf.querySelector('.switch-label');
+      if (lbl) lbl.textContent = this.isOptimizedMode ? 'ON' : 'OFF';
+    }
+
+    if (this.settingToggleFps) {
+      this.settingToggleFps.classList.toggle('active', this.showFpsMeter);
+      const lbl = this.settingToggleFps.querySelector('.switch-label');
+      if (lbl) lbl.textContent = this.showFpsMeter ? 'ON' : 'OFF';
+    }
+
+    if (this.settingToggleCrt) {
+      const active = this.crtFilterEnabled && !this.isOptimizedMode;
+      this.settingToggleCrt.classList.toggle('active', active);
+      const lbl = this.settingToggleCrt.querySelector('.switch-label');
+      if (lbl) lbl.textContent = active ? 'ON' : (this.isOptimizedMode ? 'BYPASS' : 'OFF');
+    }
+
+    if (this.perfStatusDot) {
+      this.perfStatusDot.classList.toggle('active-perf', this.isOptimizedMode);
+    }
+    if (this.perfStatusText) {
+      this.perfStatusText.textContent = this.isOptimizedMode
+        ? 'ACTIVE PROFILE: ⚡ TURBO SMOOTH (60 FPS / Low GPU Load)'
+        : 'ACTIVE PROFILE: 💎 ULTRA FIDELITY (High Resolution)';
+      this.perfStatusText.style.color = this.isOptimizedMode ? '#00ff9d' : '#00f3ff';
+    }
+  }
+
+  createFloorPattern() {
+    try {
+      const tileSize = CONFIG.WORLD.TILE_SIZE; // 64
+      const patternCanvas = document.createElement('canvas');
+      patternCanvas.width = tileSize * 2;
+      patternCanvas.height = tileSize * 2;
+      const pCtx = patternCanvas.getContext('2d');
+      if (!pCtx) return null;
+
+      // 2x2 grid pattern (alternating light / dark tiles)
+      pCtx.fillStyle = CONFIG.COLORS.BG_TILE_LIGHT;
+      pCtx.fillRect(0, 0, tileSize, tileSize);
+      pCtx.fillRect(tileSize, tileSize, tileSize, tileSize);
+
+      pCtx.fillStyle = CONFIG.COLORS.BG_TILE_DARK;
+      pCtx.fillRect(tileSize, 0, tileSize, tileSize);
+      pCtx.fillRect(0, tileSize, tileSize, tileSize);
+
+      // Clean grid lines
+      pCtx.strokeStyle = CONFIG.COLORS.GRID_LINE;
+      pCtx.lineWidth = 1;
+      pCtx.strokeRect(0.5, 0.5, tileSize * 2 - 1, tileSize * 2 - 1);
+      pCtx.strokeRect(0.5, 0.5, tileSize - 1, tileSize - 1);
+      pCtx.strokeRect(tileSize + 0.5, tileSize + 0.5, tileSize - 1, tileSize - 1);
+
+      return this.ctx.createPattern(patternCanvas, 'repeat');
+    } catch (e) {
+      console.warn('Could not create floor pattern:', e);
+      return null;
+    }
   }
 
   startGame() {
@@ -7337,6 +7530,13 @@ class Game {
     window.addEventListener('keydown', (e) => {
       this.sound.init();
 
+      if (this.isSettingsOpen) {
+        if (e.code === 'Escape') {
+          this.closeSettings();
+        }
+        return;
+      }
+
       // Tutorial navigation & toggle
       if (e.code === 'KeyH') {
         if (this.isTutorialOpen) this.closeTutorial();
@@ -7735,20 +7935,21 @@ class Game {
   }
 
   resizeCanvas() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = this.isOptimizedMode ? 1.0 : Math.min(window.devicePixelRatio || 1, 2.0);
     this.viewportWidth = window.innerWidth;
     this.viewportHeight = window.innerHeight;
 
-    this.canvas.width = this.viewportWidth * dpr;
-    this.canvas.height = this.viewportHeight * dpr;
+    this.canvas.width = Math.floor(this.viewportWidth * dpr);
+    this.canvas.height = Math.floor(this.viewportHeight * dpr);
     this.ctx.resetTransform();
     this.ctx.scale(dpr, dpr);
 
     this.camera.resize(this.viewportWidth, this.viewportHeight);
+    this.floorPattern = this.createFloorPattern();
   }
 
   togglePause() {
-    if (this.gameState === 'MENU' || this.isTerminalOpen || this.isShopOpen || this.isTutorialOpen) return;
+    if (this.gameState === 'MENU' || this.isTerminalOpen || this.isShopOpen || this.isTutorialOpen || this.isSettingsOpen) return;
     this.isPaused = !this.isPaused;
     if (this.isPaused) {
       this.gameState = 'PAUSED';
@@ -8834,7 +9035,7 @@ class Game {
     }
 
     // 6. Particle Sparks & Explosions
-    this.particles.render(ctx, cam);
+    this.particles.render(ctx, cam, this.isOptimizedMode);
 
     // Active Boss (Corrupted Bug, Thermal Golem, Spectral Daemon, Titan Colossus, or Procedural Apex)
     const activeBoss = this.activeBoss || this.bugBoss;
@@ -8887,24 +9088,42 @@ class Game {
   }
 
   renderFloorGrid(ctx, cam) {
-    const tileSize = CONFIG.WORLD.TILE_SIZE;
-    const startCol = Math.max(0, Math.floor((cam.x - cam.viewportWidth / 2) / tileSize));
-    const endCol = Math.min(CONFIG.WORLD.WIDTH / tileSize, Math.ceil((cam.x + cam.viewportWidth / 2) / tileSize));
-    const startRow = Math.max(0, Math.floor((cam.y - cam.viewportHeight / 2) / tileSize));
-    const endRow = Math.min(CONFIG.WORLD.HEIGHT / tileSize, Math.ceil((cam.y + cam.viewportHeight / 2) / tileSize));
+    if (!this.floorPattern) {
+      this.floorPattern = this.createFloorPattern();
+    }
 
-    for (let c = startCol; c < endCol; c++) {
-      for (let r = startRow; r < endRow; r++) {
-        const worldX = c * tileSize;
-        const worldY = r * tileSize;
-        const screenPos = cam.toScreen(worldX, worldY);
+    if (this.floorPattern) {
+      const patternSize = CONFIG.WORLD.TILE_SIZE * 2; // 128
+      const left = cam.x - cam.viewportWidth / 2;
+      const top = cam.y - cam.viewportHeight / 2;
+      const offsetX = -((left % patternSize) + patternSize) % patternSize;
+      const offsetY = -((top % patternSize) + patternSize) % patternSize;
 
-        ctx.fillStyle = (c + r) % 2 === 0 ? CONFIG.COLORS.BG_TILE_LIGHT : CONFIG.COLORS.BG_TILE_DARK;
-        ctx.fillRect(screenPos.x, screenPos.y, tileSize, tileSize);
+      ctx.save();
+      ctx.translate(offsetX, offsetY);
+      ctx.fillStyle = this.floorPattern;
+      ctx.fillRect(-patternSize, -patternSize, this.viewportWidth + patternSize * 2, this.viewportHeight + patternSize * 2);
+      ctx.restore();
+    } else {
+      const tileSize = CONFIG.WORLD.TILE_SIZE;
+      const startCol = Math.max(0, Math.floor((cam.x - cam.viewportWidth / 2) / tileSize));
+      const endCol = Math.min(CONFIG.WORLD.WIDTH / tileSize, Math.ceil((cam.x + cam.viewportWidth / 2) / tileSize));
+      const startRow = Math.max(0, Math.floor((cam.y - cam.viewportHeight / 2) / tileSize));
+      const endRow = Math.min(CONFIG.WORLD.HEIGHT / tileSize, Math.ceil((cam.y + cam.viewportHeight / 2) / tileSize));
 
-        ctx.strokeStyle = CONFIG.COLORS.GRID_LINE;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(screenPos.x, screenPos.y, tileSize, tileSize);
+      for (let c = startCol; c < endCol; c++) {
+        for (let r = startRow; r < endRow; r++) {
+          const worldX = c * tileSize;
+          const worldY = r * tileSize;
+          const screenPos = cam.toScreen(worldX, worldY);
+
+          ctx.fillStyle = (c + r) % 2 === 0 ? CONFIG.COLORS.BG_TILE_LIGHT : CONFIG.COLORS.BG_TILE_DARK;
+          ctx.fillRect(screenPos.x, screenPos.y, tileSize, tileSize);
+
+          ctx.strokeStyle = CONFIG.COLORS.GRID_LINE;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(screenPos.x, screenPos.y, tileSize, tileSize);
+        }
       }
     }
   }
@@ -9617,11 +9836,42 @@ class Game {
   // Main Animation Loop
   // ==========================================================================
   loop(currentTime) {
+    this.fpsFrames++;
+    if (currentTime - this.fpsLastTime >= 500) {
+      this.currentFps = Math.round((this.fpsFrames * 1000) / (currentTime - this.fpsLastTime));
+      this.fpsFrames = 0;
+      this.fpsLastTime = currentTime;
+      if (this.fpsVal) {
+        this.fpsVal.textContent = `${this.currentFps} FPS`;
+        if (this.currentFps >= 50) this.fpsVal.style.color = '#00ff9d';
+        else if (this.currentFps >= 30) this.fpsVal.style.color = '#ffb800';
+        else this.fpsVal.style.color = '#ff2a55';
+      }
+
+      // Auto-suggest Turbo Smooth Mode in Settings if persistent low FPS detected
+      if (!this.isOptimizedMode && !this.hasWarnedLowFps && this.currentFps < 35 && this.gameState === 'PLAYING') {
+        this.lowFpsStreak++;
+        if (this.lowFpsStreak >= 4) {
+          this.hasWarnedLowFps = true;
+          this.showTemporaryToast('⚡ Low FPS detected! Enable Turbo Smooth Mode in Settings ⚙️ for 60 FPS.', '💡');
+        }
+      } else if (this.currentFps >= 45) {
+        this.lowFpsStreak = 0;
+      }
+    }
+
     const dt = Math.min((currentTime - this.lastTime) / 1000, 0.1);
     this.lastTime = currentTime;
 
     try {
-      this.update(dt);
+      // Fixed sub-stepping: split larger frame delays to avoid collision tunnels or drift jerkiness
+      const maxSubStep = 1 / 60;
+      let remaining = dt;
+      while (remaining > 0) {
+        const step = Math.min(remaining, maxSubStep);
+        this.update(step);
+        remaining -= step;
+      }
       this.render();
     } catch (err) {
       console.error('Game loop error:', err);
