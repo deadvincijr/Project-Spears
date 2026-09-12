@@ -46,3 +46,13 @@ Open PowerShell in this directory (`c:\ShellyPrograms\Project Spears`) and run:
 5. **No-Git Fallback**:
    - If Git is not installed on a computer, the script automatically falls back to downloading and extracting GitHub's ZIP archive.
 
+---
+
+## Troubleshooting & FAQ
+
+* **Q: Does this work if I have local edits or unsaved files?**
+  * Yes! The script automatically creates a timestamped safety backup in `_backups/` before synchronizing, so your edits are always safe and will never trigger merge conflict errors.
+* **Q: Why does the Git Graph update immediately?**
+  * The updater uses native Git fast-forward synchronization with `origin/main`, ensuring that VS Code, Antigravity IDE, and all Git visualization tools reflect the new commits instantly.
+
+
