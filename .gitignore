@@ -19,3 +19,6 @@ desktop.ini
 # IDE / Editor configuration
 .vscode/
 .gemini/
+
+# Obsolete duplicate folders removed from repo
+/Project Spears/

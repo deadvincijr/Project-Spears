@@ -31,11 +31,18 @@ Open PowerShell in this directory (`c:\ShellyPrograms\Project Spears`) and run:
 
 ---
 
-## Safety Features
+## Safety & Automation Features
 
-1. **Automatic Local Backups**:
-   - Any local file that has been modified locally will be safely archived into `_backups\backup_YYYYMMDD_HHMMSS\` before being updated with the GitHub version.
-2. **Git & Config Protection**:
-   - Local `.git` repositories, `.vscode`, `.gemini`, `_backups`, and the updater scripts themselves are protected and never overwritten or deleted.
-3. **No-Git Fallback**:
+1. **Zero-Conflict Automated Sync**:
+   - Automatically synchronizes your working files and your local **Git Graph** immediately to the latest commit on `origin/main`.
+   - Never requires manual Git or PowerShell commands.
+2. **Automatic Local Backups**:
+   - If any files were modified or untracked locally, they are safely archived into `_backups\backup_YYYYMMDD_HHMMSS\` before syncing so no work is ever lost.
+3. **Local Commit & Branch Protection**:
+   - If you committed changes locally that are ahead of GitHub, they are automatically preserved in a timestamped backup branch (`backup/local_main_YYYYMMDD_HHMMSS`).
+4. **Self-Healing Git Locks & Cleanup**:
+   - Automatically clears stale `.git/*.lock` files left by crashed processes.
+   - Automatically cleans up obsolete or duplicate folders (such as older nested `Project Spears/` directories).
+5. **No-Git Fallback**:
    - If Git is not installed on a computer, the script automatically falls back to downloading and extracting GitHub's ZIP archive.
+
