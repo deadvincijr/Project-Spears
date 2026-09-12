@@ -2011,9 +2011,16 @@ body.perf-optimized * {
   -webkit-backdrop-filter: none !important;
 }
 
-/* 3. Crisp, opaque high-contrast dark cyberpunk styling for panels */
-body.perf-optimized .hud-layer,
+/* 3. Ensure fullscreen HUD layer remains completely transparent so canvas stays visible */
+body.perf-optimized .hud-layer {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 4. Crisp, opaque high-contrast dark cyberpunk styling for panels and cards */
 body.perf-optimized .metric-card,
+body.perf-optimized .controls-hint,
 body.perf-optimized .terminal-window,
 body.perf-optimized .shop-window,
 body.perf-optimized .supplies-window,
