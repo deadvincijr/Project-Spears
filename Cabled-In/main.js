@@ -8157,13 +8157,28 @@ class Game {
     const nearRack = this.getNearestRack();
     if (!nearRack) return;
 
-    // Boss Host Rack Guidance
+    // Boss Host Rack Guidance & Emergency Restraint Anchor
     if (nearRack.isBossHost || nearRack === this.bossHostRack) {
       const boss = this.activeBoss || this.bugBoss;
       if (boss && boss.isAlive) {
         if (boss instanceof BugBoss) {
-          this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE HEAVY ROPE FROM THE SOUTH SUPPLIES CLOSET!', '🪢');
-          return;
+          if (!(this.activeCable instanceof RestraintRope)) {
+            if (this.activeCable) this.dropActiveCable();
+            this.activeCable = new RestraintRope(nearRack, boss);
+            this.sound.playCabinetOpen();
+            this.sound.playGrab();
+            this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 45, '#f59e0b');
+            this.showTemporaryToast(`🪢 HEAVY RESTRAINT ROPE ANCHORED AT ${nearRack.id}! CIRCLE BUG BOSS TO WRAP IT!`, '🪢');
+            this.updateObjectiveUI();
+            this.updateBossHUD();
+            return;
+          } else if (nearRack.id === this.activeCable.sourceRack?.id) {
+            this.dropActiveCable();
+            return;
+          } else {
+            this.showTemporaryToast('⚠️ RESTRAINT ROPE ALREADY IN HAND! CIRCLE THE BUG BOSS!', '🪢');
+            return;
+          }
         } else if (boss instanceof ThermalGolemBoss) {
           this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE CRYO CANISTER FROM THE SOUTH SUPPLIES CLOSET!', '❄️');
           return;
@@ -8173,11 +8188,22 @@ class Game {
         } else if (boss instanceof TitanColossusBoss) {
           this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE SCRAM LIMPETS FROM THE SOUTH SUPPLIES CLOSET!', '💣');
           return;
-        } else if (!this.activeCable) {
-          this.activeCable = new ContainmentWire(this.suppliesCloset || nearRack, boss);
-          this.sound.playGrab();
-          this.showTemporaryToast(`👑 ${boss.restraintName} GRABBED! CIRCLE THE ANOMALY!`);
-          return;
+        } else {
+          // Wave 5+ Procedural Apex
+          if (!(this.activeCable instanceof ContainmentWire)) {
+            if (this.activeCable) this.dropActiveCable();
+            this.activeCable = new ContainmentWire(nearRack, boss);
+            this.sound.playCabinetOpen();
+            this.sound.playGrab();
+            this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 45, '#00ff9d');
+            this.showTemporaryToast(`👑 ${boss.restraintName} ANCHORED AT ${nearRack.id}! CIRCLE THE ANOMALY!`, '👑');
+            this.updateObjectiveUI();
+            this.updateBossHUD();
+            return;
+          } else if (nearRack.id === this.activeCable.sourceRack?.id) {
+            this.dropActiveCable();
+            return;
+          }
         }
       }
     }
@@ -9425,8 +9451,22 @@ class Game {
     // Boss host rack containment wire prompt
     const activeBoss = this.activeBoss || this.bugBoss;
     if (activeBoss && activeBoss.isAlive && (rack.isBossHost || rack === this.bossHostRack) && !this.activeCable) {
-      label = `[E] GRAB ${activeBoss.restraintName?.toUpperCase() || 'CONTAINMENT WIRE'}`;
-      badgeColor = activeBoss.restraintColor || '#00ff9d';
+      if (activeBoss instanceof BugBoss) {
+        label = `[E] GRAB HEAVY ROPE`;
+        badgeColor = '#f59e0b';
+      } else if (activeBoss instanceof ThermalGolemBoss) {
+        label = `⚠️ EMERGENCE POINT ➔ GET CRYO AT SUPPLIES CLOSET`;
+        badgeColor = '#00f3ff';
+      } else if (activeBoss instanceof SpectralDaemonBoss) {
+        label = `⚠️ EMERGENCE POINT ➔ GET PYLONS AT SUPPLIES CLOSET`;
+        badgeColor = '#c084fc';
+      } else if (activeBoss instanceof TitanColossusBoss) {
+        label = `⚠️ EMERGENCE POINT ➔ GET LIMPETS AT SUPPLIES CLOSET`;
+        badgeColor = '#ffaa00';
+      } else {
+        label = `[E] GRAB ${activeBoss.restraintName?.toUpperCase() || 'CONTAINMENT WIRE'}`;
+        badgeColor = activeBoss.restraintColor || '#00ff9d';
+      }
     } else if (rack.isDestroyed) {
       const cost = CONFIG.ERRORS.REPLACEMENT_COST ?? 1000;
       if (this.credits >= cost) {
@@ -9447,14 +9487,14 @@ class Game {
           badgeColor = '#8899ac';
         }
       } else {
-        const isContainmentWire = activeBoss?.isAlive && (this.activeCable.sourceRack === this.bossHostRack || this.activeCable.sourceRack?.isBossHost);
+        const isContainmentWire = activeBoss?.isAlive && (this.activeCable instanceof ContainmentWire);
         if (isContainmentWire) {
-          if (rack.id === this.activeCable.sourceRack.id) {
-            label = `[E] DROP ${activeBoss.restraintName?.toUpperCase() || 'CONTAINMENT WIRE'}`;
+          if (rack.id === this.activeCable.sourceRack?.id) {
+            label = `[E] DROP / REEL IN ${activeBoss.restraintName?.toUpperCase() || 'ROPE'}`;
             badgeColor = '#8899ac';
           } else {
-            label = `WRAP ${activeBoss.restraintName?.toUpperCase() || 'WIRE'} AROUND ${activeBoss.name?.toUpperCase() || 'BOSS'}!`;
-            badgeColor = activeBoss.restraintColor || '#00ff9d';
+            label = `WRAP ${activeBoss.restraintName?.toUpperCase() || 'ROPE'} AROUND ${activeBoss.name?.toUpperCase() || 'BOSS'}!`;
+            badgeColor = activeBoss.restraintColor || '#f59e0b';
           }
         } else {
           const isTarget = this.activeCable.targetRack?.id === rack.id;
@@ -9851,7 +9891,7 @@ class Game {
       let label = 'TARGET';
 
       const activeBoss = this.activeBoss || this.bugBoss;
-      const isContainmentWire = activeBoss?.isAlive && (this.activeCable.sourceRack === this.bossHostRack || this.activeCable.sourceRack?.isBossHost);
+      const isContainmentWire = activeBoss?.isAlive && (this.activeCable instanceof ContainmentWire);
 
       if (isContainmentWire) {
         // Active containment wire is meant for the boss; section 4 points directly to the active boss!
@@ -9897,13 +9937,15 @@ class Game {
     }
 
     // 5. Boss Host Rack Restraint Hook Beacon (if wire not yet grabbed)
-    if (this.bossHostRack && activeBoss?.isAlive && !this.activeCable && !cam.isBoundingBoxVisible(this.bossHostRack.x, this.bossHostRack.y, this.bossHostRack.width, this.bossHostRack.height)) {
-      drawIndicator(
-        this.bossHostRack.x + this.bossHostRack.width / 2,
-        this.bossHostRack.y + this.bossHostRack.height / 2,
-        activeBoss.restraintColor || '#00ff9d',
-        `🔌 ${activeBoss.restraintName?.toUpperCase() || 'WIRE'}: ${this.bossHostRack.id}`
-      );
+    if (this.bossHostRack && activeBoss?.isAlive && !this.activeCable && !(activeBoss instanceof ThermalGolemBoss || activeBoss instanceof SpectralDaemonBoss || activeBoss instanceof TitanColossusBoss)) {
+      if (!cam.isBoundingBoxVisible(this.bossHostRack.x, this.bossHostRack.y, this.bossHostRack.width, this.bossHostRack.height)) {
+        drawIndicator(
+          this.bossHostRack.x + this.bossHostRack.width / 2,
+          this.bossHostRack.y + this.bossHostRack.height / 2,
+          activeBoss.restraintColor || '#f59e0b',
+          `🪢 HEAVY ROPE ANCHOR: ${this.bossHostRack.id}`
+        );
+      }
     }
 
     // 5b. Offscreen Supplies Closet Beacon (when boss is alive and gear is needed)
