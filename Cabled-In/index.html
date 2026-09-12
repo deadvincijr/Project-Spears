@@ -33,6 +33,30 @@
             <span class="hud-badge" id="system-status">SYS.ACTV // SECTOR 07</span>
             <span class="hud-badge threat-badge" id="threat-level-badge">DEFCON 5 // STABLE</span>
           </div>
+        <!-- Corrupted Bug Boss Active Encounter Banner (Compact Top Bar Integration) -->
+        <div id="boss-hud-banner" class="boss-hud-banner hidden" role="region" aria-label="Boss Threat">
+          <div class="boss-banner-header">
+            <span class="boss-banner-icon">👾</span>
+            <div class="boss-title-col">
+              <span class="boss-banner-title">DEFCON 1 // BUG BOSS</span>
+              <span class="boss-banner-status" id="boss-status-text">HOSTILE BREACH // GET ROPE AT SUPPLIES CLOSET!</span>
+            </div>
+          </div>
+          <div class="boss-hud-meters">
+            <div class="boss-meter-wrapper">
+              <span class="boss-meter-label">STABILITY</span>
+              <div class="boss-hp-bar">
+                <div class="boss-hp-fill" id="boss-hp-fill" style="width: 100%;"></div>
+              </div>
+            </div>
+            <div class="boss-meter-wrapper">
+              <span class="boss-meter-label" id="boss-restraint-label">RESTRAINT COILS</span>
+              <div class="boss-coils-row">
+                <div class="boss-coils-track" id="boss-coils-track"></div>
+                <span class="boss-coils-count" id="boss-coils-count">0 / 4</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="hud-metrics">
@@ -79,27 +103,7 @@
         </div>
       </div>
 
-      <!-- Corrupted Bug Boss Active Encounter Banner -->
-      <div id="boss-hud-banner" class="boss-hud-banner hidden" role="region" aria-label="Boss Threat">
-        <div class="boss-banner-header">
-          <span class="boss-banner-icon">👾</span>
-          <span class="boss-banner-title">DEFCON 1 ANOMALY // CORRUPTED BUG BOSS</span>
-          <span class="boss-banner-status" id="boss-status-text">HOSTILE BREACH // RESTRAIN WITH WIRE!</span>
-        </div>
-        <div class="boss-hud-meters">
-          <div class="boss-meter-wrapper">
-            <span class="boss-meter-label">BOSS STABILITY</span>
-            <div class="boss-hp-bar">
-              <div class="boss-hp-fill" id="boss-hp-fill" style="width: 100%;"></div>
-            </div>
-          </div>
-          <div class="boss-meter-wrapper">
-            <span class="boss-meter-label">RESTRAINT COILS</span>
-            <div class="boss-coils-track" id="boss-coils-track"></div>
-            <span class="boss-coils-count" id="boss-coils-count">0 / 4 WRAPS</span>
-          </div>
-        </div>
-      </div>
+
 
       <!-- Active Powerups Buff Badges -->
       <div id="active-buffs-container" class="active-buffs-container"></div>
@@ -386,29 +390,7 @@
 
       <!-- Bottom Status & Controls Bar -->
       <footer class="hud-bottom-bar">
-        <div class="controls-hint">
-          <span class="key-pill">W</span><span class="key-pill">A</span><span class="key-pill">S</span><span class="key-pill">D</span> : Slide &amp; Drift
-          <span class="separator">|</span>
-          <span class="key-pill">SPACE</span> : Brake
-          <span class="separator">|</span>
-          <span class="key-pill">SHIFT</span> : Boost / Dash
-          <span class="separator">|</span>
-          <span class="key-pill">V</span> : EMP Pulse
-          <span class="separator">|</span>
-          <span class="key-pill">E</span> : Interact / Wire / Reboot
-          <span class="separator">|</span>
-          <span class="key-pill">F</span> : Cannon Slingshot
-          <span class="separator">|</span>
-          <span class="key-pill">T</span> : Teleport
-          <span class="separator">|</span>
-          <span class="key-pill">B</span> : Next Boss (Dev)
-          <span class="separator">|</span>
-          <span class="key-pill">N</span> : Rogue Bug (Dev)
-          <span class="separator">|</span>
-          <span class="key-pill">K</span> : Shop
-          <span class="separator">|</span>
-          <span class="key-pill">Q</span> : Drop Cable
-        </div>
+
 
         <!-- In-game Notification Toast (Between Drop Cable and Shop Area) -->
         <div id="notification-toast" class="notification-toast hidden" role="status" aria-live="polite">
@@ -817,6 +799,6 @@
     </div>
   </div>
 
-  <script src="main.js"></script>
+  <script src="main.js?v=20260912_closet_only_compact"></script>
 </body>
 </html>

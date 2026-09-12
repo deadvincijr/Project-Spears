@@ -3218,6 +3218,20 @@ class BugBoss {
         }
       }
 
+      // Collide with server racks during high-speed lunge
+      for (const rack of game.racks) {
+        if (!rack.isDestroyed && !rack.isFailing && rack !== this.hostRack) {
+          const clampX = Math.max(rack.x, Math.min(this.x, rack.x + rack.width));
+          const clampY = Math.max(rack.y, Math.min(this.y, rack.y + rack.height));
+          const dist = Math.hypot(this.x - clampX, this.y - clampY);
+          if (dist < this.radius + 8) {
+            game.triggerRackCrashFault(rack);
+            game.camera.shake(12, 0.3);
+            game.showTemporaryToast(`💥 BUG BOSS RAMMED INTO ${rack.id}! HARDWARE DAMAGE DETECTED!`, '💥');
+          }
+        }
+      }
+
       if (this.stateTimer <= 0) {
         this.state = 'STALK';
         this.lungeCooldown = 4.5 + Math.random() * 2.5;
@@ -5685,6 +5699,22 @@ class Game {
     }
   }
 
+  triggerRackCrashFault(sourceRack) {
+    if (!sourceRack || sourceRack.isDestroyed || sourceRack.isFailing || sourceRack === this.bossHostRack) return;
+    const candidates = this.racks.filter(r => {
+      if (r.id === sourceRack.id || r.isFailing || r.isDestroyed || r.isTargetDestination || r === this.bossHostRack) return false;
+      const d = Math.hypot(r.x - sourceRack.x, r.y - sourceRack.y);
+      return d >= (CONFIG.ERRORS.MIN_LINK_DISTANCE ?? 200) && d <= (CONFIG.ERRORS.MAX_LINK_DISTANCE ?? 1400);
+    });
+    if (candidates.length === 0) return;
+    const targetRack = candidates[Math.floor(Math.random() * candidates.length)];
+    sourceRack.triggerCableError(targetRack);
+    sourceRack.uptime = 90;
+    this.particles.spawnExplosion(sourceRack.x + sourceRack.width / 2, sourceRack.y + sourceRack.height / 2);
+    this.particles.spawnSparks(sourceRack.x + sourceRack.width / 2, sourceRack.y + sourceRack.height / 2, 40, '#ff2a55');
+    this.sound.playAlarm();
+  }
+
   defeatBoss(boss = null) {
     const targetBoss = boss || this.activeBoss || this.bugBoss;
     if (!targetBoss) return;
@@ -5705,14 +5735,17 @@ class Game {
     this.particles.spawnSparks(targetBoss.x, targetBoss.y, 60, '#ffffff');
     this.sound.playBossDefeat();
 
-    // Post-Boss Overload: Servers damaged during the boss crash remain failing to provide post-boss emergency triage!
-    const damagedRacks = this.racks.filter(r => r.isFailing && !r.isDestroyed);
-    if (damagedRacks.length < 2) {
-      // If fewer than 2 servers were hit, the dying boss explosion surge triggers cascade faults on nearby racks!
-      const extraNeeded = 2 - damagedRacks.length;
-      for (let i = 0; i < extraNeeded; i++) {
-        this.triggerRandomIncident();
-      }
+    // Post-Boss Crash Overload: The violent kinetic collapse of the boss violently overloads 2-3 nearby racks!
+    const nearbyHealthy = [...this.racks]
+      .filter(r => !r.isFailing && !r.isDestroyed && r !== this.bossHostRack)
+      .sort((a, b) => {
+        const da = Math.hypot(a.x - targetBoss.x, a.y - targetBoss.y);
+        const db = Math.hypot(b.x - targetBoss.x, b.y - targetBoss.y);
+        return da - db;
+      });
+    const racksToOverload = nearbyHealthy.slice(0, 3);
+    for (const r of racksToOverload) {
+      this.triggerRackCrashFault(r);
     }
     const finalDamaged = this.racks.filter(r => r.isFailing && !r.isDestroyed);
     this.sound.playBossAlarm();
@@ -7976,14 +8009,27 @@ class Game {
     if (btn) btn.textContent = this.isPaused ? 'RESUME [ESC]' : 'PAUSE [ESC]';
   }
 
-  getNearestRack(maxDist = (CONFIG.INTERACT_RADIUS ?? 90)) {
+  getDistanceToRack(rack) {
+    if (!rack) return Infinity;
+    const clampX = Math.max(rack.x, Math.min(this.player.x, rack.x + rack.width));
+    const clampY = Math.max(rack.y, Math.min(this.player.y, rack.y + rack.height));
+    return Math.hypot(this.player.x - clampX, this.player.y - clampY);
+  }
+
+  getNearestRack(maxDist = 75) {
+    // If boss is active and player is near bossHostRack, prioritize bossHostRack above all others
+    const activeBoss = this.activeBoss || this.bugBoss;
+    if (this.bossHostRack && activeBoss && activeBoss.isAlive) {
+      if (this.getDistanceToRack(this.bossHostRack) <= 120) {
+        return this.bossHostRack;
+      }
+    }
+
     let closest = null;
     let closestDist = maxDist;
 
     for (const rack of this.racks) {
-      const centerX = rack.x + rack.width / 2;
-      const centerY = rack.y + rack.height / 2;
-      const d = Math.hypot(this.player.x - centerX, this.player.y - centerY);
+      const d = this.getDistanceToRack(rack);
       if (d < closestDist) {
         closest = rack;
         closestDist = d;
@@ -7992,23 +8038,23 @@ class Game {
     return closest;
   }
 
-  isNearNOCDesk(maxDist = (CONFIG.INTERACT_RADIUS ?? 90) + 30) {
-    const deskCenterX = this.nocDesk.x + this.nocDesk.width / 2;
-    const deskCenterY = this.nocDesk.y + this.nocDesk.height / 2;
-    return Math.hypot(this.player.x - deskCenterX, this.player.y - deskCenterY) < maxDist;
+  isNearNOCDesk(maxDist = 120) {
+    const clampX = Math.max(this.nocDesk.x, Math.min(this.player.x, this.nocDesk.x + this.nocDesk.width));
+    const clampY = Math.max(this.nocDesk.y, Math.min(this.player.y, this.nocDesk.y + this.nocDesk.height));
+    return Math.hypot(this.player.x - clampX, this.player.y - clampY) <= maxDist;
   }
 
-  isNearShopKiosk(maxDist = (CONFIG.INTERACT_RADIUS ?? 90) + 30) {
-    const kioskCenterX = this.shopKiosk.x + this.shopKiosk.width / 2;
-    const kioskCenterY = this.shopKiosk.y + this.shopKiosk.height / 2;
-    return Math.hypot(this.player.x - kioskCenterX, this.player.y - kioskCenterY) < maxDist;
+  isNearShopKiosk(maxDist = 120) {
+    const clampX = Math.max(this.shopKiosk.x, Math.min(this.player.x, this.shopKiosk.x + this.shopKiosk.width));
+    const clampY = Math.max(this.shopKiosk.y, Math.min(this.player.y, this.shopKiosk.y + this.shopKiosk.height));
+    return Math.hypot(this.player.x - clampX, this.player.y - clampY) <= maxDist;
   }
 
-  isNearSuppliesCloset(maxDist = (CONFIG.INTERACT_RADIUS ?? 90) + 30) {
+  isNearSuppliesCloset(maxDist = 140) {
     if (!this.suppliesCloset) return false;
-    const closetCenterX = this.suppliesCloset.x + this.suppliesCloset.width / 2;
-    const closetCenterY = this.suppliesCloset.y + this.suppliesCloset.height / 2;
-    return Math.hypot(this.player.x - closetCenterX, this.player.y - closetCenterY) < maxDist;
+    const clampX = Math.max(this.suppliesCloset.x, Math.min(this.player.x, this.suppliesCloset.x + this.suppliesCloset.width));
+    const clampY = Math.max(this.suppliesCloset.y, Math.min(this.player.y, this.suppliesCloset.y + this.suppliesCloset.height));
+    return Math.hypot(this.player.x - clampX, this.player.y - clampY) <= maxDist;
   }
 
   getNearTeleporterNode(maxDist = (CONFIG.TELEPORTER?.INTERACT_RADIUS ?? 52)) {
@@ -8033,25 +8079,14 @@ class Game {
       }
     }
 
-    // 1. South NOC Console Desk
-    if (this.isNearNOCDesk()) {
-      this.openTerminal();
-      return;
-    }
-
-    // 2. Hardware Supply Shop Kiosk
-    if (this.isNearShopKiosk()) {
-      this.openShop();
-      return;
-    }
-
-    // 2b. Facility Supplies Closet (Boss Response Gear & Maintenance Items)
+    // 1. Facility Supplies Closet (Boss Response Gear & Maintenance Items)
     if (this.isNearSuppliesCloset()) {
       const boss = this.activeBoss || this.bugBoss;
       if (boss && boss.isAlive) {
         if (boss instanceof BugBoss) {
           if (!(this.activeCable instanceof RestraintRope)) {
-            if (this.activeCable) {
+            // Drop regular network patch cable if dragging one; player inventory & perks are completely preserved
+            if (this.activeCable && !(this.activeCable instanceof RestraintRope)) {
               this.dropActiveCable();
             }
             this.activeCable = new RestraintRope(this.suppliesCloset, boss);
@@ -8094,7 +8129,7 @@ class Game {
         } else {
           // Wave 5+ Procedural Apex
           if (!(this.activeCable instanceof ContainmentWire)) {
-            if (this.activeCable) {
+            if (this.activeCable && !(this.activeCable instanceof ContainmentWire)) {
               this.dropActiveCable();
             }
             this.activeCable = new ContainmentWire(this.suppliesCloset, boss);
@@ -8109,6 +8144,18 @@ class Game {
         }
       }
       this.openSuppliesModal();
+      return;
+    }
+
+    // 2. South NOC Console Desk
+    if (this.isNearNOCDesk()) {
+      this.openTerminal();
+      return;
+    }
+
+    // 3. Hardware Supply Shop Kiosk
+    if (this.isNearShopKiosk()) {
+      this.openShop();
       return;
     }
 
@@ -8154,31 +8201,40 @@ class Game {
       }
     }
 
+    // 2e. Boss Host Rack Guidance (Rack 92 / Defcon 1 Anomaly Ground Zero)
+    const activeBoss = this.activeBoss || this.bugBoss;
+    if (this.bossHostRack && activeBoss && activeBoss.isAlive) {
+      const distToHost = this.getDistanceToRack(this.bossHostRack);
+      if (distToHost <= 120) {
+        if (activeBoss instanceof BugBoss) {
+          this.showTemporaryToast('⚠️ ANOMALY EPICENTER! RETRIEVE HEAVY RESTRAINT ROPE AT THE SOUTH SUPPLIES CLOSET!', '🪢');
+          return;
+        } else if (activeBoss instanceof ThermalGolemBoss) {
+          this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE CRYO CANISTER FROM THE SOUTH SUPPLIES CLOSET!', '❄️');
+          return;
+        } else if (activeBoss instanceof SpectralDaemonBoss) {
+          this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE EMF PYLONS FROM THE SOUTH SUPPLIES CLOSET!', '⚡');
+          return;
+        } else if (activeBoss instanceof TitanColossusBoss) {
+          this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE SCRAM LIMPETS FROM THE SOUTH SUPPLIES CLOSET!', '💣');
+          return;
+        } else {
+          this.showTemporaryToast(`⚠️ ANOMALY EPICENTER! RETRIEVE ${activeBoss.restraintName?.toUpperCase() || 'CONTAINMENT WIRE'} AT THE SUPPLIES CLOSET!`, '👑');
+          return;
+        }
+      }
+    }
+
     const nearRack = this.getNearestRack();
     if (!nearRack) return;
 
-    // Boss Host Rack Guidance & Emergency Restraint Anchor
+    // Boss Host Rack Guidance
     if (nearRack.isBossHost || nearRack === this.bossHostRack) {
       const boss = this.activeBoss || this.bugBoss;
       if (boss && boss.isAlive) {
         if (boss instanceof BugBoss) {
-          if (!(this.activeCable instanceof RestraintRope)) {
-            if (this.activeCable) this.dropActiveCable();
-            this.activeCable = new RestraintRope(nearRack, boss);
-            this.sound.playCabinetOpen();
-            this.sound.playGrab();
-            this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 45, '#f59e0b');
-            this.showTemporaryToast(`🪢 HEAVY RESTRAINT ROPE ANCHORED AT ${nearRack.id}! CIRCLE BUG BOSS TO WRAP IT!`, '🪢');
-            this.updateObjectiveUI();
-            this.updateBossHUD();
-            return;
-          } else if (nearRack.id === this.activeCable.sourceRack?.id) {
-            this.dropActiveCable();
-            return;
-          } else {
-            this.showTemporaryToast('⚠️ RESTRAINT ROPE ALREADY IN HAND! CIRCLE THE BUG BOSS!', '🪢');
-            return;
-          }
+          this.showTemporaryToast('⚠️ ANOMALY EPICENTER! RETRIEVE HEAVY RESTRAINT ROPE AT THE SOUTH SUPPLIES CLOSET!', '🪢');
+          return;
         } else if (boss instanceof ThermalGolemBoss) {
           this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE CRYO CANISTER FROM THE SOUTH SUPPLIES CLOSET!', '❄️');
           return;
@@ -8189,21 +8245,8 @@ class Game {
           this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE SCRAM LIMPETS FROM THE SOUTH SUPPLIES CLOSET!', '💣');
           return;
         } else {
-          // Wave 5+ Procedural Apex
-          if (!(this.activeCable instanceof ContainmentWire)) {
-            if (this.activeCable) this.dropActiveCable();
-            this.activeCable = new ContainmentWire(nearRack, boss);
-            this.sound.playCabinetOpen();
-            this.sound.playGrab();
-            this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 45, '#00ff9d');
-            this.showTemporaryToast(`👑 ${boss.restraintName} ANCHORED AT ${nearRack.id}! CIRCLE THE ANOMALY!`, '👑');
-            this.updateObjectiveUI();
-            this.updateBossHUD();
-            return;
-          } else if (nearRack.id === this.activeCable.sourceRack?.id) {
-            this.dropActiveCable();
-            return;
-          }
+          this.showTemporaryToast(`⚠️ ANOMALY EPICENTER! RETRIEVE ${boss.restraintName?.toUpperCase() || 'CONTAINMENT WIRE'} AT THE SUPPLIES CLOSET!`, '👑');
+          return;
         }
       }
     }
@@ -9078,6 +9121,9 @@ class Game {
       }
     }
 
+    // 2.6 Defcon Mission Floor Conduits & Navigational Beacons
+    this.renderDefconMissionGuides(ctx, cam);
+
     // 3. Active Dragged Cable
     if (this.activeCable) {
       this.activeCable.render(ctx, cam);
@@ -9145,7 +9191,10 @@ class Game {
 
     // 10. In-World Interactive Prompts
     const nearTeleNode = this.getNearTeleporterNode();
-    if (nearRack) {
+    const isNearHost = this.bossHostRack && activeBoss && activeBoss.isAlive && this.getDistanceToRack(this.bossHostRack) <= 120;
+    if (isNearHost) {
+      this.renderRackInteractionPrompt(ctx, cam, this.bossHostRack);
+    } else if (nearRack) {
       this.renderRackInteractionPrompt(ctx, cam, nearRack);
     } else if (this.isNearSuppliesCloset()) {
       this.renderSuppliesClosetPrompt(ctx, cam);
@@ -9157,10 +9206,185 @@ class Game {
       this.renderTeleporterPrompt(ctx, cam, nearTeleNode);
     }
 
+    // 10.5 Defcon HUD Waypoint Compass Ribbon
+    this.renderDefconHUDNavigator(ctx, cam);
+
     // 11. Kinetic Cannon Slingshot Aiming Overlay (Bullet-Time Freeze)
     if (this.isCannonAiming) {
       this.renderCannonAimingUI(ctx, cam);
     }
+  }
+
+  renderDefconMissionGuides(ctx, cam) {
+    const activeBoss = this.activeBoss || this.bugBoss;
+    if (!activeBoss || !activeBoss.isAlive) return;
+
+    const time = performance.now() * 0.001;
+    const playerScreen = cam.toScreen(this.player.x, this.player.y);
+
+    // 1. If player has the Restraint Rope in hand, draw animated guide line to Bug Boss!
+    if (this.activeCable instanceof RestraintRope) {
+      const bossScreen = cam.toScreen(activeBoss.x, activeBoss.y);
+      ctx.save();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([14, 10]);
+      ctx.lineDashOffset = -time * 50;
+      ctx.shadowColor = '#f59e0b';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.moveTo(playerScreen.x, playerScreen.y);
+      ctx.lineTo(bossScreen.x, bossScreen.y);
+      ctx.stroke();
+
+      // Pulsing floor halo around boss
+      const haloRadius = activeBoss.radius + 20 + Math.sin(time * 5) * 8;
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
+      ctx.beginPath();
+      ctx.arc(bossScreen.x, bossScreen.y, haloRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([]);
+      ctx.stroke();
+
+      ctx.font = 'bold 11px "Orbitron", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#f59e0b';
+      ctx.shadowBlur = 8;
+      ctx.fillText(`👾 CIRCLE BUG BOSS TO COIL ROPE [${activeBoss.completedWraps}/${activeBoss.maxWraps}]`, bossScreen.x, bossScreen.y - haloRadius - 6);
+      ctx.restore();
+    }
+
+    // 2. Mission Guide Line & Pulsing Floor Pad to South Supplies Closet (Only source for rope & gear!)
+    if (this.suppliesCloset) {
+      const closetCenterX = this.suppliesCloset.x + this.suppliesCloset.width / 2;
+      const closetCenterY = this.suppliesCloset.y + this.suppliesCloset.height / 2;
+      const closetScreen = cam.toScreen(closetCenterX, closetCenterY);
+
+      let needsGear = false;
+      let gearName = 'DEFCON SUPPLIES';
+      let gearColor = '#38bdf8';
+      if (activeBoss instanceof BugBoss && !(this.activeCable instanceof RestraintRope)) {
+        needsGear = true;
+        gearName = 'HEAVY ROPE';
+        gearColor = '#f59e0b';
+      } else if (activeBoss instanceof ThermalGolemBoss && !this.hasCryoCanister) {
+        needsGear = true;
+        gearName = 'CRYO CANISTER';
+        gearColor = '#00f3ff';
+      } else if (activeBoss instanceof SpectralDaemonBoss && this.emfPylonsRemaining === 0 && this.deployedPylons.length < 3) {
+        needsGear = true;
+        gearName = 'EMF PYLONS';
+        gearColor = '#c084fc';
+      } else if (activeBoss instanceof TitanColossusBoss && this.scramLimpetsRemaining === 0 && (activeBoss.limpetsAttached || 0) < 3) {
+        needsGear = true;
+        gearName = 'SCRAM LIMPETS';
+        gearColor = '#ffaa00';
+      } else if (!(this.activeCable instanceof ContainmentWire)) {
+        needsGear = true;
+        gearName = activeBoss.restraintName || 'GEAR';
+        gearColor = activeBoss.restraintColor || '#00ff9d';
+      }
+
+      if (needsGear) {
+        ctx.save();
+        // Cyan/Amber neon conduit line to Supplies Closet
+        ctx.strokeStyle = gearColor;
+        ctx.lineWidth = 3.5;
+        ctx.setLineDash([16, 10]);
+        ctx.lineDashOffset = -time * 55;
+        ctx.shadowColor = gearColor;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(playerScreen.x, playerScreen.y);
+        ctx.lineTo(closetScreen.x, closetScreen.y);
+        ctx.stroke();
+
+        // Pulsing floor pad halo around Supplies Closet
+        const haloR = 90 + Math.sin(time * 4) * 10;
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.16)';
+        ctx.beginPath();
+        ctx.arc(closetScreen.x, closetScreen.y, haloR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = gearColor;
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([]);
+        ctx.stroke();
+
+        // Vertical sky-beam marker
+        const grad = ctx.createLinearGradient(closetScreen.x, closetScreen.y - 140, closetScreen.x, closetScreen.y);
+        grad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+        grad.addColorStop(1, 'rgba(56, 189, 248, 0.35)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(closetScreen.x - 35, closetScreen.y - 140, 70, 140);
+
+        ctx.font = 'bold 12px "Orbitron", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = gearColor;
+        ctx.shadowBlur = 8;
+        ctx.fillText(`📦 SOUTH SUPPLIES CLOSET [${gearName}]`, closetScreen.x, closetScreen.y - 148);
+        ctx.restore();
+      }
+    }
+  }
+
+  renderDefconHUDNavigator(ctx, cam) {
+    const activeBoss = this.activeBoss || this.bugBoss;
+    if (!activeBoss || !activeBoss.isAlive) return;
+
+    // Show persistent HUD navigation tracker at bottom-center of screen
+    const items = [];
+    if (this.activeCable instanceof RestraintRope) {
+      const d = Math.hypot(this.player.x - activeBoss.x, this.player.y - activeBoss.y);
+      const dy = activeBoss.y - this.player.y;
+      const dx = activeBoss.x - this.player.x;
+      const arrow = Math.abs(dy) > Math.abs(dx) ? (dy > 0 ? '▼' : '▲') : (dx > 0 ? '▶' : '◀');
+      items.push({ text: `👾 BUG BOSS [${arrow} ${Math.round(d / 32)}m] (WRAP COILS)`, color: '#f59e0b' });
+    } else if (this.suppliesCloset) {
+      let needsGear = (activeBoss instanceof BugBoss && !(this.activeCable instanceof RestraintRope)) ||
+                      (activeBoss instanceof ThermalGolemBoss && !this.hasCryoCanister) ||
+                      (activeBoss instanceof SpectralDaemonBoss && this.emfPylonsRemaining === 0 && this.deployedPylons.length < 3) ||
+                      (activeBoss instanceof TitanColossusBoss && this.scramLimpetsRemaining === 0 && (activeBoss.limpetsAttached || 0) < 3) ||
+                      (!(this.activeCable instanceof ContainmentWire));
+      if (needsGear) {
+        const closetCenterX = this.suppliesCloset.x + this.suppliesCloset.width / 2;
+        const closetCenterY = this.suppliesCloset.y + this.suppliesCloset.height / 2;
+        const d = Math.hypot(this.player.x - closetCenterX, this.player.y - closetCenterY);
+        const dy = closetCenterY - this.player.y;
+        const dx = closetCenterX - this.player.x;
+        const arrow = Math.abs(dy) > Math.abs(dx) ? (dy > 0 ? '▼' : '▲') : (dx > 0 ? '▶' : '◀');
+        items.push({ text: `📦 SOUTH SUPPLIES CLOSET [${arrow} ${Math.round(d / 32)}m] (HEAVY ROPE)`, color: '#38bdf8' });
+      }
+    }
+
+    if (items.length === 0) return;
+
+    ctx.save();
+    const hudY = this.viewportHeight - 50;
+    const centerX = this.viewportWidth / 2;
+    const bannerText = items.map(i => i.text).join('   |   ');
+
+    ctx.font = 'bold 12px "JetBrains Mono", monospace';
+    const textWidth = ctx.measureText(bannerText).width;
+    const boxW = textWidth + 36;
+    const boxH = 26;
+
+    ctx.fillStyle = 'rgba(6, 8, 14, 0.88)';
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = 'rgba(56, 189, 248, 0.5)';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.roundRect(centerX - boxW / 2, hudY - boxH / 2, boxW, boxH, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(bannerText, centerX, hudY);
+    ctx.restore();
   }
 
   renderFloorGrid(ctx, cam) {
@@ -9452,7 +9676,7 @@ class Game {
     const activeBoss = this.activeBoss || this.bugBoss;
     if (activeBoss && activeBoss.isAlive && (rack.isBossHost || rack === this.bossHostRack) && !this.activeCable) {
       if (activeBoss instanceof BugBoss) {
-        label = `[E] GRAB HEAVY ROPE`;
+        label = `⚠️ EMERGENCE POINT ➔ GET ROPE AT SUPPLIES CLOSET`;
         badgeColor = '#f59e0b';
       } else if (activeBoss instanceof ThermalGolemBoss) {
         label = `⚠️ EMERGENCE POINT ➔ GET CRYO AT SUPPLIES CLOSET`;
@@ -9936,17 +10160,7 @@ class Game {
       );
     }
 
-    // 5. Boss Host Rack Restraint Hook Beacon (if wire not yet grabbed)
-    if (this.bossHostRack && activeBoss?.isAlive && !this.activeCable && !(activeBoss instanceof ThermalGolemBoss || activeBoss instanceof SpectralDaemonBoss || activeBoss instanceof TitanColossusBoss)) {
-      if (!cam.isBoundingBoxVisible(this.bossHostRack.x, this.bossHostRack.y, this.bossHostRack.width, this.bossHostRack.height)) {
-        drawIndicator(
-          this.bossHostRack.x + this.bossHostRack.width / 2,
-          this.bossHostRack.y + this.bossHostRack.height / 2,
-          activeBoss.restraintColor || '#f59e0b',
-          `🪢 HEAVY ROPE ANCHOR: ${this.bossHostRack.id}`
-        );
-      }
-    }
+
 
     // 5b. Offscreen Supplies Closet Beacon (when boss is alive and gear is needed)
     if (this.suppliesCloset && activeBoss?.isAlive && !cam.isBoundingBoxVisible(this.suppliesCloset.x, this.suppliesCloset.y, this.suppliesCloset.width, this.suppliesCloset.height)) {
