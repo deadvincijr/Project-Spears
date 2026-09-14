@@ -365,6 +365,10 @@ class SoundFX {
     } catch (e) {}
   }
 
+  playAlarm() {
+    this.playBossAlarm();
+  }
+
   playBossAlarm() {
     if (!this.ctx) return;
     try {
@@ -948,6 +952,79 @@ class SoundFX {
       osc.stop(now + 0.48);
     } catch (e) {}
   }
+  playShutdown() {
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(360, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.35);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.36);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.37);
+    } catch (e) {}
+  }
+
+  playShake() {
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(90, now);
+      osc.frequency.linearRampToValueAtTime(140, now + 0.08);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } catch (e) {}
+  }
+
+  playDisinfect() {
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.linearRampToValueAtTime(1600, now + 0.15);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.17);
+    } catch (e) {}
+  }
+
+  playQuarantineSeal() {
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      [330, 440, 660, 880].forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.32);
+      });
+    } catch (e) {}
+  }
+
 }
 
 // ============================================================================
@@ -1021,29 +1098,41 @@ const CONFIG = {
     REWARD_CREDITS: 500,         // Victory bonus credits
   },
   ERRORS: {
-    CABLE_DISCONNECT: 'CABLE_DISCONNECT',
-    AUTH_LOCKOUT: 'AUTH_LOCKOUT',
-    MULTI_CABLE_CHAIN: 'MULTI_CABLE_CHAIN',
-    HARD_REBOOT: 'HARD_REBOOT',
+    // 4 Core Error Types
+    RUN_WIRE: 'RUN_WIRE',
+    CABLE_DISCONNECT: 'RUN_WIRE', // Backward compatibility alias
+    ACCESS_DENIED: 'ACCESS_DENIED',
+    AUTH_LOCKOUT: 'ACCESS_DENIED', // Backward compatibility alias
+    RESTART_REQUIRED: 'RESTART_REQUIRED',
+    HARD_REBOOT: 'RESTART_REQUIRED', // Backward compatibility alias
+    CHAIN_WIRES: 'CHAIN_WIRES',
+    MULTI_CABLE_CHAIN: 'CHAIN_WIRES', // Backward compatibility alias
+
+    // 3 Boss-Related Error Types
+    SERVER_BUG: 'SERVER_BUG',
+    BUG_INFESTATION: 'SERVER_BUG', // Backward compatibility alias
+    SERVER_OVERHEAT: 'SERVER_OVERHEAT',
+    COOLANT_LEAK: 'SERVER_OVERHEAT', // Backward compatibility alias
+    SERVER_SMALL_VIRUS: 'SERVER_SMALL_VIRUS',
+    NETWORK_WORM: 'SERVER_SMALL_VIRUS', // Backward compatibility alias
+
+    // Timers & Values
     REBOOT_HOLD_TIME: 5.0,       // Seconds player must hold [E] within range to restart
     MIN_LINK_DISTANCE: 450,      // Min distance to target rack for patch cable
     MAX_LINK_DISTANCE: 1800,     // Max distance to target rack
-    CRITICAL_FAIL_TIME: 30.0,    // Seconds before an unresolved fault EXPLODES the server node!
-    REPLACEMENT_COST: 1000,      // Expensive cost in credits (⚡) to replace an exploded server
-    BUG_INFESTATION: 'BUG_INFESTATION', // Post-boss rogue small bug infestation
+    CRITICAL_FAIL_TIME: 45.0,    // 45 seconds before critical explosion
+    CHAIN_WIRES_TIME: 90.0,      // 1 minute 30 seconds (90s) for multi-rack chain wires
+    BUG_RACK_EXPLODE_TIME: 30.0, // 30 seconds before bug destroys rack & moves
+    SMALL_VIRUS_TIME: 60.0,      // 60 seconds before small virus erupts into major virus
+    REPLACEMENT_COST: 1000,      // Cost in credits (⚡) to replace an exploded server
     SMALL_BUG_SPEED: 180,        // Speed of scuttling rogue bugs across warehouse
-    COOLANT_LEAK: 'COOLANT_LEAK', // Wave 2 post-boss cryogenic pipe leak & slippery ice slick
-    COOLANT_SEAL_TIME: 3.5,      // Seconds player must hold [E] to seal coolant valve
-    PHANTOM_GLITCH: 'PHANTOM_GLITCH', // Wave 3 post-boss holographic decoy clones
-    NETWORK_WORM: 'NETWORK_WORM', // Wave 4 post-boss spreading network worm
-    WORM_SPREAD_TIME: 12.0,      // Seconds before worm virus spreads to adjacent rack
   },
-  BOSS_WAVES: [
+  // Modular Boss Catalog (3 Core Bosses with cycling variants; more can be added here)
+  BOSS_CATALOG: [
     {
-      wave: 1,
       id: 'BUG_BOSS',
-      name: 'CORRUPTED BUG BOSS',
-      title: 'DEFCON 1 ANOMALY // CORRUPTED BUG BOSS',
+      name: 'MASSIVE BUG',
+      baseTitle: 'DEFCON 1 ANOMALY // MASSIVE GLITCH BUG',
       icon: '👾',
       restraintName: 'CONTAINMENT WIRE',
       triggerTime: 600, // 10 minutes
@@ -1051,55 +1140,69 @@ const CONFIG = {
       maxWraps: 5,
       rewardCredits: 500,
       rewardItem: 'Quantum Teleporter Kit',
-      unlockedError: 'BUG_INFESTATION',
+      unlockedError: 'SERVER_BUG',
       color: '#ff2a55',
     },
     {
-      wave: 2,
-      id: 'THERMAL_GOLEM',
-      name: 'THERMAL GOLEM',
-      title: 'DEFCON 1 OVERHEAT // THERMAL GOLEM TITAN',
+      id: 'OVERHEAT_DAEMON',
+      name: 'OVERHEAT DAEMON',
+      baseTitle: 'DEFCON 1 OVERHEAT // OVERHEAT DAEMON',
       icon: '🔥',
-      restraintName: 'CRYO COOLANT HOSE',
+      restraintName: 'CRYO COOLANT CANISTER',
       triggerTime: 1200, // 20 minutes
       minWraps: 4,
       maxWraps: 6,
       rewardCredits: 750,
       rewardItem: 'Cryo Deflector Shield',
-      unlockedError: 'COOLANT_LEAK',
+      unlockedError: 'SERVER_OVERHEAT',
       color: '#ff5500',
     },
     {
-      wave: 3,
-      id: 'SPECTRAL_DAEMON',
-      name: 'SPECTRAL DAEMON',
-      title: 'DEFCON 1 GLITCH // SPECTRAL DAEMON ANOMALY',
-      icon: '👻',
-      restraintName: 'FARADAY GROUNDING CABLE',
+      id: 'MAJOR_VIRUS',
+      name: 'MAJOR VIRUS',
+      baseTitle: 'DEFCON 1 BIOLOGICAL // MAJOR VIRUS',
+      icon: '🦠',
+      restraintName: 'QUARANTINE CONTAINMENT BARRIER',
       triggerTime: 1800, // 30 minutes
-      minWraps: 5,
-      maxWraps: 7,
+      minWraps: 4,
+      maxWraps: 6,
       rewardCredits: 1000,
-      rewardItem: 'Phase Dash Module',
-      unlockedError: 'PHANTOM_GLITCH',
-      color: '#a855f7',
-    },
-    {
-      wave: 4,
-      id: 'TITAN_COLOSSUS',
-      name: 'TITAN COLOSSUS',
-      title: 'DEFCON 1 SIEGE // TITAN COLOSSUS FORTRESS',
-      icon: '🤖',
-      restraintName: 'SCRAM BUS CABLE',
-      triggerTime: 2400, // 40 minutes
-      minWraps: 6,
-      maxWraps: 8,
-      rewardCredits: 1250,
-      rewardItem: 'Nanotech Auto-Repair Hub',
-      unlockedError: 'NETWORK_WORM',
-      color: '#00f3ff',
+      rewardItem: 'Antivirus Purge Field',
+      unlockedError: 'SERVER_SMALL_VIRUS',
+      color: '#10b981',
     },
   ],
+  getBossForWave(waveNumber) {
+    const catalog = this.BOSS_CATALOG;
+    const index = (waveNumber - 1) % catalog.length;
+    const variantLevel = Math.floor((waveNumber - 1) / catalog.length);
+    const base = catalog[index];
+
+    const variantTitles = [
+      '',
+      ' // OVERCLOCKED VARIANT',
+      ' // INFERNAL PRIME VARIANT',
+      ' // APEX MUTANT VARIANT',
+      ' // OMEGA CORRUPTION',
+    ];
+    const suffix = variantTitles[Math.min(variantLevel, variantTitles.length - 1)];
+
+    return {
+      wave: waveNumber,
+      variantLevel: variantLevel,
+      id: base.id,
+      name: base.name + (variantLevel > 0 ? ` [V${variantLevel + 1}]` : ''),
+      title: base.baseTitle + suffix,
+      icon: base.icon,
+      restraintName: base.restraintName,
+      minWraps: base.minWraps + variantLevel,
+      maxWraps: base.maxWraps + variantLevel,
+      rewardCredits: base.rewardCredits + (variantLevel * 300),
+      rewardItem: base.rewardItem,
+      unlockedError: base.unlockedError,
+      color: variantLevel === 0 ? base.color : (variantLevel === 1 ? '#c084fc' : '#38bdf8'),
+    };
+  },
   COLORS: {
     BG_TILE_LIGHT: '#111726',
     BG_TILE_DARK: '#0d121e',
@@ -2306,9 +2409,23 @@ class Player {
     const distSq = dx * dx + dy * dy;
 
     if (distSq < this.radius * this.radius) {
-      const dist = Math.sqrt(distSq) || 0.001;
-      const nx = dx / dist;
-      const ny = dy / dist;
+      let dist = Math.sqrt(distSq);
+      let nx, ny;
+      if (dist < 0.0001) {
+        const distLeft = this.x - boxX;
+        const distRight = (boxX + boxW) - this.x;
+        const distTop = this.y - boxY;
+        const distBottom = (boxY + boxH) - this.y;
+        const minDist = Math.min(distLeft, distRight, distTop, distBottom);
+        if (minDist === distLeft) { nx = -1; ny = 0; }
+        else if (minDist === distRight) { nx = 1; ny = 0; }
+        else if (minDist === distTop) { nx = 0; ny = -1; }
+        else { nx = 0; ny = 1; }
+        dist = -minDist;
+      } else {
+        nx = dx / dist;
+        ny = dy / dist;
+      }
       const overlap = this.radius - dist;
 
       this.x += nx * overlap;
@@ -2375,100 +2492,157 @@ class ServerRack {
     this.isTargetDestination = false;
     this.alertTimer = 0;
     this.smokeTimer = 0;
+    this.isShutdown = false;
     // Every server rack has its own persistent diagnostic PIN
     this.code = String(Math.floor(1000 + Math.random() * 9000));
   }
 
-  triggerCableError(targetRack) {
-    if (this.isDestroyed) return;
+  triggerRunWireError(partnerRack) {
+    if (this.isDestroyed || partnerRack.isDestroyed) return;
     this.isFailing = true;
     this.failDuration = 0;
     this.error = {
-      type: CONFIG.ERRORS.CABLE_DISCONNECT,
-      targetRackId: targetRack.id,
-      targetRack: targetRack,
-      description: `LINK DOWN ➔ RUN CABLE TO ${targetRack.id}`,
+      type: CONFIG.ERRORS.RUN_WIRE,
+      partnerRack: partnerRack,
+      partnerId: partnerRack.id,
+      description: `RUN WIRE ➔ CONNECT TO ${partnerRack.id}`,
     };
-    targetRack.isTargetDestination = true;
+    partnerRack.isFailing = true;
+    partnerRack.failDuration = 0;
+    partnerRack.error = {
+      type: CONFIG.ERRORS.RUN_WIRE,
+      partnerRack: this,
+      partnerId: this.id,
+      description: `RUN WIRE ➔ CONNECT TO ${this.id}`,
+    };
   }
 
-  triggerAuthError() {
+  // Alias for backward compatibility
+  triggerCableError(targetRack) {
+    this.triggerRunWireError(targetRack);
+  }
+
+  triggerAccessDeniedError() {
     if (this.isDestroyed) return;
     this.isFailing = true;
     this.failDuration = 0;
     this.error = {
-      type: CONFIG.ERRORS.AUTH_LOCKOUT,
+      type: CONFIG.ERRORS.ACCESS_DENIED,
       code: this.code,
       hasBeenInspected: false,
-      description: `AUTH LOCKOUT ➔ RETRIEVE PIN AT RACK`,
+      description: 'ACCESS DENIED ➔ RETRIEVE PIN AT RACK & ENTER AT NOC DESK',
     };
   }
 
-  triggerMultiChainError(hopRacks) {
+  // Alias for backward compatibility
+  triggerAuthError() {
+    this.triggerAccessDeniedError();
+  }
+
+  triggerRestartRequiredError() {
     if (this.isDestroyed) return;
     this.isFailing = true;
     this.failDuration = 0;
     this.error = {
-      type: CONFIG.ERRORS.MULTI_CABLE_CHAIN,
-      hops: hopRacks,
-      description: `BUS CORRUPT ➔ CHAIN ${hopRacks.length} SERVERS`,
+      type: CONFIG.ERRORS.RESTART_REQUIRED,
+      isShutdown: false,
+      rebootProgress: 0,
+      description: 'RESTART REQUIRED ➔ SHUT DOWN AT TERMINAL, THEN TURN ON',
     };
   }
 
+  // Alias for backward compatibility
   triggerHardRebootError() {
+    this.triggerRestartRequiredError();
+  }
+
+  triggerChainWiresError(hopRacks) {
     if (this.isDestroyed) return;
     this.isFailing = true;
     this.failDuration = 0;
     this.error = {
-      type: CONFIG.ERRORS.HARD_REBOOT,
-      description: `KERNEL PANIC ➔ HOLD POWER BREAKER (5.0s)`,
+      type: CONFIG.ERRORS.CHAIN_WIRES,
+      hops: hopRacks,
+      description: `CHAIN WIRES ➔ CONNECT ${hopRacks.length} SERVERS (90s)`,
+    };
+    hopRacks.forEach(h => { h.isTargetDestination = true; });
+  }
+
+  // Alias for backward compatibility
+  triggerMultiChainError(hopRacks) {
+    this.triggerChainWiresError(hopRacks);
+  }
+
+  triggerServerBugError(originRack = null) {
+    if (this.isDestroyed) return;
+    this.isFailing = true;
+    this.failDuration = 0;
+    this.error = {
+      type: CONFIG.ERRORS.SERVER_BUG,
+      originRack: originRack,
+      isShutdown: false,
+      bugTimer: CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0,
+      shakeProgress: 0,
+      description: 'BUG INFESTED ➔ SHUT DOWN AT TERMINAL & EXTRACT BUG (30s)',
     };
   }
 
-  triggerCoolantLeakError() {
+  triggerServerOverheatError() {
     if (this.isDestroyed) return;
     this.isFailing = true;
     this.failDuration = 0;
     this.error = {
-      type: CONFIG.ERRORS.COOLANT_LEAK,
-      sealProgress: 0,
-      description: 'CRYO PIPE LEAK ➔ HOLD [E] TO SEAL VALVE (3.5s)',
+      type: CONFIG.ERRORS.SERVER_OVERHEAT,
+      isShutdown: false,
+      description: 'SERVER OVERHEAT ➔ SHUT DOWN AT TERMINAL BEFORE 45s FIRE CASCADE',
     };
   }
 
-  triggerPhantomGlitchError(decoys = []) {
+  triggerServerSmallVirusError() {
     if (this.isDestroyed) return;
     this.isFailing = true;
     this.failDuration = 0;
+    this.isVirusInfected = true;
     this.error = {
-      type: CONFIG.ERRORS.PHANTOM_GLITCH,
-      decoys: decoys,
-      description: 'HOLO-PHANTOM GLITCH ➔ SCAN REAL SERVER PIN',
+      type: CONFIG.ERRORS.SERVER_SMALL_VIRUS,
+      isShutdown: false,
+      disinfectProgress: 0,
+      virusTimer: CONFIG.ERRORS.SMALL_VIRUS_TIME ?? 60.0,
+      description: 'VIRUS SLIME ➔ SHUT DOWN AT TERMINAL & DISINFECT (60s)',
     };
   }
 
-  triggerNetworkWormError() {
-    if (this.isDestroyed) return;
-    this.isFailing = true;
-    this.failDuration = 0;
-    this.error = {
-      type: CONFIG.ERRORS.NETWORK_WORM,
-      spreadTimer: CONFIG.ERRORS.WORM_SPREAD_TIME ?? 12.0,
-      cleanseProgress: 0,
-      description: 'NETWORK WORM INFECTED ➔ HOLD [E] TO PURGE (2.5s)',
-    };
+  shutdownBreaker() {
+    this.isShutdown = true;
+    if (this.error) {
+      this.error.isShutdown = true;
+    }
   }
 
   resolveError() {
     this.isFailing = false;
+    this.isShutdown = false;
+    this.isVirusInfected = false;
+    if (this.error?.partnerRack) {
+      this.error.partnerRack.isTargetDestination = false;
+      if (this.error.partnerRack.error?.type === CONFIG.ERRORS.RUN_WIRE) {
+        this.error.partnerRack.isFailing = false;
+        this.error.partnerRack.error = null;
+        this.error.partnerRack.uptime = 100;
+      }
+    }
     if (this.error?.targetRack) {
       this.error.targetRack.isTargetDestination = false;
     }
     if (this.error?.hops) {
-      this.error.hops.forEach(h => { h.isTargetDestination = false; });
-    }
-    if (this.error?.decoys) {
-      this.error.decoys.forEach(d => { d.isDecoy = false; });
+      this.error.hops.forEach(h => {
+        h.isTargetDestination = false;
+        if (h.id !== this.id && h.error?.type === CONFIG.ERRORS.CHAIN_WIRES) {
+          h.isFailing = false;
+          h.error = null;
+          h.uptime = 100;
+        }
+      });
     }
     this.error = null;
     this.failDuration = 0;
@@ -2477,15 +2651,17 @@ class ServerRack {
   rebuild() {
     this.isDestroyed = false;
     this.isFailing = false;
+    this.isShutdown = false;
+    this.isVirusInfected = false;
     this.error = null;
     this.uptime = 100;
     this.failDuration = 0;
-    this.code = String(Math.floor(1000 + Math.random() * 9000)); // Fresh PIN
+    this.code = String(Math.floor(1000 + Math.random() * 9000));
   }
 
   update(dt, game) {
     if (this.isDestroyed) {
-      this.uptime = 0; // Permanently 0% uptime until replaced!
+      this.uptime = 0;
       this.smokeTimer += dt;
       if (this.smokeTimer >= 0.22) {
         this.smokeTimer = 0;
@@ -2506,11 +2682,80 @@ class ServerRack {
     }
 
     if (this.isFailing) {
-      this.failDuration += dt;
       this.alertTimer += dt;
 
+      // When shutdown remotely, critical explosion timers halt indefinitely!
+      if (this.error?.isShutdown) {
+        this.uptime = Math.max(10, this.uptime); // Offline safe state
+        // Idle offline hum particles
+        if (game && Math.random() < 0.1) {
+          game.particles.spawnSparks(this.x + this.width / 2, this.y + this.height / 2, 1, '#ffb800');
+        }
+        return;
+      }
+
+      // Live countdown when NOT shutdown:
+      this.failDuration += dt;
+
+      // Special timer for SERVER_BUG (30s before rack explodes and bug flees to find a new server)
+      if (this.error?.type === CONFIG.ERRORS.SERVER_BUG) {
+        this.error.bugTimer -= dt;
+        this.uptime = Math.max(0, 100 * (this.error.bugTimer / (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0)));
+        if (this.error.bugTimer <= 0) {
+          const existingBug = this.error?.bugEntity;
+          this.explode(game);
+          // Bug escapes the explosion and flees on the warehouse floor to find a new server!
+          if (game) {
+            const livingRacks = game.racks.filter(r => !r.isDestroyed && r.id !== this.id);
+            const nextTarget = livingRacks.length > 0 ? livingRacks[Math.floor(Math.random() * livingRacks.length)] : null;
+            const bug = existingBug || new SmallBug(this.x + this.width / 2, this.y + this.height / 2, this, nextTarget);
+            bug.isInsideRack = false;
+            bug.currentRack = null;
+            bug.isAlive = true;
+            bug.x = this.x + this.width / 2;
+            bug.y = this.y + this.height / 2;
+            bug.targetRack = nextTarget;
+            if (!game.smallBugs.includes(bug)) {
+              game.smallBugs.push(bug);
+            }
+            if (nextTarget) {
+              game.showTemporaryToast(`💥 ${this.id} EXPLODED! BUG ESCAPED TO FIND ${nextTarget.id} ➔ SQUISH IT!`, '🐛');
+            } else {
+              game.showTemporaryToast(`💥 ${this.id} EXPLODED! BUG ESCAPED ONTO THE FLOOR ➔ SQUISH IT!`, '🐛');
+            }
+          }
+          return;
+        }
+        return;
+      }
+
+      // Special timer for SERVER_SMALL_VIRUS (60s before turning into Major Virus)
+      if (this.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS) {
+        this.error.virusTimer -= dt;
+        this.uptime = Math.max(0, 100 * (this.error.virusTimer / 60.0));
+        if (game && Math.random() < 0.3) {
+          game.particles.spawnSparks(this.x + Math.random() * this.width, this.y + this.height - 10, 2, '#10b981');
+        }
+        if (this.error.virusTimer <= 0) {
+          // Turns into full Major Virus encounter!
+          if (game && game.spawnMajorVirusFromRack) {
+            game.spawnMajorVirusFromRack(this);
+          }
+          return;
+        }
+        return;
+      }
+
+      // Special timer for CHAIN_WIRES (90s) & SERVER_OVERHEAT (30s)
+      let maxTime = (CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 45.0);
+      if (this.error?.type === CONFIG.ERRORS.CHAIN_WIRES) {
+        maxTime = (CONFIG.ERRORS.CHAIN_WIRES_TIME ?? 90.0);
+      } else if (this.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) {
+        maxTime = 30.0;
+      }
       const isGoldNetOps = Boolean(game?.activeSynergies?.netops >= 3);
-      const maxTime = (CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 30.0) + (isGoldNetOps ? 15.0 : 0);
+      if (isGoldNetOps) maxTime += 15.0;
+
       this.uptime = Math.max(0, 100 * (1 - this.failDuration / maxTime));
 
       // Warning sparks when under 10 seconds remaining
@@ -2518,19 +2763,10 @@ class ServerRack {
         game.particles.spawnSparks(this.x + this.width / 2, this.y + this.height / 2, 2, '#ffaa00');
       }
 
-      // Coolant leak floor ice particles & physics
-      if (this.error?.type === CONFIG.ERRORS.COOLANT_LEAK && game) {
-        if (Math.random() < 0.35) {
-          game.particles.spawnSparks(this.x + Math.random() * this.width, this.y + this.height + Math.random() * 40, 1, '#00f3ff');
-        }
-      } else if (this.error?.type === CONFIG.ERRORS.NETWORK_WORM && game) {
-        this.error.spreadTimer -= dt;
-        if (Math.random() < 0.3) {
-          game.particles.spawnSparks(this.x + this.width / 2, this.y + this.height / 2, 2, '#ff0055');
-        }
-        if (this.error.spreadTimer <= 0) {
-          this.error.spreadTimer = CONFIG.ERRORS.WORM_SPREAD_TIME ?? 12.0;
-          if (game.spreadNetworkWorm) game.spreadNetworkWorm(this);
+      // Overheat fire particles
+      if (this.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT && game) {
+        if (Math.random() < 0.4) {
+          game.particles.spawnSparks(this.x + Math.random() * this.width, this.y + Math.random() * this.height, 2, '#ff5500');
         }
       }
 
@@ -2548,13 +2784,9 @@ class ServerRack {
     this.isFailing = false;
     this.uptime = 0;
     this.failDuration = 0;
+    this.isVirusInfected = false;
 
-    if (this.error?.targetRack) {
-      this.error.targetRack.isTargetDestination = false;
-    }
-    if (this.error?.hops) {
-      this.error.hops.forEach(h => { h.isTargetDestination = false; });
-    }
+    const errorCopy = this.error;
     this.error = null;
 
     if (game) {
@@ -2563,7 +2795,7 @@ class ServerRack {
 
       game.particles.spawnExplosion(centerX, centerY);
       game.sound.playExplosion();
-      game.camera.shake(20, 0.7);
+      game.camera.shake(22, 0.75);
 
       if (game.activeCable) {
         if (game.activeCable instanceof MultiHopCable) {
@@ -2586,15 +2818,57 @@ class ServerRack {
         if (game.memoCodeVal) game.memoCodeVal.textContent = '--';
       }
 
-      game.showTemporaryToast(`💥 CRITICAL OVERHEAT! ${this.id} EXPLODED! UPTIME DAMAGED!`);
-      game.updateObjectiveUI();
+      // 1. RUN_WIRE: Both racks explode!
+      if (errorCopy?.type === CONFIG.ERRORS.RUN_WIRE && errorCopy.partnerRack && !errorCopy.partnerRack.isDestroyed) {
+        errorCopy.partnerRack.explode(game);
+      }
+
+      // 2. CHAIN_WIRES: All racks in chain explode!
+      if (errorCopy?.type === CONFIG.ERRORS.CHAIN_WIRES && Array.isArray(errorCopy.hops)) {
+        errorCopy.hops.forEach(h => {
+          if (h.id !== this.id && !h.isDestroyed) {
+            h.explode(game);
+          }
+        });
+      }
+
+      // 3. SERVER_OVERHEAT: Starts a fire that spreads to nearby living servers!
+      if (errorCopy?.type === CONFIG.ERRORS.SERVER_OVERHEAT) {
+        const neighbors = game.racks.filter(r => !r.isDestroyed && !r.isFailing && r.id !== this.id);
+        let ignitedCount = 0;
+        neighbors.forEach(nr => {
+          const dist = Math.hypot(nr.x - this.x, nr.y - this.y);
+          if (dist < 420) {
+            nr.triggerServerOverheatError();
+            ignitedCount++;
+            game.particles.spawnSparks(nr.x + nr.width / 2, nr.y + nr.height / 2, 40, '#ff5500');
+          }
+        });
+        if (ignitedCount === 0 && neighbors.length > 0) {
+          neighbors.sort((a, b) => {
+            const dA = Math.hypot(a.x - this.x, a.y - this.y);
+            const dB = Math.hypot(b.x - this.x, b.y - this.y);
+            return dA - dB;
+          });
+          neighbors[0].triggerServerOverheatError();
+          ignitedCount++;
+          game.particles.spawnSparks(neighbors[0].x + neighbors[0].width / 2, neighbors[0].y + neighbors[0].height / 2, 40, '#ff5500');
+        }
+        game.showTemporaryToast(`🔥 ${this.id} EXPLODED! FIRE SPREAD TO ${ignitedCount} NEARBY SERVERS! SHUT DOWN AT TERMINAL (30s)!`, '🔥');
+      } else {
+        game.showTemporaryToast(`💥 CRITICAL EXPLOSION AT ${this.id}! PERMANENT UPTIME DAMAGE!`, '💥');
+      }
+
+      // Check Game Over condition: if all racks in warehouse exploded!
+      if (game.racks.length > 0 && game.racks.every(r => r.isDestroyed)) {
+        game.triggerGameOver();
+      } else {
+        game.updateObjectiveUI();
+      }
     }
   }
 }
 
-// ============================================================================
-// NOC Master Console Desk Entity (Bottom Center Workstation)
-// ============================================================================
 class NOCTerminalStation {
   constructor(x, y, width = 240, height = 74) {
     this.x = x;
@@ -2796,9 +3070,10 @@ class TeleporterNode {
     this.id = id; // 'alpha' or 'beta'
     this.x = x;
     this.y = y;
-    this.name = name; // 'NODE α' or 'NODE β'
-    this.color = color;
-    this.secondaryColor = secondaryColor;
+    const isAlpha = (id === 'alpha');
+    this.name = name || (isAlpha ? 'NODE α' : 'NODE β');
+    this.color = color || (isAlpha ? (CONFIG.COLORS?.TELEPORTER_ALPHA ?? '#00f3ff') : (CONFIG.COLORS?.TELEPORTER_BETA ?? '#e024c3'));
+    this.secondaryColor = secondaryColor || (isAlpha ? '#00ff9d' : '#ff007f');
     this.radius = CONFIG.TELEPORTER?.NODE_RADIUS ?? 28;
     this.animTime = 0;
     this.ambientParticles = [];
@@ -2811,6 +3086,9 @@ class TeleporterNode {
     if (Math.random() < 0.4) {
       const angle = Math.random() * Math.PI * 2;
       const dist = 4 + Math.random() * (this.radius - 8);
+      const isAlpha = this.id === 'alpha';
+      const mainCol = this.color || (isAlpha ? '#00f3ff' : '#e024c3');
+      const secCol = this.secondaryColor || (isAlpha ? '#00ff9d' : '#ff007f');
       this.ambientParticles.push({
         x: this.x + Math.cos(angle) * dist,
         y: this.y + Math.sin(angle) * dist,
@@ -2819,7 +3097,7 @@ class TeleporterNode {
         life: 0.6 + Math.random() * 0.4,
         maxLife: 1.0,
         size: 1.5 + Math.random() * 2.5,
-        color: Math.random() < 0.6 ? this.color : this.secondaryColor
+        color: Math.random() < 0.6 ? mainCol : secCol
       });
     }
 
@@ -2835,6 +3113,13 @@ class TeleporterNode {
   }
 
   render(ctx, cam, isLinked = false, cooldownRatio = 0) {
+    const isAlpha = this.id === 'alpha';
+    const mainColor = this.color || (isAlpha ? (CONFIG.COLORS?.TELEPORTER_ALPHA ?? '#00f3ff') : (CONFIG.COLORS?.TELEPORTER_BETA ?? '#e024c3'));
+    const secColor = this.secondaryColor || (isAlpha ? '#00ff9d' : '#ff007f');
+    this.color = mainColor;
+    this.secondaryColor = secColor;
+    if (!this.name) this.name = isAlpha ? 'NODE α' : 'NODE β';
+
     const screenPos = cam.toScreen(this.x, this.y);
     const r = this.radius;
 
@@ -2843,8 +3128,8 @@ class TeleporterNode {
 
     // 1. Drop shadow & ambient ground glow
     const glowGrad = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r * 1.8);
-    glowGrad.addColorStop(0, this.color + (isLinked ? '55' : '33'));
-    glowGrad.addColorStop(0.6, this.color + '15');
+    glowGrad.addColorStop(0, mainColor + (isLinked ? '55' : '33'));
+    glowGrad.addColorStop(0.6, mainColor + '15');
     glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = glowGrad;
     ctx.beginPath();
@@ -2863,15 +3148,15 @@ class TeleporterNode {
     // Outer glow rim
     ctx.beginPath();
     ctx.arc(0, 0, r - 2, 0, Math.PI * 2);
-    ctx.strokeStyle = this.color;
+    ctx.strokeStyle = mainColor;
     ctx.lineWidth = 2;
-    ctx.shadowColor = this.color;
+    ctx.shadowColor = mainColor;
     ctx.shadowBlur = isLinked ? 14 : 6;
     ctx.stroke();
     ctx.shadowBlur = 0;
 
     // 3. Etched Circuit Traces radiating outward
-    ctx.strokeStyle = this.color + '88';
+    ctx.strokeStyle = mainColor + '88';
     ctx.lineWidth = 1.5;
     for (let i = 0; i < 8; i++) {
       const a = (i * Math.PI) / 4;
@@ -2884,7 +3169,7 @@ class TeleporterNode {
     // 4. Rotating Concentric Rings
     ctx.save();
     ctx.rotate(-this.animTime * 1.2);
-    ctx.strokeStyle = this.secondaryColor + 'aa';
+    ctx.strokeStyle = secColor + 'aa';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([6, 6]);
     ctx.beginPath();
@@ -2895,7 +3180,7 @@ class TeleporterNode {
 
     ctx.save();
     ctx.rotate(this.animTime * 1.6);
-    ctx.strokeStyle = this.color;
+    ctx.strokeStyle = mainColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(0, 0, r * 0.45, 0, Math.PI * 0.8);
@@ -2909,8 +3194,8 @@ class TeleporterNode {
     const corePulse = 0.85 + Math.sin(this.animTime * 4) * 0.15;
     const coreGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, r * 0.35 * corePulse);
     coreGrad.addColorStop(0, '#ffffff');
-    coreGrad.addColorStop(0.3, this.color);
-    coreGrad.addColorStop(0.8, this.secondaryColor + 'bb');
+    coreGrad.addColorStop(0.3, mainColor);
+    coreGrad.addColorStop(0.8, secColor + 'bb');
     coreGrad.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
     ctx.fillStyle = coreGrad;
     ctx.beginPath();
@@ -2947,8 +3232,8 @@ class TeleporterNode {
     ctx.save();
     ctx.font = 'bold 11px "Orbitron", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillStyle = this.color;
-    ctx.shadowColor = this.color;
+    ctx.fillStyle = mainColor;
+    ctx.shadowColor = mainColor;
     ctx.shadowBlur = 8;
     ctx.fillText(`[${this.name}]`, labelPos.x, labelPos.y);
 
@@ -3062,7 +3347,7 @@ function isPointInTriangle(px, py, p1, p2, p3) {
 // Corrupted Bug Boss Entity (Emerges after 10m; Restrain with Heavy Rope from Supplies Closet)
 // ============================================================================
 class BugBoss {
-  constructor(x, y, hostRack) {
+  constructor(x, y, hostRack, variantLevel = 0) {
     this.x = x;
     this.y = y;
     this.vx = 0;
@@ -3070,13 +3355,17 @@ class BugBoss {
     this.radius = CONFIG.BOSS?.RADIUS ?? 46;
     this.hostRack = hostRack;
     this.isAlive = true;
-    this.wave = 1;
-    this.name = 'CORRUPTED BUG BOSS';
-    this.title = 'DEFCON 1 ANOMALY // CORRUPTED BUG BOSS';
+    this.variantLevel = variantLevel;
+    this.wave = 1 + variantLevel * 3;
+    this.name = variantLevel === 0 ? 'MASSIVE BUG' : `MASSIVE BUG [V${variantLevel + 1}]`;
+    this.title = 'DEFCON 1 ANOMALY // ' + (variantLevel === 0 ? 'MASSIVE GLITCH BUG' : 'MASSIVE BUG // OVERCLOCKED VARIANT');
     this.icon = '👾';
-    this.restraintName = 'HEAVY ROPE';
-    this.cableColor = '#d97706';
-    this.glowColor = 'rgba(217, 119, 6, 0.45)';
+    this.restraintName = 'CONTAINMENT WIRE';
+    this.cableColor = variantLevel === 0 ? '#00ff9d' : '#c084fc';
+    this.glowColor = variantLevel === 0 ? 'rgba(0, 255, 157, 0.45)' : 'rgba(192, 132, 252, 0.45)';
+    this.color = variantLevel === 0 ? '#ff2a55' : '#e024c3';
+    this.maxWraps = Math.min(8, (CONFIG.BOSS?.MIN_WRAPS ?? 3) + variantLevel);
+    this.speed = (CONFIG.BOSS?.SPEED ?? 175) + variantLevel * 25;
     
     // Wire/rope wrapping restraint parameters (randomized between 3 and 5 wraps)
     const minW = CONFIG.BOSS?.MIN_WRAPS ?? 3;
@@ -3544,6 +3833,8 @@ class SmallBug {
     this.originRack = originRack;
     this.targetRack = targetRack;
     this.isAlive = true;
+    this.isInsideRack = false;
+    this.currentRack = null;
     this.animTime = Math.random() * 10;
     this.angle = 0;
     this.serversDestroyed = 0;
@@ -3553,16 +3844,72 @@ class SmallBug {
 
   pickNextTarget(game) {
     if (!game || !game.racks) return;
-    const candidates = game.racks.filter(r => !r.isDestroyed && (!this.targetRack || r.id !== this.targetRack.id));
+    const candidates = game.racks.filter(r => !r.isDestroyed && (!this.currentRack || r.id !== this.currentRack.id));
     if (candidates.length > 0) {
-      this.targetRack = candidates[Math.floor(Math.random() * candidates.length)];
+      const uninfested = candidates.filter(r => !r.isFailing);
+      const pool = uninfested.length > 0 ? uninfested : candidates;
+      this.targetRack = pool[Math.floor(Math.random() * pool.length)];
     } else {
       this.targetRack = null;
     }
   }
 
+  enterRack(hitRack, game) {
+    if (!hitRack || hitRack.isDestroyed) {
+      this.pickNextTarget(game);
+      return;
+    }
+    this.isInsideRack = true;
+    this.currentRack = hitRack;
+    this.x = hitRack.x + hitRack.width / 2;
+    this.y = hitRack.y + hitRack.height / 2;
+    this.vx = 0;
+    this.vy = 0;
+
+    hitRack.triggerServerBugError(this.originRack || hitRack);
+    if (hitRack.error) {
+      hitRack.error.bugEntity = this;
+      hitRack.error.bugTimer = CONFIG.ERRORS?.BUG_RACK_EXPLODE_TIME ?? 30.0;
+    }
+
+    if (game) {
+      game.sound.playError();
+      game.camera.shake(10, 0.3);
+      game.particles.spawnSparks(this.x, this.y, 35, '#ff0055');
+      game.particles.spawnSparks(this.x, this.y, 25, '#ffaa00');
+
+      if (hitRack.isShutdown) {
+        game.showTemporaryToast(
+          `🛑 BUG ENTERED OFFLINE SERVER ${hitRack.id} AND IS TRAPPED! GO TO RACK & HOLD [E] TO TAKE IT OUT!`,
+          '🛑'
+        );
+      } else {
+        game.showTemporaryToast(
+          `🐛 BUG WENT INTO SERVER ${hitRack.id}! [30s BEFORE EXPLOSION] ➔ TYPE PIN [${hitRack.code}] AT NOC DESK TO SHUT DOWN!`,
+          '⚠️'
+        );
+      }
+      game.updateObjectiveUI();
+    }
+  }
+
   update(player, dt, game) {
     if (!this.isAlive) return;
+
+    // If inside a server, monitor the server
+    if (this.isInsideRack) {
+      if (!this.currentRack || this.currentRack.isDestroyed) {
+        // Exploded: bug escapes to find a new server
+        this.isInsideRack = false;
+        if (this.currentRack) {
+          this.x = this.currentRack.x + this.currentRack.width / 2;
+          this.y = this.currentRack.y + this.currentRack.height / 2;
+        }
+        this.currentRack = null;
+        this.pickNextTarget(game);
+      }
+      return;
+    }
 
     this.animTime += dt;
     this.scuttlePhase += dt * 18;
@@ -3611,7 +3958,17 @@ class SmallBug {
       }
     }
 
-    // Check collision with Target Server Rack: Crawl inside and DESTROY it!
+    // 1. Check collision with Player: Player CRUSHES / SQUISHES the rogue bug!
+    const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
+    const crushMulti = player.hasSpikedBumper ? 1.8 : 1.0;
+    const crushDistance = (player.radius + this.radius + 6) * crushMulti; // Generous squash hitbox
+
+    if (distToPlayer <= crushDistance) {
+      this.crush(player, game);
+      return;
+    }
+
+    // 2. Check collision with Target Server Rack: Crawl inside and infest it!
     if (this.targetRack && !this.targetRack.isDestroyed) {
       const rackCenterX = this.targetRack.x + this.targetRack.width / 2;
       const rackCenterY = this.targetRack.y + this.targetRack.height / 2;
@@ -3620,32 +3977,8 @@ class SmallBug {
       if (distToRack < 38 || 
           (this.x >= this.targetRack.x && this.x <= this.targetRack.x + this.targetRack.width &&
            this.y >= this.targetRack.y && this.y <= this.targetRack.y + this.targetRack.height)) {
-        // Catastrophic destruction!
-        const hitRack = this.targetRack;
-        hitRack.explode(game);
-        this.serversDestroyed++;
-
-        game.sound.playBossRoar();
-        game.camera.shake(22, 0.6);
-        game.particles.spawnSparks(hitRack.x + hitRack.width / 2, hitRack.y + hitRack.height / 2, 40, '#ff0055');
-
-        game.showTemporaryToast(
-          `💥 ROGUE BUG DESTROYED ${hitRack.id}! [${this.serversDestroyed} SERVERS LOST] ➔ CRUSH IT BEFORE NEXT STRIKE!`,
-          '⚠️'
-        );
-
-        // Crucial behavior: If not crushed, it immediately seeks another random server and continues destroying!
-        this.pickNextTarget(game);
+        this.enterRack(this.targetRack, game);
       }
-    }
-
-    // Check collision with Player: Player CRUSHES the rogue bug!
-    const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
-    const crushMulti = player.hasSpikedBumper ? 1.8 : 1.0;
-    const crushDistance = (player.radius + this.radius + 6) * crushMulti; // Generous squash hitbox
-
-    if (distToPlayer <= crushDistance) {
-      this.crush(player, game);
     }
   }
 
@@ -3684,7 +4017,7 @@ class SmallBug {
   }
 
   render(ctx, cam) {
-    if (!this.isAlive) return;
+    if (!this.isAlive || this.isInsideRack) return;
 
     const pos = cam.toScreen(this.x, this.y);
 
@@ -3824,7 +4157,7 @@ class SmallBug {
 // Thermal Golem Boss (Wave 2 - 20:00; Freeze Core with Cryo Canister, then Shatter!)
 // ============================================================================
 class ThermalGolemBoss {
-  constructor(x, y, hostRack) {
+  constructor(x, y, hostRack, variantLevel = 0) {
     this.x = x;
     this.y = y;
     this.vx = 0;
@@ -3832,17 +4165,18 @@ class ThermalGolemBoss {
     this.radius = 52;
     this.hostRack = hostRack;
     this.isAlive = true;
-    this.wave = 2;
-    this.name = 'THERMAL GOLEM';
-    this.title = 'DEFCON 1 OVERHEAT // THERMAL GOLEM TITAN';
+    this.variantLevel = variantLevel;
+    this.wave = 2 + variantLevel * 3;
+    this.name = variantLevel === 0 ? 'OVERHEAT DAEMON' : `OVERHEAT DAEMON [V${variantLevel + 1}]`;
+    this.title = 'DEFCON 1 OVERHEAT // ' + (variantLevel === 0 ? 'OVERHEAT DAEMON' : 'OVERHEAT DAEMON // INFERNAL PRIME');
     this.icon = '🔥';
     this.restraintName = 'CRYO CANISTER';
-    this.color = '#ff5500';
+    this.color = variantLevel === 0 ? '#ff5500' : '#38bdf8';
     this.cableColor = '#00f3ff';
     this.glowColor = 'rgba(0, 243, 255, 0.45)';
 
-    this.temperature = 1000;
-    this.maxTemperature = 1000;
+    this.temperature = 1000 + variantLevel * 350;
+    this.maxTemperature = this.temperature;
     this.isFrozen = false;
     this.flinchTimer = 0;
 
@@ -4227,916 +4561,288 @@ class ThermalGolemBoss {
 }
 
 // ============================================================================
-// Spectral Daemon Boss (Wave 3 - 30:00; Trap in EMF Grounding Pylon Laser Cage)
+// Major Virus Boss Entity (Wave 3 - 30:00; Overtakes Computers; Quarantine Containment Zone)
 // ============================================================================
-class SpectralDaemonBoss {
-  constructor(x, y, hostRack) {
+class MajorVirusBoss {
+  constructor(x, y, hostRack, variantLevel = 0) {
     this.x = x;
     this.y = y;
-    this.vx = 0;
-    this.vy = 0;
-    this.radius = 48;
     this.hostRack = hostRack;
+    this.variantLevel = variantLevel;
     this.isAlive = true;
-    this.wave = 3;
-    this.name = 'SPECTRAL DAEMON';
-    this.title = 'DEFCON 1 GLITCH // SPECTRAL DAEMON ANOMALY';
-    this.icon = '👻';
-    this.restraintName = 'EMF PYLONS';
-    this.color = '#a855f7';
-    this.cableColor = '#a855f7';
-    this.glowColor = 'rgba(168, 85, 247, 0.45)';
+    this.radius = 50;
+    this.speed = 120 + variantLevel * 20;
+    this.color = variantLevel === 0 ? '#10b981' : (variantLevel === 1 ? '#a855f7' : '#e11d48');
+    this.name = variantLevel === 0 ? 'MAJOR VIRUS' : `MAJOR VIRUS [V${variantLevel + 1}]`;
+    this.title = 'DEFCON 1 BIOLOGICAL // ' + (variantLevel === 0 ? 'MAJOR VIRUS' : 'MAJOR VIRUS // APEX MUTANT STRAIN');
+    this.icon = '🦠';
+    this.restraintName = 'QUARANTINE CONTAINMENT BARRIER';
 
-    this.resonanceTimer = 0;
-    this.maxResonance = 2.5;
-    this.flinchTimer = 0;
+    this.infectedRacks = [hostRack];
+    hostRack.isVirusInfected = true;
+    this.infectionInterval = Math.max(8.0, 14.0 - variantLevel * 2.5);
+    this.infectionTimer = this.infectionInterval;
 
-    this.state = 'EMERGING';
-    this.stateTimer = 1.6;
-    this.animTime = 0;
-    this.facingAngle = 0;
-
-    this.blinkCooldown = 5.0 + Math.random() * 2;
-    this.pulseCooldown = 6.0 + Math.random() * 2;
-    this.projectiles = []; // Glitch static orbs
+    this.pulseAnim = 0;
+    this.tentacles = [];
+    for (let i = 0; i < 10; i++) {
+      this.tentacles.push({ angle: (i / 10) * Math.PI * 2, length: 32 + Math.random() * 28, phase: Math.random() * Math.PI * 2 });
+    }
+    this.isQuarantined = false;
+    this.quarantineProgress = 0;
+    this.attackCooldown = 2.5;
+    this.quarantineTrail = [];
   }
 
   update(player, activeCable, dt, game) {
     if (!this.isAlive) return;
-    this.animTime += dt;
+    this.pulseAnim += dt * 3.5;
 
-    // Check Triangular EMF Pylon Containment Cage
-    if (game.deployedPylons && game.deployedPylons.length === 3) {
-      const [p1, p2, p3] = game.deployedPylons;
-      if (isPointInTriangle(this.x, this.y, p1, p2, p3)) {
-        this.resonanceTimer += dt;
-        this.flinchTimer = 0.25;
+    this.tentacles.forEach(t => {
+      t.phase += dt * 4.0;
+    });
 
-        if (Math.random() < 0.35) {
-          game.sound.playLaserGridHum();
-          game.camera.shake(6, 0.15);
-        }
+    // Slowly drift around infected cluster center
+    let avgX = 0, avgY = 0;
+    this.infectedRacks.forEach(r => {
+      avgX += r.x + r.width / 2;
+      avgY += r.y + r.height / 2;
+    });
+    avgX /= this.infectedRacks.length;
+    avgY /= this.infectedRacks.length;
 
-        // Arc lightning sparks striking daemon
-        game.particles.spawnSparks(this.x, this.y, 4, '#c084fc');
-        game.particles.spawnSparks(this.x, this.y, 3, '#00f3ff');
-        game.updateBossHUD();
-
-        if (this.resonanceTimer >= this.maxResonance) {
-          game.sound.playBossDefeat();
-          game.camera.shake(38, 1.2);
-          game.particles.spawnExplosion(this.x, this.y);
-          game.particles.spawnSparks(this.x, this.y, 90, '#c084fc');
-          game.particles.spawnSparks(this.x, this.y, 80, '#00f3ff');
-          game.particles.spawnSparks(this.x, this.y, 60, '#ffffff');
-          game.showTemporaryToast('⚡ SPECTRAL FREQUENCY COLLAPSED! DAEMON VAPORIZED!');
-          game.deployedPylons = [];
-          game.defeatBoss(this);
-          return;
-        }
-      } else {
-        // Slow recovery outside the cage
-        this.resonanceTimer = Math.max(0, this.resonanceTimer - 0.5 * dt);
-      }
+    const dx = avgX - this.x;
+    const dy = avgY - this.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 15) {
+      this.x += (dx / dist) * this.speed * 0.45 * dt;
+      this.y += (dy / dist) * this.speed * 0.45 * dt;
     }
 
-    // Update Static Projectiles
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const p = this.projectiles[i];
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.life -= dt;
-
-      const pDist = Math.hypot(player.x - p.x, player.y - p.y);
-      if (pDist < player.radius + p.radius) {
-        if (player.takeDamage(20, p.vx * 0.35, p.vy * 0.35, game.sound, game.particles)) {
-          game.triggerDamageFlash();
-          game.updatePlayerHealthUI();
-          game.camera.shake(14, 0.35);
-          game.showTemporaryToast('⚡ HIT BY SPECTRAL GLITCH ORB! [-20 HP]');
-        }
-        p.life = 0;
-      }
-      if (p.life <= 0) this.projectiles.splice(i, 1);
-    }
-
-    if (this.state === 'EMERGING') {
-      this.stateTimer -= dt;
-      if (Math.random() < 0.5) game.particles.spawnSparks(this.x, this.y, 4, '#a855f7');
-      if (this.stateTimer <= 0) {
-        this.state = 'STALK';
-        game.sound.playGlitchStatic();
-        game.camera.shake(20, 0.6);
-      }
-      return;
-    }
-
-    const toPlayerAngle = Math.atan2(player.y - this.y, player.x - this.x);
-    const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
-
-    if (this.state === 'STALK') {
-      let diff = toPlayerAngle - this.facingAngle;
-      while (diff > Math.PI) diff -= Math.PI * 2;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      this.facingAngle += diff * Math.min(1.0, 5.0 * dt);
-
-      // Sinusoidal floating drift
-      const speed = 190;
-      const bob = Math.sin(this.animTime * 6) * 40;
-      this.vx = Math.cos(this.facingAngle) * speed - Math.sin(this.facingAngle) * bob;
-      this.vy = Math.sin(this.facingAngle) * speed + Math.cos(this.facingAngle) * bob;
-
-      this.x += this.vx * dt;
-      this.y += this.vy * dt;
-
-      this.x = Math.max(this.radius + 20, Math.min(CONFIG.WORLD.WIDTH - this.radius - 20, this.x));
-      this.y = Math.max(this.radius + 20, Math.min(CONFIG.WORLD.HEIGHT - this.radius - 20, this.y));
-
-      this.blinkCooldown -= dt;
-      if (this.blinkCooldown <= 0 && distToPlayer < 700) {
-        this.executePhaseBlink(player, game);
-        this.blinkCooldown = 6.0 + Math.random() * 2.5;
-      }
-
-      this.pulseCooldown -= dt;
-      if (this.pulseCooldown <= 0) {
-        this.fireStaticBurst(game);
-        this.pulseCooldown = 7.0 + Math.random() * 2.5;
-      }
-    }
-
-    // Contact melee collision
-    if (distToPlayer < this.radius + player.radius) {
-      const pushX = Math.cos(toPlayerAngle) * 450;
-      const pushY = Math.sin(toPlayerAngle) * 450;
-      if (player.takeDamage(24, pushX, pushY, game.sound, game.particles)) {
-        game.triggerDamageFlash();
-        game.updatePlayerHealthUI();
-        game.camera.shake(16, 0.4);
-        game.showTemporaryToast('⚡ SPECTRAL PHANTOM COLLISION! [-24 HP]');
-      }
-    }
-
-    if (this.flinchTimer > 0) this.flinchTimer -= dt;
-  }
-
-  executePhaseBlink(player, game) {
-    game.sound.playGlitchStatic();
-    game.particles.spawnSparks(this.x, this.y, 35, '#a855f7');
-    game.camera.shake(14, 0.35);
-
-    // Teleport behind or around player
-    const ang = Math.random() * Math.PI * 2;
-    const dist = 240 + Math.random() * 60;
-    this.x = Math.max(this.radius + 50, Math.min(CONFIG.WORLD.WIDTH - this.radius - 50, player.x + Math.cos(ang) * dist));
-    this.y = Math.max(this.radius + 50, Math.min(CONFIG.WORLD.HEIGHT - this.radius - 50, player.y + Math.sin(ang) * dist));
-
-    game.particles.spawnSparks(this.x, this.y, 40, '#00f3ff');
-    game.showTemporaryToast('👻 SPECTRAL DAEMON PHASE-BLINKED! RE-ACQUIRE TARGET!');
-  }
-
-  fireStaticBurst(game) {
-    game.sound.playGlitchStatic();
-    const count = 8;
-    const speed = 240;
-    for (let i = 0; i < count; i++) {
-      const ang = (i / count) * Math.PI * 2;
-      this.projectiles.push({
-        x: this.x,
-        y: this.y,
-        vx: Math.cos(ang) * speed,
-        vy: Math.sin(ang) * speed,
-        radius: 8,
-        life: 3.0,
+    // Spawn toxic slime droplets
+    if (game && Math.random() < 0.4) {
+      game.particles.particles.push({
+        x: this.x + (Math.random() - 0.5) * this.radius * 1.5,
+        y: this.y + (Math.random() - 0.5) * this.radius * 1.5,
+        vx: (Math.random() - 0.5) * 30,
+        vy: (Math.random() - 0.5) * 30,
+        life: 0.8,
+        decay: 1.2,
+        color: Math.random() < 0.5 ? this.color : '#a855f7',
+        size: 3 + Math.random() * 3
       });
     }
+
+    // Spread infection to adjacent living uninfected computers
+    this.infectionTimer -= dt;
+    if (this.infectionTimer <= 0) {
+      this.infectionTimer = this.infectionInterval;
+      this.spreadInfection(game);
+    }
+
+    // Damage player on direct contact
+    if (game && game.player) {
+      const pDist = Math.hypot(this.x - game.player.x, this.y - game.player.y);
+      if (pDist < this.radius + 20) {
+        game.damagePlayer(15, 'VIRUS SLIME CONTACT');
+      }
+    }
+
+    // If player is holding quarantine barrier line, record trail points
+    if (game && game.hasQuarantineBarrier && game.player) {
+      const trail = this.quarantineTrail;
+      const p = { x: game.player.x, y: game.player.y };
+      if (trail.length === 0 || Math.hypot(p.x - trail[trail.length - 1].x, p.y - trail[trail.length - 1].y) > 25) {
+        trail.push(p);
+        if (trail.length > 200) trail.shift();
+      }
+
+      // Check if loop has encircled the infected racks
+      this.checkQuarantineLoop(game);
+    }
+  }
+
+  spreadInfection(game) {
+    if (!game) return;
+    const uninfected = game.racks.filter(r => !r.isDestroyed && !this.infectedRacks.some(ir => ir.id === r.id));
+    if (uninfected.length === 0) return;
+
+    let closest = null;
+    let minDist = Infinity;
+    for (const r of uninfected) {
+      for (const ir of this.infectedRacks) {
+        const d = Math.hypot(r.x - ir.x, r.y - ir.y);
+        if (d < minDist) {
+          minDist = d;
+          closest = r;
+        }
+      }
+    }
+
+    if (closest && minDist < 650) {
+      this.infectedRacks.push(closest);
+      closest.isVirusInfected = true;
+      if (game.sound) game.sound.playError();
+      if (game.particles) {
+        game.particles.spawnSparks(closest.x + closest.width / 2, closest.y + closest.height / 2, 30, this.color);
+      }
+      game.showTemporaryToast(`🦠 VIRUS OVERTOOK RACK ${closest.id}! (${this.infectedRacks.length} INFECTED NODES)`, '🦠');
+      game.updateBossHUD();
+    }
+  }
+
+  checkQuarantineLoop(game) {
+    if (!this.isAlive || this.isQuarantined || !this.quarantineTrail || this.quarantineTrail.length < 15) return false;
+
+    // Check if the quarantine trail bounds all infected racks
+    const trail = this.quarantineTrail;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    trail.forEach(pt => {
+      if (pt.x < minX) minX = pt.x;
+      if (pt.x > maxX) maxX = pt.x;
+      if (pt.y < minY) minY = pt.y;
+      if (pt.y > maxY) maxY = pt.y;
+    });
+
+    // Check if loop closure is near
+    const first = trail[0];
+    const last = trail[trail.length - 1];
+    const loopClosed = Math.hypot(last.x - first.x, last.y - first.y) < 120 && trail.length > 20;
+
+    // Verify all infected racks lie within the boundary
+    const allEnclosed = this.infectedRacks.every(rack => {
+      const rx = rack.x + rack.width / 2;
+      const ry = rack.y + rack.height / 2;
+      return rx >= minX - 40 && rx <= maxX + 40 && ry >= minY - 40 && ry <= maxY + 40;
+    });
+
+    if (loopClosed && allEnclosed) {
+      this.sealQuarantine(game);
+      return true;
+    }
+    return false;
+  }
+
+  sealQuarantine(game) {
+    this.isQuarantined = true;
+    this.isAlive = false;
+    if (game.sound && game.sound.playQuarantineSeal) game.sound.playQuarantineSeal();
+    if (game.sound) game.sound.playPlugSuccess();
+
+    if (game.camera) game.camera.shake(28, 0.9);
+
+    // Cleanse all infected racks
+    this.infectedRacks.forEach(r => {
+      r.isVirusInfected = false;
+      r.uptime = 100;
+      if (game.particles) {
+        game.particles.spawnSparks(r.x + r.width / 2, r.y + r.height / 2, 45, '#00ff9d');
+        game.particles.spawnSparks(r.x + r.width / 2, r.y + r.height / 2, 25, '#00f3ff');
+      }
+    });
+
+    if (game.particles) {
+      game.particles.spawnExplosion(this.x, this.y);
+      game.particles.spawnSparks(this.x, this.y, 90, this.color);
+    }
+
+    game.hasQuarantineBarrier = false;
+    this.quarantineTrail = [];
+    game.defeatBoss();
+    game.showTemporaryToast('🛡️ QUARANTINE ZONE SEALED! MAJOR VIRUS PURGED & ALL NODES DISINFECTED!', '🦠');
   }
 
   render(ctx, cam) {
     if (!this.isAlive) return;
-
-    for (const p of this.projectiles) {
-      const sPos = cam.toScreen(p.x, p.y);
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(sPos.x, sPos.y, p.radius + 3, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(168, 85, 247, 0.4)';
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(sPos.x, sPos.y, p.radius, 0, Math.PI * 2);
-      ctx.fillStyle = '#00f3ff';
-      ctx.fill();
-      ctx.restore();
-    }
-
-    if (!cam.isBoundingBoxVisible(this.x - 120, this.y - 120, 240, 240)) return;
     const pos = cam.toScreen(this.x, this.y);
 
     ctx.save();
     ctx.translate(pos.x, pos.y);
-    ctx.rotate(this.facingAngle);
 
-    // Chromatic Aberration & Glitch Offset (increases during resonance disruption)
-    const jitterMag = this.resonanceTimer > 0 ? 14 : 6;
-    const glitchX = (Math.random() - 0.5) * jitterMag;
-    const glitchY = (Math.random() - 0.5) * jitterMag;
+    // Pulsing virus aura
+    const pulse = 1.0 + Math.sin(this.pulseAnim) * 0.12;
+    const grad = ctx.createRadialGradient(0, 0, 8, 0, 0, this.radius * pulse * 1.4);
+    grad.addColorStop(0, this.color);
+    grad.addColorStop(0.6, 'rgba(168, 85, 247, 0.6)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-    // Magenta shadow pass
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(glitchX + 4, glitchY, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = this.resonanceTimer > 0 ? 'rgba(236, 72, 153, 0.65)' : 'rgba(236, 72, 153, 0.35)';
+    ctx.arc(0, 0, this.radius * pulse * 1.4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Cyan shadow pass
-    ctx.beginPath();
-    ctx.arc(glitchX - 4, glitchY, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = this.resonanceTimer > 0 ? 'rgba(0, 243, 255, 0.65)' : 'rgba(0, 243, 255, 0.35)';
-    ctx.fill();
+    // Wiggling slime tentacles
+    this.tentacles.forEach(t => {
+      const len = t.length * pulse;
+      const angle = t.angle + Math.sin(t.phase) * 0.35;
+      const tx = Math.cos(angle) * len;
+      const ty = Math.sin(angle) * len;
+      const cpx = Math.cos(angle + 0.3) * (len * 0.6);
+      const cpy = Math.sin(angle + 0.3) * (len * 0.6);
 
-    // Main Ethereal Core
-    ctx.beginPath();
-    ctx.arc(0, 0, this.radius * 0.85, 0, Math.PI * 2);
-    ctx.fillStyle = this.resonanceTimer > 0 ? '#ffffff' : 'rgba(168, 85, 247, 0.85)';
-    ctx.fill();
-    ctx.strokeStyle = this.resonanceTimer > 0 ? '#00f3ff' : '#ffffff';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    // Floating Cyber Horns / Nodes
-    ctx.fillStyle = '#a855f7';
-    ctx.beginPath();
-    ctx.moveTo(10, -32);
-    ctx.lineTo(26, -48);
-    ctx.lineTo(34, -28);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(10, 32);
-    ctx.lineTo(26, 48);
-    ctx.lineTo(34, 28);
-    ctx.closePath();
-    ctx.fill();
-
-    // Ethereal Visor Eyes
-    ctx.fillStyle = '#00f3ff';
-    ctx.beginPath();
-    ctx.ellipse(18, -10, 8, 3, 0, 0, Math.PI * 2);
-    ctx.ellipse(18, 10, 8, 3, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
-
-    // In-World Overhead Readout
-    ctx.save();
-    ctx.font = 'bold 10px "JetBrains Mono", monospace';
-    const resPct = Math.round((this.resonanceTimer / this.maxResonance) * 100);
-    const tagText = this.resonanceTimer > 0 ? `⚡ EMF RESONANCE: ${resPct}%` : '👻 ETHEREAL PHASE [LURE INTO EMF CAGE]';
-    const tw = ctx.measureText(tagText).width;
-    ctx.fillStyle = 'rgba(7, 10, 18, 0.85)';
-    ctx.strokeStyle = this.resonanceTimer > 0 ? '#00f3ff' : '#a855f7';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.roundRect(pos.x - tw / 2 - 8, pos.y - this.radius - 22, tw + 16, 16, 3);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = this.resonanceTimer > 0 ? '#00f3ff' : '#c084fc';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(tagText, pos.x, pos.y - this.radius - 14);
-    ctx.restore();
-  }
-}
-
-// ============================================================================
-// Titan Colossus Boss (Wave 4 - 40:00; Sabotage 3 Vents with Magnetic SCRAM Limpets)
-// ============================================================================
-class TitanColossusBoss {
-  constructor(x, y, hostRack) {
-    this.x = x;
-    this.y = y;
-    this.vx = 0;
-    this.vy = 0;
-    this.radius = 56;
-    this.hostRack = hostRack;
-    this.isAlive = true;
-    this.wave = 4;
-    this.name = 'TITAN COLOSSUS';
-    this.title = 'DEFCON 1 SIEGE // TITAN COLOSSUS FORTRESS';
-    this.icon = '🤖';
-    this.restraintName = 'SCRAM LIMPETS';
-    this.color = '#00f3ff';
-    this.cableColor = '#38bdf8';
-    this.glowColor = 'rgba(56, 189, 248, 0.45)';
-
-    this.vents = [
-      { id: 'port', name: 'PORT HEAT SINK', angleOffset: -Math.PI / 2, dist: 52, hasLimpet: false },
-      { id: 'starboard', name: 'STARBOARD HEAT SINK', angleOffset: Math.PI / 2, dist: 52, hasLimpet: false },
-      { id: 'rear', name: 'REAR CORE VENT', angleOffset: Math.PI, dist: 58, hasLimpet: false }
-    ];
-    this.limpetsAttached = 0;
-    this.overloadCountdown = 3.0;
-    this.flinchTimer = 0;
-
-    this.state = 'EMERGING';
-    this.stateTimer = 1.8;
-    this.animTime = 0;
-    this.facingAngle = 0;
-
-    this.laserCooldown = 5.5 + Math.random() * 2;
-    this.missileCooldown = 6.5 + Math.random() * 2;
-    this.isLaserAiming = false;
-    this.laserTimer = 0;
-    this.projectiles = []; // Homing micro-missiles
-  }
-
-  update(player, activeCable, dt, game) {
-    if (!this.isAlive) return;
-    this.animTime += dt;
-
-    // 1. Critical Overload Countdown if all 3 vents have limpets!
-    if (this.limpetsAttached >= 3) {
-      this.state = 'OVERLOAD';
-      this.overloadCountdown -= dt;
-      this.vx = 0;
-      this.vy = 0;
-
-      // Heavy vent spark emissions
-      for (const vent of this.vents) {
-        const vAng = this.facingAngle + vent.angleOffset;
-        const vx = this.x + Math.cos(vAng) * vent.dist;
-        const vy = this.y + Math.sin(vAng) * vent.dist;
-        if (Math.random() < 0.65) {
-          game.particles.spawnSparks(vx, vy, 4, '#ffaa00');
-          game.particles.spawnSparks(vx, vy, 3, '#ff003c');
-        }
-      }
-
-      if (this.overloadCountdown <= 0) {
-        game.camera.shake(40, 1.4);
-        game.sound.playBossDefeat();
-        game.particles.spawnExplosion(this.x, this.y);
-        game.particles.spawnSparks(this.x, this.y, 95, '#00f3ff');
-        game.particles.spawnSparks(this.x, this.y, 95, '#ffaa00');
-        game.particles.spawnSparks(this.x, this.y, 70, '#ffffff');
-        game.showTemporaryToast('💥 CRITICAL SCRAM DETONATION! TITAN COLOSSUS DESTROYED!');
-        game.defeatBoss(this);
-        return;
-      }
-      return;
-    }
-
-    // Update Homing Micro-Missiles
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const m = this.projectiles[i];
-      m.life -= dt;
-
-      // Homing steer towards player
-      const toP = Math.atan2(player.y - m.y, player.x - m.x);
-      let diff = toP - m.angle;
-      while (diff > Math.PI) diff -= Math.PI * 2;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      m.angle += diff * Math.min(1.0, 3.5 * dt);
-
-      m.vx = Math.cos(m.angle) * m.speed;
-      m.vy = Math.sin(m.angle) * m.speed;
-      m.x += m.vx * dt;
-      m.y += m.vy * dt;
-
-      const pDist = Math.hypot(player.x - m.x, player.y - m.y);
-      if (pDist < player.radius + m.radius) {
-        if (player.takeDamage(20, m.vx * 0.4, m.vy * 0.4, game.sound, game.particles)) {
-          game.triggerDamageFlash();
-          game.updatePlayerHealthUI();
-          game.camera.shake(16, 0.4);
-          game.particles.spawnExplosion(m.x, m.y);
-          game.showTemporaryToast('💥 HIT BY TITAN HOMING MISSILE! [-20 HP]');
-        }
-        m.life = 0;
-      }
-      if (m.life <= 0) this.projectiles.splice(i, 1);
-    }
-
-    if (this.state === 'EMERGING') {
-      this.stateTimer -= dt;
-      if (Math.random() < 0.5) game.particles.spawnSparks(this.x, this.y, 4, '#00f3ff');
-      if (this.stateTimer <= 0) {
-        this.state = 'STALK';
-        game.sound.playLaserSweep();
-        game.camera.shake(25, 0.8);
-      }
-      return;
-    }
-
-    const toPlayerAngle = Math.atan2(player.y - this.y, player.x - this.x);
-    const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
-
-    if (this.state === 'STALK') {
-      let diff = toPlayerAngle - this.facingAngle;
-      while (diff > Math.PI) diff -= Math.PI * 2;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      this.facingAngle += diff * Math.min(1.0, 3.5 * dt);
-
-      const speed = 180;
-      this.vx = Math.cos(this.facingAngle) * speed;
-      this.vy = Math.sin(this.facingAngle) * speed;
-
-      this.x += this.vx * dt;
-      this.y += this.vy * dt;
-
-      this.x = Math.max(this.radius + 20, Math.min(CONFIG.WORLD.WIDTH - this.radius - 20, this.x));
-      this.y = Math.max(this.radius + 20, Math.min(CONFIG.WORLD.HEIGHT - this.radius - 20, this.y));
-
-      this.laserCooldown -= dt;
-      if (this.laserCooldown <= 0 && distToPlayer < 750) {
-        this.state = 'LASER_SWEEP';
-        this.laserTimer = 1.6;
-        this.vx = 0;
-        this.vy = 0;
-        game.sound.playLaserSweep();
-        return;
-      }
-
-      this.missileCooldown -= dt;
-      if (this.missileCooldown <= 0) {
-        this.fireMissileVolley(player, game);
-        this.missileCooldown = 7.5 + Math.random() * 2.5;
-      }
-    } else if (this.state === 'LASER_SWEEP') {
-      this.laserTimer -= dt;
-      if (this.laserTimer > 0.8) {
-        this.facingAngle = toPlayerAngle;
-      } else {
-        const laserLen = 700;
-        const lx = this.x + Math.cos(this.facingAngle) * laserLen;
-        const ly = this.y + Math.sin(this.facingAngle) * laserLen;
-        const toP = Math.hypot(player.x - this.x, player.y - this.y);
-        const angDiff = Math.abs(toPlayerAngle - this.facingAngle);
-        if (toP < laserLen && angDiff < 0.14) {
-          if (player.takeDamage(32, Math.cos(this.facingAngle) * 500, Math.sin(this.facingAngle) * 500, game.sound, game.particles)) {
-            game.triggerDamageFlash();
-            game.updatePlayerHealthUI();
-            game.camera.shake(20, 0.5);
-            game.showTemporaryToast('⚡ HIT BY TITAN OVERLOAD BEAM! [-32 HP]');
-          }
-        }
-      }
-
-      if (this.laserTimer <= 0) {
-        this.state = 'STALK';
-        this.laserCooldown = 7.0 + Math.random() * 2.5;
-      }
-    }
-
-    // Contact melee collision
-    if (distToPlayer < this.radius + player.radius) {
-      const pushX = Math.cos(toPlayerAngle) * 500;
-      const pushY = Math.sin(toPlayerAngle) * 500;
-      if (player.takeDamage(25, pushX, pushY, game.sound, game.particles)) {
-        game.triggerDamageFlash();
-        game.updatePlayerHealthUI();
-        game.camera.shake(18, 0.4);
-        game.showTemporaryToast('🤖 TITAN HYDRAULIC CONTACT! [-25 HP]');
-      }
-    }
-
-    if (this.flinchTimer > 0) this.flinchTimer -= dt;
-  }
-
-  fireMissileVolley(player, game) {
-    game.sound.playBossLunge();
-    const count = 4;
-    for (let i = 0; i < count; i++) {
-      const ang = this.facingAngle + (i - 1.5) * 0.4;
-      this.projectiles.push({
-        x: this.x + Math.cos(ang) * 40,
-        y: this.y + Math.sin(ang) * 40,
-        angle: ang,
-        speed: 260 + Math.random() * 40,
-        vx: Math.cos(ang) * 260,
-        vy: Math.sin(ang) * 260,
-        radius: 6,
-        life: 3.5,
-      });
-    }
-    game.particles.spawnSparks(this.x, this.y, 25, '#38bdf8');
-    game.showTemporaryToast('🚀 TITAN COLOSSUS LAUNCHED HOMING MISSILE VOLLEY!');
-  }
-
-  render(ctx, cam) {
-    if (!this.isAlive) return;
-
-    // Render Missiles
-    for (const m of this.projectiles) {
-      const sPos = cam.toScreen(m.x, m.y);
-      ctx.save();
-      ctx.translate(sPos.x, sPos.y);
-      ctx.rotate(m.angle);
-      ctx.fillStyle = '#ff2a55';
-      ctx.fillRect(-6, -3, 12, 6);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(4, -2, 3, 4);
-      ctx.restore();
-    }
-
-    // Render Laser Sweep
-    if (this.state === 'LASER_SWEEP') {
-      const sPos = cam.toScreen(this.x, this.y);
-      const targetLen = 700;
-      const endX = sPos.x + Math.cos(this.facingAngle) * targetLen;
-      const endY = sPos.y + Math.sin(this.facingAngle) * targetLen;
-
-      ctx.save();
-      if (this.laserTimer > 0.8) {
-        ctx.strokeStyle = 'rgba(255, 42, 85, 0.6)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([8, 6]);
-      } else {
-        ctx.strokeStyle = '#00f3ff';
-        ctx.lineWidth = 10;
-        ctx.shadowColor = '#00f3ff';
-        ctx.shadowBlur = 18;
-      }
-      ctx.beginPath();
-      ctx.moveTo(sPos.x, sPos.y);
-      ctx.lineTo(endX, endY);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    if (!cam.isBoundingBoxVisible(this.x - 140, this.y - 140, 280, 280)) return;
-    const pos = cam.toScreen(this.x, this.y);
-
-    ctx.save();
-    ctx.translate(pos.x, pos.y);
-    ctx.rotate(this.facingAngle);
-
-    // Quad-Chassis Heavy Mech Hull
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(-this.radius * 0.85, -this.radius * 0.85, this.radius * 1.7, this.radius * 1.7);
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(-this.radius * 0.85, -this.radius * 0.85, this.radius * 1.7, this.radius * 1.7);
-
-    // Dual Flank Turret Pods
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(-15, -this.radius - 12, 30, 14);
-    ctx.fillRect(-15, this.radius - 2, 30, 14);
-    ctx.strokeStyle = '#ff2a55';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-15, -this.radius - 12, 30, 14);
-    ctx.strokeRect(-15, this.radius - 2, 30, 14);
-
-    // Central Spinning Reactor Turbine
-    const rot = this.animTime * 6;
-    ctx.save();
-    ctx.rotate(rot);
-    ctx.beginPath();
-    ctx.arc(0, 0, 22, 0, Math.PI * 2);
-    ctx.fillStyle = '#0284c7';
-    ctx.fill();
-    ctx.strokeStyle = '#00f3ff';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    for (let b = 0; b < 4; b++) {
-      const bAng = (b * Math.PI) / 2;
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(bAng) * 20, Math.sin(bAng) * 20);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // Render the 3 Exhaust Vents with Magnetic SCRAM Limpet Status
-    for (const vent of this.vents) {
-      const vx = Math.cos(vent.angleOffset) * vent.dist;
-      const vy = Math.sin(vent.angleOffset) * vent.dist;
-
-      ctx.save();
-      ctx.translate(vx, vy);
-
-      // Vent housing
-      ctx.fillStyle = '#0f172a';
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.rect(-10, -10, 20, 20);
-      ctx.fill();
+      ctx.quadraticCurveTo(cpx, cpy, tx, ty);
       ctx.stroke();
 
-      if (vent.hasLimpet) {
-        // Blinking Magnetic SCRAM Limpet attached!
-        const blink = Math.floor(performance.now() / 150) % 2 === 0;
-        ctx.fillStyle = blink ? '#ff003c' : '#fbbf24';
-        ctx.beginPath();
-        ctx.arc(0, 0, 7, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        ctx.fillStyle = '#00f3ff';
-        ctx.fillRect(-3, -3, 6, 6);
-      } else {
-        // Glowing hot exhaust grille
-        const heatPulse = 0.7 + Math.sin(this.animTime * 10) * 0.3;
-        ctx.fillStyle = `rgba(255, 170, 0, ${heatPulse})`;
-        ctx.fillRect(-7, -7, 14, 14);
-      }
-      ctx.restore();
-    }
-
-    ctx.restore();
-
-    // In-World Overhead Readout
-    ctx.save();
-    ctx.font = 'bold 10px "JetBrains Mono", monospace';
-    const tagText = this.state === 'OVERLOAD'
-      ? `🚨 SCRAM DETONATION IN ${this.overloadCountdown.toFixed(1)}s!`
-      : `🤖 SCRAM LIMPETS: ${this.limpetsAttached}/3 PLANTED`;
-    const tw = ctx.measureText(tagText).width;
-    ctx.fillStyle = 'rgba(7, 10, 18, 0.85)';
-    ctx.strokeStyle = this.state === 'OVERLOAD' ? '#ff003c' : '#38bdf8';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.roundRect(pos.x - tw / 2 - 8, pos.y - this.radius - 22, tw + 16, 16, 3);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = this.state === 'OVERLOAD' ? '#ff003c' : '#38bdf8';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(tagText, pos.x, pos.y - this.radius - 14);
-    ctx.restore();
-  }
-
-  getVentWorldPos(vent) {
-    const vAng = this.facingAngle + vent.angleOffset;
-    return {
-      x: this.x + Math.cos(vAng) * vent.dist,
-      y: this.y + Math.sin(vAng) * vent.dist
-    };
-  }
-
-  attachLimpet(vent, game) {
-    if (vent.hasLimpet) return false;
-    vent.hasLimpet = true;
-    this.limpetsAttached++;
-    const vPos = this.getVentWorldPos(vent);
-    game.sound.playLimpetAttach();
-    game.camera.shake(16, 0.4);
-    game.particles.spawnSparks(vPos.x, vPos.y, 35, '#ffaa00');
-    game.particles.spawnSparks(vPos.x, vPos.y, 25, '#ff003c');
-    game.showTemporaryToast(`💣 SCRAM LIMPET ATTACHED TO ${vent.name}! [${this.limpetsAttached}/3 PLANTED]`, '💣');
-    game.updateBossHUD();
-    if (this.limpetsAttached >= 3) {
-      game.sound.playBossAlarm();
-      game.showTemporaryToast('🚨 ALL 3 LIMPETS ARMED! CRITICAL SCRAM DETONATION INCOMING! CLEAR THE AREA!', '🚨');
-    }
-    return true;
-  }
-}
-
-// ============================================================================
-// Procedural Apex Boss (Wave 5+ Infinite Procedural Progressive Escalation)
-// ============================================================================
-class ProceduralApexBoss {
-  constructor(x, y, hostRack, waveNumber) {
-    this.x = x;
-    this.y = y;
-    this.vx = 0;
-    this.vy = 0;
-    this.hostRack = hostRack;
-    this.isAlive = true;
-    this.wave = waveNumber;
-
-    // Procedural Title Generator
-    const prefixes = ['VOID', 'QUANTUM', 'OVERCLOCK', 'SINGULARITY', 'HYPER-THREAD', 'NEURAL', 'CYBER-ARCHON', 'SUB-ZERO', 'ENTROPY'];
-    const bases = ['COLOSSUS', 'LEVIATHAN', 'MONOLITH', 'BEHEMOTH', 'VALKYRIE', 'NEXUS', 'SPECTER', 'JUGGERNAUT', 'PRIMAL'];
-    const suffixes = ['PRIME', 'OMEGA', 'APEX', 'EXTREME', 'CORRUPT', 'ZERO', 'ULTIMA', 'GENESIS'];
-
-    const pIdx = (waveNumber * 3) % prefixes.length;
-    const bIdx = (waveNumber * 5) % bases.length;
-    const sIdx = (waveNumber * 7) % suffixes.length;
-
-    this.name = `${prefixes[pIdx]} ${bases[bIdx]}`;
-    this.title = `DEFCON 1 TIER ${waveNumber} // ${prefixes[pIdx]} ${bases[bIdx]} [${suffixes[sIdx]}]`;
-    this.icon = (waveNumber % 2 === 0) ? '⚡' : '👑';
-    this.restraintName = 'COSMIC TETHER';
-
-    // Procedural Hue & Stats Scaling
-    this.hue = (waveNumber * 67 + 140) % 360;
-    this.color = `hsl(${this.hue}, 95%, 55%)`;
-    this.cableColor = `hsl(${(this.hue + 120) % 360}, 90%, 50%)`;
-    this.glowColor = `hsla(${this.hue}, 90%, 50%, 0.45)`;
-
-    this.radius = 58 + Math.min(20, (waveNumber - 5) * 3);
-    this.maxWraps = Math.min(10, 6 + Math.floor((waveNumber - 4) * 0.7));
-    this.completedWraps = 0;
-    this.currentWrapAngle = 0;
-    this.wrapDirection = 0;
-    this.lastPlayerAngle = null;
-    this.flinchTimer = 0;
-
-    this.state = 'EMERGING';
-    this.stateTimer = 1.8;
-    this.animTime = 0;
-    this.facingAngle = 0;
-
-    this.attackTimer1 = 4.0;
-    this.attackTimer2 = 6.5;
-    this.projectiles = [];
-  }
-
-  update(player, activeCable, dt, game) {
-    if (!this.isAlive) return;
-    this.animTime += dt;
-
-    // Update Projectiles
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const p = this.projectiles[i];
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.life -= dt;
-
-      const pDist = Math.hypot(player.x - p.x, player.y - p.y);
-      if (pDist < player.radius + p.radius) {
-        const dmg = 22 + (this.wave - 4) * 3;
-        if (player.takeDamage(dmg, p.vx * 0.4, p.vy * 0.4, game.sound, game.particles)) {
-          game.triggerDamageFlash();
-          game.updatePlayerHealthUI();
-          game.camera.shake(16, 0.4);
-          game.showTemporaryToast(`💥 HIT BY APEX COSMIC BURST! [-${dmg} HP]`);
-        }
-        p.life = 0;
-      }
-      if (p.life <= 0) this.projectiles.splice(i, 1);
-    }
-
-    if (this.state === 'EMERGING') {
-      this.stateTimer -= dt;
-      if (Math.random() < 0.5) game.particles.spawnSparks(this.x, this.y, 4, this.color);
-      if (this.stateTimer <= 0) {
-        this.state = 'STALK';
-        game.sound.playLaserSweep();
-        game.camera.shake(26, 0.9);
-      }
-      return;
-    }
-
-    const toPlayerAngle = Math.atan2(player.y - this.y, player.x - this.x);
-    const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
-
-    // Enraged below 50% wraps
-    const isEnraged = this.completedWraps >= Math.floor(this.maxWraps / 2);
-    const enrageMulti = isEnraged ? 1.35 : 1.0;
-
-    let diff = toPlayerAngle - this.facingAngle;
-    while (diff > Math.PI) diff -= Math.PI * 2;
-    while (diff < -Math.PI) diff += Math.PI * 2;
-    this.facingAngle += diff * Math.min(1.0, 4.5 * dt);
-
-    const baseSpd = Math.min(320, 185 + (this.wave - 4) * 18);
-    const wrapPenalty = Math.max(0.35, 1.0 - (this.completedWraps / this.maxWraps) * 0.65);
-    const speed = baseSpd * wrapPenalty * enrageMulti;
-
-    this.vx = Math.cos(this.facingAngle) * speed;
-    this.vy = Math.sin(this.facingAngle) * speed;
-    this.x += this.vx * dt;
-    this.y += this.vy * dt;
-
-    this.x = Math.max(this.radius + 20, Math.min(CONFIG.WORLD.WIDTH - this.radius - 20, this.x));
-    this.y = Math.max(this.radius + 20, Math.min(CONFIG.WORLD.HEIGHT - this.radius - 20, this.y));
-
-    // Dual compound attacks
-    this.attackTimer1 -= dt * enrageMulti;
-    if (this.attackTimer1 <= 0) {
-      this.fireRadialBurst(game);
-      this.attackTimer1 = 5.5 + Math.random() * 2;
-    }
-
-    this.attackTimer2 -= dt * enrageMulti;
-    if (this.attackTimer2 <= 0) {
-      this.fireNovaSweep(game);
-      this.attackTimer2 = 7.0 + Math.random() * 2;
-    }
-
-    // Contact damage
-    if (distToPlayer < this.radius + player.radius) {
-      const dmg = 25 + (this.wave - 4) * 4;
-      const pushX = Math.cos(toPlayerAngle) * 500;
-      const pushY = Math.sin(toPlayerAngle) * 500;
-      if (player.takeDamage(dmg, pushX, pushY, game.sound, game.particles)) {
-        game.triggerDamageFlash();
-        game.updatePlayerHealthUI();
-        game.camera.shake(18, 0.4);
-        game.showTemporaryToast(`👑 APEX ENTITY CONTACT! [-${dmg} HP]`);
-      }
-    }
-
-    if (this.flinchTimer > 0) this.flinchTimer -= dt;
-  }
-
-  fireRadialBurst(game) {
-    game.sound.playLaserSweep();
-    const count = 12;
-    const speed = 250 + this.wave * 12;
-    for (let i = 0; i < count; i++) {
-      const ang = (i / count) * Math.PI * 2;
-      this.projectiles.push({
-        x: this.x,
-        y: this.y,
-        vx: Math.cos(ang) * speed,
-        vy: Math.sin(ang) * speed,
-        radius: 8,
-        life: 3.2,
-      });
-    }
-  }
-
-  fireNovaSweep(game) {
-    game.sound.playEmpShockwave();
-    game.camera.shake(18, 0.4);
-    const count = 6;
-    for (let i = 0; i < count; i++) {
-      const ang = this.facingAngle + (i - 2.5) * 0.3;
-      const spd = 320;
-      this.projectiles.push({
-        x: this.x,
-        y: this.y,
-        vx: Math.cos(ang) * spd,
-        vy: Math.sin(ang) * spd,
-        radius: 9,
-        life: 2.5,
-      });
-    }
-  }
-
-  render(ctx, cam) {
-    if (!this.isAlive) return;
-
-    for (const p of this.projectiles) {
-      const sPos = cam.toScreen(p.x, p.y);
-      ctx.save();
+      // Droplet at tentacle tip
+      ctx.fillStyle = '#a855f7';
       ctx.beginPath();
-      ctx.arc(sPos.x, sPos.y, p.radius + 3, 0, Math.PI * 2);
-      ctx.fillStyle = this.color;
+      ctx.arc(tx, ty, 3.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.beginPath();
-      ctx.arc(sPos.x, sPos.y, p.radius * 0.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-      ctx.restore();
-    }
+    });
 
-    if (!cam.isBoundingBoxVisible(this.x - 140, this.y - 140, 280, 280)) return;
-    const pos = cam.toScreen(this.x, this.y);
-
-    ctx.save();
-    ctx.translate(pos.x, pos.y);
-    ctx.rotate(this.facingAngle);
-
-    // Multi-Ring Orbiting Matrix
-    const orbCount = Math.min(8, 2 + this.wave);
-    for (let i = 0; i < orbCount; i++) {
-      const oAng = this.animTime * 3 + (i / orbCount) * Math.PI * 2;
-      const oDist = this.radius + 18;
-      const ox = Math.cos(oAng) * oDist;
-      const oy = Math.sin(oAng) * oDist;
-      ctx.beginPath();
-      ctx.arc(ox, oy, 7, 0, Math.PI * 2);
-      ctx.fillStyle = this.cableColor;
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    }
-
-    // Celestial Hull Core
-    ctx.beginPath();
-    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = this.color;
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 4;
-    ctx.stroke();
-
-    // Central Hex Core
-    ctx.fillStyle = '#090d16';
-    ctx.beginPath();
-    ctx.arc(0, 0, this.radius * 0.55, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = this.cableColor;
+    // Core bio-cyber nucleus
+    ctx.fillStyle = '#062817';
+    ctx.strokeStyle = this.color;
     ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius * 0.75 * pulse, 0, Math.PI * 2);
+    ctx.fill();
     ctx.stroke();
 
+    // Glowing biohazard eyes / nodes
+    const eyeAngles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
+    eyeAngles.forEach(ea => {
+      const ex = Math.cos(ea) * (this.radius * 0.4);
+      const ey = Math.sin(ea) * (this.radius * 0.4);
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(ex, ey, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
     ctx.restore();
+
+    // Render quarantine trail if player is drawing it
+    if (this.quarantineTrail && this.quarantineTrail.length > 1) {
+      ctx.save();
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([12, 8]);
+      ctx.shadowColor = '#facc15';
+      ctx.shadowBlur = 12;
+
+      ctx.beginPath();
+      const firstPt = cam.toScreen(this.quarantineTrail[0].x, this.quarantineTrail[0].y);
+      ctx.moveTo(firstPt.x, firstPt.y);
+      for (let i = 1; i < this.quarantineTrail.length; i++) {
+        const pt = cam.toScreen(this.quarantineTrail[i].x, this.quarantineTrail[i].y);
+        ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 }
 
-// ============================================================================
-// Patch Drone Entity (NetOps Architect Companion)
+// Canonical 3 Boss Entities: BugBoss, ThermalGolemBoss (Overheat Daemon), MajorVirusBoss
+
 // ============================================================================
 class PatchDroneEntity {
   constructor(player) {
@@ -5240,6 +4946,19 @@ class Game {
     this.bossCoilsCount = document.getElementById('boss-coils-count');
     this.damageVignette = document.getElementById('damage-vignette');
 
+    // Telemetry Stats Modal Elements
+    this.statsModal = document.getElementById('stats-modal');
+    this.statsHpVal = document.getElementById('stats-hp-val');
+    this.statsHpFill = document.getElementById('stats-hp-fill');
+    this.statsUptimeVal = document.getElementById('stats-uptime-val');
+    this.statsUptimeFill = document.getElementById('stats-uptime-fill');
+    this.statsCreditsVal = document.getElementById('stats-credits-val');
+    this.statsFpsVal = document.getElementById('stats-fps-val');
+    this.statsSpeedVal = document.getElementById('stats-speed-val');
+    this.statsFaultsVal = document.getElementById('stats-faults-val');
+    this.isStatsOpen = false;
+    this.lowHealthWarned = false;
+
     // Boss State & Progressive Waves
     this.activeBoss = null;
     this.bugBoss = null;
@@ -5264,6 +4983,9 @@ class Game {
     this.terminalDigits = document.getElementById('terminal-input-display');
     this.terminalFeedback = document.getElementById('terminal-feedback');
     this.terminalInputBuffer = '';
+    this.terminalShutdownPanel = document.getElementById('terminal-shutdown-panel');
+    this.btnTerminalShutdown = document.getElementById('btn-terminal-shutdown');
+    this.terminalKeypad = document.getElementById('terminal-keypad');
 
     // Shop Modal Elements
     this.shopModal = document.getElementById('shop-modal');
@@ -5277,7 +4999,45 @@ class Game {
     this.isTutorialOpen = false;
     this.currentTutorialStep = 0;
     this.totalTutorialSteps = 8;
-    this.gameState = 'MENU'; // 'MENU' | 'PLAYING' | 'PAUSED'
+    this.gameState = 'MENU'; // 'MENU' | 'PLAYING' | 'PAUSED' | 'COUNTDOWN' | 'GAME_OVER'
+
+    // Run Save & Load System Elements
+    this.saveFileInput = document.getElementById('save-file-input');
+    this.runPreviewModal = document.getElementById('run-preview-modal');
+    this.previewShiftTime = document.getElementById('preview-shift-time');
+    this.previewRacksHealth = document.getElementById('preview-racks-health');
+    this.previewActiveFaults = document.getElementById('preview-active-faults');
+    this.previewCredits = document.getElementById('preview-credits');
+    this.previewBossWave = document.getElementById('preview-boss-wave');
+    this.previewSaveDate = document.getElementById('preview-save-date');
+    this.previewPowerupsList = document.getElementById('preview-powerups-list');
+    this.btnConfirmLoadRun = document.getElementById('btn-confirm-load-run');
+    this.btnCancelLoadRun = document.getElementById('btn-cancel-load-run');
+    this.btnClosePreview = document.getElementById('btn-close-preview');
+    this.pendingLoadedRunData = null;
+
+    // 3-Second Resume Countdown Overlay
+    this.resumeCountdownOverlay = document.getElementById('resume-countdown-overlay');
+    this.countdownNumber = document.getElementById('countdown-number');
+    this.isResumingFromSave = false;
+    this.resumeCountdownTimer = 0;
+
+    // Game Over & Leaderboard Elements
+    this.gameOverModal = document.getElementById('game-over-modal');
+    this.goDuration = document.getElementById('go-duration');
+    this.goBosses = document.getElementById('go-bosses');
+    this.goCredits = document.getElementById('go-credits');
+    this.goRecord = document.getElementById('go-record');
+    this.leaderboardModal = document.getElementById('leaderboard-modal');
+    this.leaderboardTbody = document.getElementById('leaderboard-tbody');
+    this.isGameOver = false;
+
+    // Post-boss errors state
+    this.activeServerBug = null; // Currently creeping rogue server bug
+    this.shakingRack = null;
+    this.shakeHoldTime = 0;
+    this.disinfectingRack = null;
+    this.disinfectHoldTime = 0;
 
     // Unique Quantum Teleporter Item (Boss Defeat Reward)
     this.hasTeleporterItem = false;
@@ -5334,23 +5094,23 @@ class Game {
     this.mouseScreenX = window.innerWidth / 2;
     this.mouseScreenY = window.innerHeight / 2;
 
-    // Bottom Stations: Master NOC Console & IT Supply Kiosk
+    // Bottom Stations: Master NOC Console, IT Supply Kiosk, and Facility Supplies Closet
     this.nocDesk = new NOCTerminalStation(
-      CONFIG.WORLD.WIDTH / 2 - 160,
+      CONFIG.WORLD.WIDTH / 2 - 120,
       CONFIG.WORLD.HEIGHT - 170,
       240,
       74
     );
 
     this.shopKiosk = new ShopKioskStation(
-      CONFIG.WORLD.WIDTH / 2 + 120,
+      CONFIG.WORLD.WIDTH / 2 + 420,
       CONFIG.WORLD.HEIGHT - 170,
       180,
       74
     );
 
     this.suppliesCloset = new SuppliesClosetStation(
-      CONFIG.WORLD.WIDTH / 2 - 380,
+      CONFIG.WORLD.WIDTH / 2 - 600,
       CONFIG.WORLD.HEIGHT - 170,
       180,
       74
@@ -5403,6 +5163,7 @@ class Game {
     this.initShopModal();
     this.initSuppliesModal();
     this.initMenuAndTutorial();
+    this.checkLocalQuickSave();
     this.applySettings(false);
     this.resizeCanvas();
     this.updateCreditsUI();
@@ -5458,6 +5219,29 @@ class Game {
         this.hpFill.classList.add('warning');
       }
     }
+    if (this.statsHpVal) {
+      this.statsHpVal.textContent = `${Math.max(0, Math.ceil(this.player.hp))} / 100 HP`;
+    }
+    if (this.statsHpFill) {
+      const pct = Math.max(0, Math.min(100, this.player.hp));
+      this.statsHpFill.style.width = `${pct}%`;
+      this.statsHpFill.classList.remove('warning', 'danger');
+      if (pct <= 30) {
+        this.statsHpFill.classList.add('danger');
+      } else if (pct <= 60) {
+        this.statsHpFill.classList.add('warning');
+      }
+    }
+
+    // Low Health Warning (<= 25 HP): 3-second notification
+    if (this.player.hp <= 25 && this.player.hp > 0) {
+      if (!this.lowHealthWarned) {
+        this.lowHealthWarned = true;
+        this.showTemporaryToast('⚠️ CRITICAL HEALTH INTEGRITY: LOW HP WARNING!', 3000);
+      }
+    } else if (this.player.hp > 25) {
+      this.lowHealthWarned = false;
+    }
   }
 
   triggerDamageFlash() {
@@ -5511,17 +5295,15 @@ class Game {
     const spawnY = hostRack.y + hostRack.height + 70;
 
     this.currentBossWave = waveNumber;
+    const coreIndex = (waveNumber - 1) % 3;
+    const variantLevel = Math.floor((waveNumber - 1) / 3);
     let boss;
-    if (waveNumber === 1) {
-      boss = new BugBoss(spawnX, spawnY, hostRack);
-    } else if (waveNumber === 2) {
-      boss = new ThermalGolemBoss(spawnX, spawnY, hostRack);
-    } else if (waveNumber === 3) {
-      boss = new SpectralDaemonBoss(spawnX, spawnY, hostRack);
-    } else if (waveNumber === 4) {
-      boss = new TitanColossusBoss(spawnX, spawnY, hostRack);
+    if (coreIndex === 0) {
+      boss = new BugBoss(spawnX, spawnY, hostRack, variantLevel);
+    } else if (coreIndex === 1) {
+      boss = new ThermalGolemBoss(spawnX, spawnY, hostRack, variantLevel);
     } else {
-      boss = new ProceduralApexBoss(spawnX, spawnY, hostRack, waveNumber);
+      boss = new MajorVirusBoss(spawnX, spawnY, hostRack, variantLevel);
     }
 
     this.activeBoss = boss;
@@ -5543,16 +5325,15 @@ class Game {
       if (titleEl) titleEl.textContent = boss.title || 'DEFCON 1 ANOMALY';
       const rLabel = this.bossHudBanner.querySelector('.boss-hud-meters .boss-meter-wrapper:nth-child(2) .boss-meter-label');
       if (rLabel) {
-        if (waveNumber === 1) rLabel.textContent = 'HEAVY ROPE WRAPS';
-        else if (waveNumber === 2) rLabel.textContent = 'CORE TEMPERATURE';
-        else if (waveNumber === 3) rLabel.textContent = 'TRIANGULAR EMF CAGE';
-        else if (waveNumber === 4) rLabel.textContent = 'SCRAM EXHAUST LIMPETS';
+        if (boss instanceof BugBoss) rLabel.textContent = 'HEAVY ROPE WRAPS';
+        else if (boss instanceof ThermalGolemBoss) rLabel.textContent = 'CORE TEMPERATURE';
+        else if (boss instanceof MajorVirusBoss) rLabel.textContent = 'INFECTED NODES';
         else rLabel.textContent = boss.restraintName || 'RESTRAINT COILS';
       }
 
       if (this.bossCoilsTrack) {
         this.bossCoilsTrack.innerHTML = '';
-        const dotCount = (waveNumber === 2) ? 0 : (waveNumber === 3 ? 3 : (waveNumber === 4 ? 3 : boss.maxWraps));
+        const dotCount = (boss instanceof ThermalGolemBoss || boss instanceof MajorVirusBoss) ? 0 : boss.maxWraps;
         for (let i = 0; i < dotCount; i++) {
           const dot = document.createElement('div');
           dot.className = 'boss-coil-dot';
@@ -5565,10 +5346,9 @@ class Game {
 
     const devTag = isDevShortcut ? `🛠️ [DEV SHORTCUT W${waveNumber}] ` : '🚨 DEFCON 1 BREACH // ';
     let objectiveHint = '';
-    if (waveNumber === 1) objectiveHint = 'RETRIEVE HEAVY ROPE FROM SUPPLIES CLOSET!';
-    else if (waveNumber === 2) objectiveHint = 'RETRIEVE CRYO CANISTER FROM SUPPLIES CLOSET TO FREEZE & SHATTER!';
-    else if (waveNumber === 3) objectiveHint = 'RETRIEVE 3x EMF PYLONS FROM SUPPLIES CLOSET TO TRAP IN LASER CAGE!';
-    else if (waveNumber === 4) objectiveHint = 'RETRIEVE 3x SCRAM LIMPETS FROM SUPPLIES CLOSET TO OVERLOAD VENTS!';
+    if (boss instanceof BugBoss) objectiveHint = 'RETRIEVE HEAVY ROPE FROM SUPPLIES CLOSET!';
+    else if (boss instanceof ThermalGolemBoss) objectiveHint = 'RETRIEVE CRYO CANISTER FROM SUPPLIES CLOSET TO FREEZE & SHATTER!';
+    else if (boss instanceof MajorVirusBoss) objectiveHint = 'RETRIEVE QUARANTINE BARRIER FROM SUPPLIES CLOSET TO ENCLOSE ALL INFECTED NODES!';
     else objectiveHint = `RETRIEVE ${boss.restraintName} FROM SUPPLIES CLOSET!`;
 
     this.showTemporaryToast(`${devTag}${boss.title} ACTIVE! ${objectiveHint}`, boss.icon);
@@ -5576,6 +5356,11 @@ class Game {
 
   spawnBugBoss(isDevShortcut = false) {
     this.spawnBoss(1, isDevShortcut);
+  }
+
+  spawnMajorVirusFromRack(hostRack) {
+    if (this.activeBoss && this.activeBoss.isAlive) return;
+    this.spawnBoss(3);
   }
 
   updateBossHUD() {
@@ -5602,63 +5387,25 @@ class Game {
       return;
     }
 
-    if (boss instanceof SpectralDaemonBoss) {
-      const remPct = Math.max(0, Math.min(100, (1.0 - (boss.resonanceTimer / boss.maxResonance)) * 100));
+    if (boss instanceof MajorVirusBoss) {
+      const infCount = boss.infectedRacks ? boss.infectedRacks.length : 1;
       if (this.bossHpFill) {
-        this.bossHpFill.style.width = `${remPct.toFixed(1)}%`;
+        this.bossHpFill.style.width = `${Math.min(100, infCount * 10)}%`;
+        this.bossHpFill.style.backgroundColor = boss.color || '#10b981';
       }
       if (this.bossCoilsCount) {
-        this.bossCoilsCount.textContent = `${this.deployedPylons.length} / 3 PYLONS`;
-      }
-      if (this.bossCoilsTrack) {
-        const dots = this.bossCoilsTrack.querySelectorAll('.boss-coil-dot');
-        dots.forEach((dot, idx) => {
-          dot.classList.toggle('active', idx < this.deployedPylons.length);
-        });
+        this.bossCoilsCount.textContent = `${infCount} INFECTED`;
       }
       if (this.bossStatusText) {
-        if (this.deployedPylons.length === 3) {
-          if (boss.flinchTimer > 0) {
-            this.bossStatusText.textContent = '⚡ RESONANCE COLLAPSE IN PROGRESS! KEEP DAEMON IN THE CAGE!';
-          } else {
-            this.bossStatusText.textContent = '🔺 TRIANGULAR LASER CAGE ONLINE! LURE DAEMON INSIDE!';
-          }
-        } else if (this.emfPylonsRemaining > 0) {
-          this.bossStatusText.textContent = `⚡ PRESS [E] TO DEPLOY EMF PYLON (${this.emfPylonsRemaining} LEFT IN INVENTORY)`;
+        if (!this.hasQuarantineBarrier) {
+          this.bossStatusText.textContent = '🦠 RETRIEVE QUARANTINE BARRIER FROM SOUTH SUPPLIES CLOSET!';
         } else {
-          this.bossStatusText.textContent = '⚡ RETRIEVE 3x EMF PYLONS FROM SOUTH SUPPLIES CLOSET!';
+          this.bossStatusText.textContent = '🛡️ BARRIER READY! DRIVE IN A COMPLETE LOOP ENCLOSING ALL INFECTED COMPUTERS!';
         }
       }
       return;
     }
 
-    if (boss instanceof TitanColossusBoss) {
-      const remPct = Math.max(0, Math.min(100, (1.0 - (boss.limpetsAttached / 3)) * 100));
-      if (this.bossHpFill) {
-        this.bossHpFill.style.width = `${remPct.toFixed(1)}%`;
-      }
-      if (this.bossCoilsCount) {
-        this.bossCoilsCount.textContent = `${boss.limpetsAttached} / 3 LIMPETS`;
-      }
-      if (this.bossCoilsTrack) {
-        const dots = this.bossCoilsTrack.querySelectorAll('.boss-coil-dot');
-        dots.forEach((dot, idx) => {
-          dot.classList.toggle('active', idx < boss.limpetsAttached);
-        });
-      }
-      if (this.bossStatusText) {
-        if (boss.state === 'OVERLOAD') {
-          this.bossStatusText.textContent = `🚨 SCRAM REACTOR DETONATION IN ${boss.overloadCountdown.toFixed(1)}s! CLEAR OUT!`;
-        } else if (this.scramLimpetsRemaining > 0) {
-          this.bossStatusText.textContent = `💣 FLANK COLOSSUS & PRESS [E] AT HEAT EXHAUST VENTS (${this.scramLimpetsRemaining} LEFT)`;
-        } else if (boss.limpetsAttached > 0) {
-          this.bossStatusText.textContent = `💣 ${boss.limpetsAttached}/3 LIMPETS PLANTED! GET MORE FROM SUPPLIES CLOSET IF NEEDED`;
-        } else {
-          this.bossStatusText.textContent = '💣 RETRIEVE 3x SCRAM LIMPETS FROM SOUTH SUPPLIES CLOSET!';
-        }
-      }
-      return;
-    }
 
     const currentFraction = Math.min(0.95, (boss.currentWrapAngle || 0) / (Math.PI * 2));
     const totalProgress = (boss.completedWraps + currentFraction) / boss.maxWraps;
@@ -5712,13 +5459,21 @@ class Game {
     sourceRack.uptime = 90;
     this.particles.spawnExplosion(sourceRack.x + sourceRack.width / 2, sourceRack.y + sourceRack.height / 2);
     this.particles.spawnSparks(sourceRack.x + sourceRack.width / 2, sourceRack.y + sourceRack.height / 2, 40, '#ff2a55');
-    this.sound.playAlarm();
+    if (this.sound?.playAlarm) {
+      this.sound.playAlarm();
+    } else if (this.sound?.playBossAlarm) {
+      this.sound.playBossAlarm();
+    }
   }
 
   defeatBoss(boss = null) {
     const targetBoss = boss || this.activeBoss || this.bugBoss;
     if (!targetBoss) return;
     targetBoss.isAlive = false;
+
+    // Immediately drop active restraint cable safely so player hands are freed
+    this.dropActiveCable(true);
+    this.activeCable = null;
 
     // Reset temporary boss gear
     this.hasCryoCanister = false;
@@ -5733,34 +5488,39 @@ class Game {
     this.particles.spawnSparks(targetBoss.x, targetBoss.y, 80, targetBoss.color || '#ff2a55');
     this.particles.spawnSparks(targetBoss.x, targetBoss.y, 80, targetBoss.cableColor || '#00ff9d');
     this.particles.spawnSparks(targetBoss.x, targetBoss.y, 60, '#ffffff');
-    this.sound.playBossDefeat();
+    if (this.sound?.playBossDefeat) this.sound.playBossDefeat();
 
     // Post-Boss Crash Overload: The violent kinetic collapse of the boss violently overloads 2-3 nearby racks!
-    const nearbyHealthy = [...this.racks]
-      .filter(r => !r.isFailing && !r.isDestroyed && r !== this.bossHostRack)
-      .sort((a, b) => {
-        const da = Math.hypot(a.x - targetBoss.x, a.y - targetBoss.y);
-        const db = Math.hypot(b.x - targetBoss.x, b.y - targetBoss.y);
-        return da - db;
-      });
-    const racksToOverload = nearbyHealthy.slice(0, 3);
-    for (const r of racksToOverload) {
-      this.triggerRackCrashFault(r);
+    try {
+      const nearbyHealthy = [...this.racks]
+        .filter(r => !r.isFailing && !r.isDestroyed && r !== this.bossHostRack)
+        .sort((a, b) => {
+          const da = Math.hypot(a.x - targetBoss.x, a.y - targetBoss.y);
+          const db = Math.hypot(b.x - targetBoss.x, b.y - targetBoss.y);
+          return da - db;
+        });
+      const racksToOverload = nearbyHealthy.slice(0, 3);
+      for (const r of racksToOverload) {
+        this.triggerRackCrashFault(r);
+      }
+      const finalDamaged = this.racks.filter(r => r.isFailing && !r.isDestroyed);
+      if (this.sound?.playBossAlarm) this.sound.playBossAlarm();
+      this.showTemporaryToast(
+        `🚨 DEFCON NEUTRALIZED! HOWEVER, ${finalDamaged.length} CRASH-DAMAGED SERVERS ARE OVERHEATING! RUSH TO RESTORE THEM BEFORE THEY EXPLODE!`,
+        '⚠️'
+      );
+    } catch (err) {
+      console.warn('Crash overload fault warning:', err);
     }
-    const finalDamaged = this.racks.filter(r => r.isFailing && !r.isDestroyed);
-    this.sound.playBossAlarm();
-    this.showTemporaryToast(
-      `🚨 DEFCON NEUTRALIZED! HOWEVER, ${finalDamaged.length} CRASH-DAMAGED SERVERS ARE OVERHEATING! RUSH TO RESTORE THEM BEFORE THEY EXPLODE!`,
-      '⚠️'
-    );
 
     if (this.bossHostRack) {
       this.bossHostRack.isBossHost = false;
       this.bossHostRack = null;
     }
 
-    // Drop active cable safely
-    this.dropActiveCable();
+    // Safety clear active cable once more
+    this.dropActiveCable(true);
+    this.activeCable = null;
 
     // Hide Boss Banner
     this.bossHudBanner?.classList.add('hidden');
@@ -5772,43 +5532,37 @@ class Game {
     if (wave === 1) {
       rewardCredits = 500;
       this.bossDefeatedOnce = true;
-      this.unlockedErrors.add(CONFIG.ERRORS.BUG_INFESTATION);
+      this.unlockedErrors.add(CONFIG.ERRORS.SERVER_BUG);
       this.hasTeleporterItem = true;
       this.sound.playTeleportDeploy(0);
       rewardToast = '✨ UNIQUE REWARD: QUANTUM TELEPORTER KIT UNLOCKED! Press [T] to place Node Alpha!';
     } else if (wave === 2) {
       rewardCredits = 750;
-      this.unlockedErrors.add(CONFIG.ERRORS.COOLANT_LEAK);
+      this.unlockedErrors.add(CONFIG.ERRORS.SERVER_OVERHEAT);
       this.player.hasCryoShield = true;
       this.player.cryoShieldCooldown = 0;
       this.sound.playIceShatter();
       rewardToast = '🛡️ UNIQUE REWARD: CRYO DEFLECTOR SHIELD UNLOCKED! Absorbs fatal hits every 45s!';
     } else if (wave === 3) {
       rewardCredits = 1000;
-      this.unlockedErrors.add(CONFIG.ERRORS.PHANTOM_GLITCH);
+      this.unlockedErrors.add(CONFIG.ERRORS.SERVER_SMALL_VIRUS);
       this.player.hasPhaseDash = true;
       this.sound.playGlitchStatic();
       rewardToast = '⚡ UNIQUE REWARD: PHASE DASH MODULE UNLOCKED! Press [SHIFT] to dash through obstacles!';
-    } else if (wave === 4) {
-      rewardCredits = 1250;
-      this.unlockedErrors.add(CONFIG.ERRORS.NETWORK_WORM);
-      this.player.hasNanotechHub = true;
-      this.sound.playLaserSweep();
-      rewardToast = '🤖 UNIQUE REWARD: NANOTECH AUTO-REPAIR HUB UNLOCKED! Passive HP + server repair aura!';
     } else {
-      // Wave 5+ Procedural Apex Escalation
+      // Wave 4+ Endless Scaling
       rewardCredits = 500 * wave;
       if (wave % 3 === 0) {
         this.player.maxHp += 25;
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + 25);
         this.updatePlayerHealthUI();
-        rewardToast = `👑 TIER ${wave} APEX PURGED! (+${rewardCredits} ⚡) — OVERCLOCK: MAX HP BOOSTED TO ${this.player.maxHp} HP!`;
+        rewardToast = `👑 TIER ${wave} BOSS PURGED! (+${rewardCredits} ⚡) — OVERCLOCK: MAX HP BOOSTED TO ${this.player.maxHp} HP!`;
       } else if (wave % 3 === 1) {
         this.player.permanentSpeedBonus += 50;
-        rewardToast = `👑 TIER ${wave} APEX PURGED! (+${rewardCredits} ⚡) — OVERCLOCK: TOP VELOCITY BOOSTED +50 px/s!`;
+        rewardToast = `👑 TIER ${wave} BOSS PURGED! (+${rewardCredits} ⚡) — OVERCLOCK: TOP VELOCITY BOOSTED +50 px/s!`;
       } else {
         this.cannonCharges += 1;
-        rewardToast = `👑 TIER ${wave} APEX PURGED! (+${rewardCredits} ⚡) — OVERCLOCK: +1 FREE KINETIC CANNON CHARGE!`;
+        rewardToast = `👑 TIER ${wave} BOSS PURGED! (+${rewardCredits} ⚡) — OVERCLOCK: +1 FREE KINETIC CANNON CHARGE!`;
       }
     }
 
@@ -5838,6 +5592,7 @@ class Game {
 
   updateCreditsUI() {
     if (this.creditsVal) this.creditsVal.textContent = `${this.credits} ⚡`;
+    if (this.statsCreditsVal) this.statsCreditsVal.textContent = `${this.credits} ⚡`;
     if (this.shopCreditsDisplay) this.shopCreditsDisplay.textContent = this.credits;
   }
 
@@ -6048,73 +5803,48 @@ class Game {
         this.showTemporaryToast('❄️ CRYO COOLANT CANISTER EQUIPPED! HOLD [E] NEAR TITAN TO FREEZE ITS CORE!', '❄️');
         this.closeSuppliesModal();
       });
-    } else if (boss instanceof SpectralDaemonBoss) {
+    } else if (boss instanceof MajorVirusBoss) {
+      const isEquipped = Boolean(this.hasQuarantineBarrier && this.activeCable instanceof ContainmentWire);
       const card = document.createElement('div');
       card.className = 'shop-card';
       card.innerHTML = `
-        <div class="card-icon">⚡</div>
+        <div class="card-icon">🟡</div>
         <div class="card-info">
-          <div class="card-name">3x High-Frequency EMF Grounding Pylons <span style="font-size: 0.68rem; color: #c084fc;">[DEFCON 1 RESONATOR]</span></div>
-          <div class="card-desc">Press [E] to deploy 3 triangular anchors to form a laser containment cage, trapping and vaporizing the Spectral Daemon!</div>
+          <div class="card-name">Quarantine Containment Barrier <span style="font-size: 0.68rem; color: #10b981;">[DEFCON 1 QUARANTINE]</span></div>
+          <div class="card-desc">Deploy a closed perimeter around all virus-infected computers to sterilize and isolate the Major Virus!</div>
         </div>
-        <button type="button" class="btn-buy" id="btn-retrieve-pylons" style="background: ${(this.emfPylonsRemaining > 0 || this.deployedPylons.length > 0) ? '#334155' : 'linear-gradient(135deg, #7c3aed, #c084fc)'}; color: #000; font-weight: 700;">
-          ${(this.emfPylonsRemaining > 0 || this.deployedPylons.length > 0) ? `✓ ${this.emfPylonsRemaining} LEFT / ${this.deployedPylons.length} PLANTED` : 'FREE RETRIEVE'}
+        <button type="button" class="btn-buy" id="btn-retrieve-barrier" style="background: ${isEquipped ? '#334155' : 'linear-gradient(135deg, #059669, #10b981)'}; color: #000; font-weight: 700;">
+          ${isEquipped ? '✓ IN HAND' : 'FREE RETRIEVE'}
         </button>`;
       gearGrid.appendChild(card);
-      card.querySelector('#btn-retrieve-pylons')?.addEventListener('click', () => {
-        this.emfPylonsRemaining = 3;
-        this.deployedPylons = [];
+      card.querySelector('#btn-retrieve-barrier')?.addEventListener('click', () => {
+        this.hasQuarantineBarrier = true;
+        if (this.activeCable && !(this.activeCable instanceof ContainmentWire)) {
+          this.dropActiveCable();
+        }
+        this.activeCable = new ContainmentWire(this.suppliesCloset, boss);
         this.sound.playCabinetOpen();
-        this.showTemporaryToast('⚡ 3x EMF PYLONS RETRIEVED! PRESS [E] TO DEPLOY 3 NODES AROUND DAEMON!', '⚡');
-        this.closeSuppliesModal();
-      });
-    } else if (boss instanceof TitanColossusBoss) {
-      const card = document.createElement('div');
-      card.className = 'shop-card';
-      card.innerHTML = `
-        <div class="card-icon">💣</div>
-        <div class="card-info">
-          <div class="card-name">3x Magnetic SCRAM Limpet Charges <span style="font-size: 0.68rem; color: #ffaa00;">[DEFCON 1 DEMOLITION]</span></div>
-          <div class="card-desc">Press [E] at the 3 vulnerable exhaust vents (Port, Starboard, Rear) to trigger a critical reactor meltdown!</div>
-        </div>
-        <button type="button" class="btn-buy" id="btn-retrieve-limpets" style="background: ${(this.scramLimpetsRemaining > 0 || boss.limpetsAttached > 0) ? '#334155' : 'linear-gradient(135deg, #ea580c, #ffaa00)'}; color: #000; font-weight: 700;">
-          ${(this.scramLimpetsRemaining > 0 || boss.limpetsAttached > 0) ? `✓ ${this.scramLimpetsRemaining} LEFT / ${boss.limpetsAttached} PLANTED` : 'FREE RETRIEVE'}
-        </button>`;
-      gearGrid.appendChild(card);
-      card.querySelector('#btn-retrieve-limpets')?.addEventListener('click', () => {
-        this.scramLimpetsRemaining = 3;
-        this.sound.playCabinetOpen();
-        this.showTemporaryToast('💣 3x SCRAM LIMPETS RETRIEVED! PRESS [E] NEAR EXHAUST VENTS TO ATTACH!', '💣');
+        this.sound.playGrab();
+        this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 45, '#10b981');
+        this.showTemporaryToast('🟡 QUARANTINE CONTAINMENT BARRIER RETRIEVED! DRIVE IN A COMPLETE CLOSED LOOP ENCLOSING ALL INFECTED COMPUTERS!', '🟡');
+        this.updateObjectiveUI();
+        this.updateBossHUD();
         this.closeSuppliesModal();
       });
     } else {
-      // Wave 5+ Procedural Apex
-      const isEquipped = Boolean(this.activeCable);
+      // Wave 4+ Endless Bosses
       const card = document.createElement('div');
       card.className = 'shop-card';
       card.innerHTML = `
         <div class="card-icon">👑</div>
         <div class="card-info">
           <div class="card-name">${boss.restraintName} <span style="font-size: 0.68rem; color: #00ff9d;">[APEX TETHER]</span></div>
-          <div class="card-desc">Reinforced high-energy tether to constrict procedural Apex anomaly.</div>
+          <div class="card-desc">Reinforced restraint tool for higher-tier boss variants.</div>
         </div>
-        <button type="button" class="btn-buy" id="btn-retrieve-apex" style="background: ${isEquipped ? '#334155' : 'linear-gradient(135deg, #059669, #00ff9d)'}; color: #000; font-weight: 700;">
-          ${isEquipped ? '✓ IN HAND (RE-EQUIP)' : 'FREE RETRIEVE'}
+        <button type="button" class="btn-buy" style="background: linear-gradient(135deg, #0284c7, #00f3ff); color: #000; font-weight: 700;">
+          EQUIPPED
         </button>`;
       gearGrid.appendChild(card);
-      card.querySelector('#btn-retrieve-apex')?.addEventListener('click', () => {
-        if (this.activeCable) {
-          this.dropActiveCable();
-        }
-        this.activeCable = new ContainmentWire(this.suppliesCloset, boss);
-        this.sound.playCabinetOpen();
-        this.sound.playGrab();
-        this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 45, '#00ff9d');
-        this.showTemporaryToast(`👑 ${boss.restraintName} RETRIEVED FROM SUPPLIES CLOSET!`, '👑');
-        this.updateObjectiveUI();
-        this.updateBossHUD();
-        this.closeSuppliesModal();
-      });
     }
   }
 
@@ -6559,9 +6289,19 @@ class Game {
   // ==========================================================================
   initMenuAndTutorial() {
     // Menu buttons
+    document.getElementById('btn-menu-new-game')?.addEventListener('click', () => {
+      this.sound.init();
+      this.startNewGame();
+    });
+
     document.getElementById('btn-menu-play')?.addEventListener('click', () => {
       this.sound.init();
-      this.startGame();
+      this.startNewGame();
+    });
+
+    document.getElementById('btn-menu-continue')?.addEventListener('click', () => {
+      this.sound.init();
+      this.loadQuickSaveFromBrowser();
     });
 
     document.getElementById('btn-menu-tutorial')?.addEventListener('click', () => {
@@ -6598,12 +6338,39 @@ class Game {
       this.togglePause();
     });
 
+    document.getElementById('btn-pause-new-game')?.addEventListener('click', () => {
+      this.sound.init();
+      this.startNewGame();
+    });
+
+    document.getElementById('btn-pause-quicksave')?.addEventListener('click', () => {
+      this.sound.init();
+      this.quickSaveToBrowser();
+    });
+
     document.getElementById('btn-pause-tutorial')?.addEventListener('click', () => {
       this.openTutorial(0);
     });
 
     document.getElementById('btn-pause-menu')?.addEventListener('click', () => {
       this.returnToMainMenu();
+    });
+
+    // Stats modal buttons & triggers
+    document.getElementById('btn-open-stats')?.addEventListener('click', () => {
+      this.sound.init();
+      this.openStats();
+    });
+    document.getElementById('btn-open-stats-top')?.addEventListener('click', () => {
+      this.sound.init();
+      this.openStats();
+    });
+    document.getElementById('btn-pause-stats')?.addEventListener('click', () => {
+      this.sound.init();
+      this.openStats();
+    });
+    document.getElementById('btn-close-stats')?.addEventListener('click', () => {
+      this.closeStats();
     });
 
     // Settings modal buttons & triggers
@@ -6632,6 +6399,78 @@ class Game {
     });
     this.settingToggleCrt?.addEventListener('click', () => {
       this.toggleCrtFilter();
+    });
+
+    // Save & Load File Handling Listeners
+    document.getElementById('btn-pause-save')?.addEventListener('click', () => {
+      this.sound.init();
+      this.downloadSaveFile();
+    });
+    document.getElementById('btn-pause-load')?.addEventListener('click', () => {
+      this.sound.init();
+      this.openSaveFilePicker();
+    });
+    document.getElementById('btn-menu-load')?.addEventListener('click', () => {
+      this.sound.init();
+      this.openSaveFilePicker();
+    });
+    document.getElementById('btn-go-load')?.addEventListener('click', () => {
+      this.sound.init();
+      this.openSaveFilePicker();
+    });
+    this.saveFileInput?.addEventListener('change', (e) => {
+      this.handleSaveFileSelected(e);
+    });
+    this.btnConfirmLoadRun?.addEventListener('click', () => {
+      if (this.pendingLoadedRunData) {
+        this.applyLoadedSave(this.pendingLoadedRunData);
+      }
+    });
+    this.btnCancelLoadRun?.addEventListener('click', () => {
+      this.closeRunPreviewModal();
+    });
+    this.btnClosePreview?.addEventListener('click', () => {
+      this.closeRunPreviewModal();
+    });
+
+    // Leaderboard Listeners
+    document.getElementById('btn-pause-leaderboard')?.addEventListener('click', () => {
+      this.sound.init();
+      this.openLeaderboard();
+    });
+    document.getElementById('btn-menu-leaderboard')?.addEventListener('click', () => {
+      this.sound.init();
+      this.openLeaderboard();
+    });
+    document.getElementById('btn-go-leaderboard')?.addEventListener('click', () => {
+      this.sound.init();
+      this.openLeaderboard();
+    });
+    document.getElementById('btn-close-leaderboard')?.addEventListener('click', () => {
+      this.closeLeaderboard();
+    });
+    document.getElementById('btn-clear-leaderboard')?.addEventListener('click', () => {
+      this.clearLeaderboard();
+    });
+
+    // Game Over Retry and Return Buttons
+    document.getElementById('btn-go-retry')?.addEventListener('click', () => {
+      this.sound.init();
+      this.gameOverModal?.classList.add('hidden');
+      this.isGameOver = false;
+      this.startGame();
+    });
+    document.getElementById('btn-go-menu')?.addEventListener('click', () => {
+      this.sound.init();
+      this.gameOverModal?.classList.add('hidden');
+      this.isGameOver = false;
+      this.returnToMainMenu();
+    });
+
+    // Terminal Remote Shutdown Button
+    this.btnTerminalShutdown?.addEventListener('click', () => {
+      this.sound.init();
+      this.submitTerminalCode();
     });
 
     // Tab buttons
@@ -6716,6 +6555,111 @@ class Game {
   closeTutorial() {
     this.isTutorialOpen = false;
     this.tutorialModal?.classList.add('hidden');
+  }
+
+  // ==========================================================================
+  // Telemetry Stats Modal Controller
+  // ==========================================================================
+  openStats() {
+    this.isStatsOpen = true;
+    this.statsModal?.classList.remove('hidden');
+    this.updateStatsUI();
+  }
+
+  closeStats() {
+    this.isStatsOpen = false;
+    this.statsModal?.classList.add('hidden');
+  }
+
+  toggleStats() {
+    if (this.isStatsOpen) {
+      this.closeStats();
+    } else {
+      this.openStats();
+    }
+  }
+
+  updateStatsUI() {
+    if (this.statsHpVal) {
+      this.statsHpVal.textContent = `${Math.max(0, Math.ceil(this.player.hp))} / 100 HP`;
+    }
+    if (this.statsHpFill) {
+      const pct = Math.max(0, Math.min(100, this.player.hp));
+      this.statsHpFill.style.width = `${pct}%`;
+      this.statsHpFill.classList.remove('warning', 'danger');
+      if (pct <= 30) this.statsHpFill.classList.add('danger');
+      else if (pct <= 60) this.statsHpFill.classList.add('warning');
+    }
+    const totalUptime = this.racks.reduce((acc, r) => acc + r.uptime, 0);
+    const avgUptime = (totalUptime / this.racks.length).toFixed(1);
+    if (this.statsUptimeVal) this.statsUptimeVal.textContent = `${avgUptime}%`;
+    if (this.statsUptimeFill) this.statsUptimeFill.style.width = `${avgUptime}%`;
+    if (this.statsCreditsVal) this.statsCreditsVal.textContent = `${this.credits} ⚡`;
+    if (this.statsFpsVal) {
+      this.statsFpsVal.textContent = `${this.currentFps} FPS`;
+      if (this.currentFps >= 50) this.statsFpsVal.style.color = '#00ff9d';
+      else if (this.currentFps >= 30) this.statsFpsVal.style.color = '#ffb800';
+      else this.statsFpsVal.style.color = '#ff2a55';
+    }
+    if (this.statsSpeedVal) {
+      const speed = (this.player.getSpeed() / 30).toFixed(1);
+      this.statsSpeedVal.textContent = `${speed} m/s`;
+    }
+    if (this.statsFaultsVal) {
+      const failingCount = this.racks.filter(r => r.isFailing && !r.isDestroyed).length;
+      this.statsFaultsVal.textContent = failingCount === 1 ? '1 FAULT' : `${failingCount} FAULTS`;
+      this.statsFaultsVal.style.color = failingCount > 0 ? '#ffb800' : '#00ff9d';
+    }
+
+    // Character Attributes & Powerups Readout
+    const charSpeed = document.getElementById('char-stat-speed');
+    const charFriction = document.getElementById('char-stat-friction');
+    const charCannon = document.getElementById('char-stat-cannon');
+    const charTeleport = document.getElementById('char-stat-teleport');
+    const charUpgradesSummary = document.getElementById('char-upgrades-summary');
+
+    if (charSpeed) {
+      const topSpeed = (CONFIG.SPEED ?? 650) + this.player.permanentSpeedBonus;
+      charSpeed.textContent = `${topSpeed} px/s (+${this.player.permanentSpeedBonus})`;
+    }
+    if (charFriction) {
+      const baseFriction = this.player.hasTeflonSkids ? 0.988 : (CONFIG.FRICTION ?? 0.982);
+      const curFriction = Math.max(0.920, baseFriction - this.player.permanentFrictionBonus).toFixed(3);
+      charFriction.textContent = `${curFriction} (Traction: +${this.player.permanentFrictionBonus.toFixed(3)})`;
+    }
+    if (charCannon) {
+      charCannon.textContent = `${this.cannonCharges} Charge${this.cannonCharges === 1 ? '' : 's'}`;
+    }
+    if (charTeleport) {
+      if (!this.hasTeleporterItem) {
+        charTeleport.textContent = 'LOCKED (DEFEAT BUG BOSS)';
+        charTeleport.style.color = '#94a3b8';
+      } else if (this.teleporterNodes.length < 2) {
+        charTeleport.textContent = `READY (${this.teleporterNodes.length}/2 NODES SET)`;
+        charTeleport.style.color = '#00f3ff';
+      } else {
+        charTeleport.textContent = 'SUPSPACE LINK ONLINE';
+        charTeleport.style.color = '#00ff9d';
+      }
+    }
+    if (charUpgradesSummary) {
+      const items = [];
+      if (this.energyDrinkPurchases > 0) items.push(`Energy Drinks (x${this.energyDrinkPurchases})`);
+      if (this.magnetPurchases > 0) items.push(`Floor Magnets (x${this.magnetPurchases})`);
+      if (this.player.hasNitrous) items.push('Nitrous Afterburners');
+      if (this.player.hasSlalomSprings) items.push('Slalom Springs');
+      if (this.player.hasTeflonSkids) items.push('Teflon Skids');
+      if (this.player.hasSpikedBumper) items.push('Spiked Bumper');
+      if (this.player.hasEmpShockwave) items.push('EMP Shockwave');
+      if (this.player.hasHexDecoder) items.push('Hex Keypad Decoder');
+      if (this.player.hasSuperReel) items.push('Super Magnetic Reel');
+      if (this.player.hasPhaseDash) items.push('Phase Dash Coil');
+      if (this.hasYieldBonds) items.push('High-Yield Bonds');
+      if (this.player.defibrillatorCharges > 0) items.push(`Defibrillator (x${this.player.defibrillatorCharges})`);
+      charUpgradesSummary.textContent = items.length > 0 
+        ? `Purchased Powerups: ${items.join(', ')}` 
+        : 'Purchased Powerups: None (Visit IT Supply Depot [K])';
+    }
   }
 
   // ==========================================================================
@@ -6870,6 +6814,9 @@ class Game {
     this.bugBoss = null;
     this.bossSpawned = false;
     this.smallBugs = [];
+    this.isGameOver = false;
+    this.gameTime = 0;
+    this.currentBossWave = 0;
     if (this.bossHostRack) {
       this.bossHostRack.isBossHost = false;
       this.bossHostRack = null;
@@ -6881,11 +6828,16 @@ class Game {
     this.unlockedErrors = new Set();
     this.updateBuffDisplay();
 
-    // Reset error fail timers so player gets full 30s countdown upon start
+    // Reset all racks to fully operational
     for (const rack of this.racks) {
-      if (rack.isFailing) {
-        rack.failDuration = 0;
-      }
+      rack.isDestroyed = false;
+      rack.isFailing = false;
+      rack.uptime = 100;
+      rack.failDuration = 0;
+      rack.isShutdown = false;
+      rack.isVirusInfected = false;
+      rack.isTargetDestination = false;
+      rack.error = null;
     }
 
     this.sound.init();
@@ -6894,12 +6846,73 @@ class Game {
     this.keys = {};
   }
 
+  startNewGame() {
+    this.startGame();
+  }
+
+  checkLocalQuickSave() {
+    const btnContinue = document.getElementById('btn-menu-continue');
+    if (!btnContinue) return;
+    try {
+      const qs = localStorage.getItem('cabled_in_quicksave');
+      if (qs) {
+        btnContinue.classList.remove('hidden');
+      } else {
+        btnContinue.classList.add('hidden');
+      }
+    } catch (e) {
+      btnContinue.classList.add('hidden');
+    }
+  }
+
+  quickSaveToBrowser() {
+    // Prevent saving during active boss encounter
+    if (this.activeBoss && this.activeBoss.isAlive) {
+      this.sound.playTerminalFail();
+      this.showTemporaryToast('⚠️ EMERGENCY PROTOCOL: CANNOT SAVE RUN DURING ACTIVE BOSS ENCOUNTER!', '⚠️');
+      return;
+    }
+
+    try {
+      const saveData = this.serializeSaveData();
+      localStorage.setItem('cabled_in_quicksave', JSON.stringify(saveData));
+      this.checkLocalQuickSave();
+      this.sound.playUpgrade();
+      this.showTemporaryToast('💾 RUN QUICK-SAVED TO BROWSER STORAGE!', '✅');
+    } catch (err) {
+      console.error('Quick-save failed:', err);
+      this.sound.playTerminalFail();
+      this.showTemporaryToast('❌ ERROR SAVING TO BROWSER STORAGE!');
+    }
+  }
+
+  loadQuickSaveFromBrowser() {
+    try {
+      const qs = localStorage.getItem('cabled_in_quicksave');
+      if (!qs) {
+        this.showTemporaryToast('⚠️ NO SAVED RUN FOUND IN BROWSER STORAGE!');
+        return;
+      }
+      const data = JSON.parse(qs);
+      this.pendingLoadedRunData = data;
+      this.showRunPreviewModal(data);
+    } catch (err) {
+      console.error('Failed to load quick-save:', err);
+      this.showTemporaryToast('❌ INVALID BROWSER SAVE DATA!');
+    }
+  }
+
   returnToMainMenu() {
     this.gameState = 'MENU';
     this.isPaused = false;
+    this.isGameOver = false;
     this.isTutorialOpen = false;
     this.isShopOpen = false;
     this.isTerminalOpen = false;
+    this.gameOverModal?.classList.add('hidden');
+    this.runPreviewModal?.classList.add('hidden');
+    this.leaderboardModal?.classList.add('hidden');
+    this.resumeCountdownOverlay?.classList.add('hidden');
     if (this.isCannonAiming) this.cancelCannonAim();
     if (this.rebootingRack) {
       this.sound.stopRebootCharge();
@@ -6923,7 +6936,486 @@ class Game {
     this.pauseModal?.classList.add('hidden');
     this.hudOverlay?.classList.add('hidden');
     this.mainMenuOverlay?.classList.remove('hidden');
+    this.checkLocalQuickSave();
     this.keys = {};
+  }
+
+  // ==========================================================================
+  // Save & Load Run State Management System (.json file export/import)
+  // ==========================================================================
+  serializeSaveData() {
+    const rackStates = this.racks.map(r => {
+      let errData = null;
+      if (r.isFailing && r.error) {
+        errData = {
+          type: r.error.type,
+          partnerId: r.error.partnerId || r.error.partnerRack?.id || null,
+          targetId: r.error.targetRack?.id || null,
+          hopIds: r.error.hops ? r.error.hops.map(h => h.id) : null,
+          code: r.error.code || null,
+          hasBeenInspected: Boolean(r.error.hasBeenInspected),
+          description: r.error.description || ''
+        };
+      }
+      return {
+        id: r.id,
+        x: r.x,
+        y: r.y,
+        uptime: r.uptime,
+        isFailing: r.isFailing,
+        isDestroyed: r.isDestroyed,
+        failDuration: r.failDuration,
+        isShutdown: Boolean(r.isShutdown),
+        isVirusInfected: Boolean(r.isVirusInfected),
+        code: r.code,
+        error: errData
+      };
+    });
+
+    const activeCableData = this.activeCable ? {
+      type: this.activeCable instanceof MultiHopCable ? 'MultiHopCable' :
+            (this.activeCable instanceof RestraintRope ? 'RestraintRope' :
+            (this.activeCable instanceof ContainmentWire ? 'ContainmentWire' : 'PatchCable')),
+      sourceId: this.activeCable.sourceRack?.id || null,
+      targetId: this.activeCable.targetRack?.id || null,
+      hopIds: this.activeCable.hops ? this.activeCable.hops.map(h => h.id) : null,
+      currentHopIndex: this.activeCable.currentHopIndex || 0
+    } : null;
+
+    const connectedCablesData = this.connectedCables.map(c => ({
+      sourceId: c.sourceRack?.id || null,
+      targetId: c.targetRack?.id || null,
+      hopIds: c.hops ? c.hops.map(h => h.id) : null
+    }));
+
+    return {
+      version: '1.2.0',
+      timestamp: new Date().toISOString(),
+      formattedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      gameTime: this.gameTime,
+      credits: this.credits,
+      currentBossWave: this.currentBossWave || 0,
+      player: {
+        x: this.player.x,
+        y: this.player.y,
+        vx: this.player.vx,
+        vy: this.player.vy,
+        hp: this.player.hp,
+        maxHp: this.player.maxHp,
+        permanentSpeedBonus: this.player.permanentSpeedBonus,
+        permanentFrictionBonus: this.player.permanentFrictionBonus,
+        hasNitrous: Boolean(this.player.hasNitrous),
+        hasSlalomSprings: Boolean(this.player.hasSlalomSprings),
+        hasTeflonSkids: Boolean(this.player.hasTeflonSkids),
+        hasSpikedBumper: Boolean(this.player.hasSpikedBumper),
+        hasEmpShockwave: Boolean(this.player.hasEmpShockwave),
+        hasHexDecoder: Boolean(this.player.hasHexDecoder),
+        hasSuperReel: Boolean(this.player.hasSuperReel),
+        hasPhaseDash: Boolean(this.player.hasPhaseDash),
+        defibrillatorCharges: this.player.defibrillatorCharges || 0
+      },
+      upgrades: {
+        energyDrinkPurchases: this.energyDrinkPurchases || 0,
+        magnetPurchases: this.magnetPurchases || 0,
+        cannonCharges: this.cannonCharges || 0,
+        hasTeleporterItem: Boolean(this.hasTeleporterItem),
+        teleporterNodes: this.teleporterNodes.map(n => ({
+          id: n.id,
+          name: n.name,
+          x: n.x,
+          y: n.y,
+          color: n.color,
+          secondaryColor: n.secondaryColor
+        })),
+        hasYieldBonds: Boolean(this.hasYieldBonds),
+        activeSynergies: { ...this.activeSynergies }
+      },
+      racks: rackStates,
+      activeCable: activeCableData,
+      connectedCables: connectedCablesData
+    };
+  }
+
+  downloadSaveFile() {
+    // Prevent saving during active boss encounter
+    if (this.activeBoss && this.activeBoss.isAlive) {
+      this.sound.playTerminalFail();
+      this.showTemporaryToast('⚠️ EMERGENCY PROTOCOL: CANNOT SAVE RUN DURING ACTIVE BOSS ENCOUNTER!', '⚠️');
+      return;
+    }
+
+    try {
+      const saveData = this.serializeSaveData();
+      const jsonStr = JSON.stringify(saveData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const timeTag = Math.floor(this.gameTime);
+      a.href = url;
+      a.download = `cabled_in_save_t${timeTag}s_${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      this.sound.playUpgrade();
+      this.showTemporaryToast('💾 RUN STATE SAVED & DOWNLOADED AS JSON!', '✅');
+    } catch (err) {
+      console.error('Save file generation failed:', err);
+      this.sound.playTerminalFail();
+      this.showTemporaryToast('❌ ERROR GENERATING SAVE FILE!');
+    }
+  }
+
+  openSaveFilePicker() {
+    if (this.saveFileInput) {
+      this.saveFileInput.value = '';
+      this.saveFileInput.click();
+    }
+  }
+
+  handleSaveFileSelected(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (!data || !data.player || !Array.isArray(data.racks)) {
+          throw new Error('Invalid or corrupted Cabled In save file schema.');
+        }
+        this.pendingLoadedRunData = data;
+        this.showRunPreviewModal(data);
+      } catch (err) {
+        console.error('Failed to parse save file:', err);
+        this.sound.playTerminalFail();
+        alert('Could not read save file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  showRunPreviewModal(data) {
+    if (this.previewShiftTime) {
+      const totalSec = Math.floor(data.gameTime || 0);
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      this.previewShiftTime.textContent = `${m}m ${String(s).padStart(2, '0')}s`;
+    }
+
+    if (this.previewRacksHealth) {
+      const totalRacks = data.racks.length;
+      const destroyed = data.racks.filter(r => r.isDestroyed).length;
+      const operational = totalRacks - destroyed;
+      const pct = Math.round((operational / totalRacks) * 100);
+      this.previewRacksHealth.textContent = `${pct}% Online (${operational}/${totalRacks})`;
+    }
+
+    if (this.previewActiveFaults) {
+      const faults = data.racks.filter(r => r.isFailing && !r.isDestroyed).length;
+      this.previewActiveFaults.textContent = faults === 1 ? '1 Fault Active' : `${faults} Faults Active`;
+    }
+
+    if (this.previewCredits) {
+      this.previewCredits.textContent = `${data.credits ?? 0} ⚡`;
+    }
+
+    if (this.previewBossWave) {
+      this.previewBossWave.textContent = `Wave ${data.currentBossWave || 1}`;
+    }
+
+    if (this.previewSaveDate) {
+      this.previewSaveDate.textContent = data.formattedDate || data.timestamp || 'Unknown';
+    }
+
+    if (this.previewPowerupsList) {
+      const p = data.player || {};
+      const u = data.upgrades || {};
+      const items = [];
+      if (u.energyDrinkPurchases) items.push(`🥤 Energy Drinks x${u.energyDrinkPurchases}`);
+      if (u.magnetPurchases) items.push(`🧲 Floor Magnets x${u.magnetPurchases}`);
+      if (p.hasNitrous) items.push('🚀 Nitrous Boost');
+      if (p.hasSlalomSprings) items.push('🌀 Slalom Springs');
+      if (p.hasTeflonSkids) items.push('⛸️ Teflon Skids');
+      if (p.hasSpikedBumper) items.push('🛡️ Spiked Bumper');
+      if (p.hasEmpShockwave) items.push('⚡ EMP Shockwave');
+      if (p.hasHexDecoder) items.push('🔢 Hex Decoder');
+      if (u.hasTeleporterItem) items.push('🌌 Quantum Teleporter');
+      if (u.hasYieldBonds) items.push('📈 High-Yield Bonds');
+
+      this.previewPowerupsList.innerHTML = items.length > 0
+        ? items.map(it => `<span class="preview-chip">${it}</span>`).join(' ')
+        : '<span style="color: #64748b;">No upgrades installed</span>';
+    }
+
+    this.runPreviewModal?.classList.remove('hidden');
+    this.sound.playPowerup();
+  }
+
+  closeRunPreviewModal() {
+    this.runPreviewModal?.classList.add('hidden');
+    this.pendingLoadedRunData = null;
+  }
+
+  applyLoadedSave(data) {
+    this.closeRunPreviewModal();
+
+    this.gameState = 'PLAYING';
+    this.isPaused = false;
+    this.isGameOver = false;
+    this.isTerminalOpen = false;
+    this.terminalModal?.classList.add('hidden');
+    this.isShopOpen = false;
+    this.shopModal?.classList.add('hidden');
+    this.isTutorialOpen = false;
+    this.tutorialModal?.classList.add('hidden');
+    this.pauseModal?.classList.add('hidden');
+    this.mainMenuOverlay?.classList.add('hidden');
+    this.gameOverModal?.classList.add('hidden');
+    this.hudOverlay?.classList.remove('hidden');
+
+    // Restore Clocks and Progression
+    this.gameTime = data.gameTime || 0;
+    this.credits = data.credits || 0;
+    this.currentBossWave = data.currentBossWave || 0;
+    this.activeBoss = null;
+    this.bugBoss = null;
+    this.bossSpawned = false;
+    this.smallBugs = [];
+
+    // Restore Player Coordinates & Powerups
+    const pData = data.player || {};
+    this.player.x = pData.x ?? CONFIG.WORLD.WIDTH / 2;
+    this.player.y = pData.y ?? CONFIG.WORLD.HEIGHT / 2;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.hp = pData.hp ?? 100;
+    this.player.maxHp = pData.maxHp ?? 100;
+    this.player.permanentSpeedBonus = pData.permanentSpeedBonus ?? 0;
+    this.player.permanentFrictionBonus = pData.permanentFrictionBonus ?? 0;
+    this.player.hasNitrous = Boolean(pData.hasNitrous);
+    this.player.hasSlalomSprings = Boolean(pData.hasSlalomSprings);
+    this.player.hasTeflonSkids = Boolean(pData.hasTeflonSkids);
+    this.player.hasSpikedBumper = Boolean(pData.hasSpikedBumper);
+    this.player.hasEmpShockwave = Boolean(pData.hasEmpShockwave);
+    this.player.hasHexDecoder = Boolean(pData.hasHexDecoder);
+    this.player.hasSuperReel = Boolean(pData.hasSuperReel);
+    this.player.hasPhaseDash = Boolean(pData.hasPhaseDash);
+    this.player.defibrillatorCharges = pData.defibrillatorCharges ?? 0;
+
+    // Restore Upgrades & Synergies
+    const uData = data.upgrades || {};
+    this.energyDrinkPurchases = uData.energyDrinkPurchases ?? 0;
+    this.magnetPurchases = uData.magnetPurchases ?? 0;
+    this.cannonCharges = uData.cannonCharges ?? 1;
+    this.hasTeleporterItem = Boolean(uData.hasTeleporterItem);
+    this.hasYieldBonds = Boolean(uData.hasYieldBonds);
+    if (uData.activeSynergies) {
+      this.activeSynergies = { ...uData.activeSynergies };
+    }
+
+    // Restore Quantum Teleporters
+    this.teleporterNodes = [];
+    if (Array.isArray(uData.teleporterNodes)) {
+      uData.teleporterNodes.forEach(n => {
+        const isAlpha = (n.id === 'alpha');
+        const defaultColor = isAlpha ? (CONFIG.COLORS?.TELEPORTER_ALPHA ?? '#00f3ff') : (CONFIG.COLORS?.TELEPORTER_BETA ?? '#e024c3');
+        const defaultSecColor = isAlpha ? '#00ff9d' : '#ff007f';
+        const tNode = new TeleporterNode(
+          n.id,
+          n.x,
+          n.y,
+          n.name || (isAlpha ? 'NODE α' : 'NODE β'),
+          n.color || defaultColor,
+          n.secondaryColor || defaultSecColor
+        );
+        this.teleporterNodes.push(tNode);
+      });
+    }
+
+    // Center camera on player's saved position
+    this.camera.x = this.player.x;
+    this.camera.y = this.player.y;
+    this.camera.targetX = this.player.x;
+    this.camera.targetY = this.player.y;
+
+    // Restore Server Racks
+    if (Array.isArray(data.racks)) {
+      const rackMap = new Map();
+      data.racks.forEach(rState => {
+        let rack = this.racks.find(r => r.id === rState.id);
+        if (rack) {
+          rack.uptime = rState.uptime ?? 100;
+          rack.isFailing = Boolean(rState.isFailing);
+          rack.isDestroyed = Boolean(rState.isDestroyed);
+          rack.failDuration = rState.failDuration ?? 0;
+          rack.isShutdown = Boolean(rState.isShutdown);
+          rack.isVirusInfected = Boolean(rState.isVirusInfected);
+          rack.code = rState.code || rack.code;
+          rack.error = null;
+          rackMap.set(rack.id, { rack, state: rState });
+        }
+      });
+
+      // Restore rack error references (partners, hops, descriptions)
+      rackMap.forEach(({ rack, state }) => {
+        if (state.isFailing && state.error) {
+          const e = state.error;
+          rack.error = {
+            type: e.type,
+            code: e.code || rack.code,
+            hasBeenInspected: Boolean(e.hasBeenInspected),
+            description: e.description || ''
+          };
+          if (e.partnerId) {
+            const partner = this.racks.find(r => r.id === e.partnerId);
+            if (partner) {
+              rack.error.partnerRack = partner;
+              rack.error.partnerId = partner.id;
+            }
+          }
+          if (e.targetId) {
+            const tgt = this.racks.find(r => r.id === e.targetId);
+            if (tgt) rack.error.targetRack = tgt;
+          }
+          if (Array.isArray(e.hopIds)) {
+            rack.error.hops = e.hopIds.map(hid => this.racks.find(r => r.id === hid)).filter(Boolean);
+          }
+        }
+      });
+    }
+
+    // Restore active cables
+    this.activeCable = null;
+    this.connectedCables = [];
+    if (data.activeCable && data.activeCable.sourceId) {
+      const src = this.racks.find(r => r.id === data.activeCable.sourceId);
+      const tgt = this.racks.find(r => r.id === data.activeCable.targetId);
+      if (src && tgt && data.activeCable.type === 'PatchCable') {
+        this.activeCable = new PatchCable(src, tgt);
+      }
+    }
+
+    this.updatePlayerHealthUI();
+    this.updateCreditsUI();
+    this.updateBuffDisplay();
+    this.updateShopButtons();
+
+    // Start 3-Second Countdown before operator movement resumes
+    this.startResumeCountdown();
+  }
+
+  startResumeCountdown() {
+    this.isResumingFromSave = true;
+    this.gameState = 'COUNTDOWN';
+    this.resumeCountdownTimer = 3.0;
+    if (this.countdownNumber) this.countdownNumber.textContent = '3';
+    this.resumeCountdownOverlay?.classList.remove('hidden');
+    this.sound.playKey();
+  }
+
+  // ==========================================================================
+  // Endless Leaderboard Records & Game Over Handling
+  // ==========================================================================
+  triggerGameOver() {
+    this.isGameOver = true;
+    this.gameState = 'GAME_OVER';
+    if (this.isCannonAiming) this.cancelCannonAim();
+    this.sound.playExplosion();
+
+    // Calculate run statistics
+    const totalSec = Math.floor(this.gameTime || 0);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    const durStr = `${m}m ${String(s).padStart(2, '0')}s`;
+
+    if (this.goDuration) this.goDuration.textContent = durStr;
+    if (this.goBosses) this.goBosses.textContent = `${this.currentBossWave || 0}`;
+    if (this.goCredits) this.goCredits.textContent = `${this.credits} ⚡`;
+
+    const isNewRecord = this.recordLeaderboardEntry({
+      durationSec: totalSec,
+      durationStr: durStr,
+      bossesCleared: this.currentBossWave || 0,
+      credits: this.credits,
+      dateStr: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    });
+
+    if (this.goRecord) {
+      this.goRecord.textContent = isNewRecord ? '⭐ NEW RECORD SAVED!' : 'SHIFT LOGGED';
+      this.goRecord.style.color = isNewRecord ? '#ffb800' : '#a855f7';
+    }
+
+    this.gameOverModal?.classList.remove('hidden');
+    this.sound.playAlarm();
+  }
+
+  getLeaderboardRecords() {
+    try {
+      const raw = localStorage.getItem('cabled_in_leaderboard');
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      console.warn('Failed to parse leaderboard:', e);
+      return [];
+    }
+  }
+
+  recordLeaderboardEntry(entry) {
+    const records = this.getLeaderboardRecords();
+    records.push(entry);
+    records.sort((a, b) => (b.durationSec || 0) - (a.durationSec || 0));
+    const trimmed = records.slice(0, 10);
+    try {
+      localStorage.setItem('cabled_in_leaderboard', JSON.stringify(trimmed));
+    } catch (e) {
+      console.warn('Failed to store leaderboard:', e);
+    }
+    return trimmed[0]?.durationSec === entry.durationSec;
+  }
+
+  openLeaderboard() {
+    this.renderLeaderboardTable();
+    this.leaderboardModal?.classList.remove('hidden');
+    this.sound.playKey();
+  }
+
+  closeLeaderboard() {
+    this.leaderboardModal?.classList.add('hidden');
+  }
+
+  renderLeaderboardTable() {
+    if (!this.leaderboardTbody) return;
+    const records = this.getLeaderboardRecords();
+    this.leaderboardTbody.innerHTML = '';
+
+    if (records.length === 0) {
+      const row = document.createElement('tr');
+      row.innerHTML = '<td colspan="5" style="text-align: center; color: #64748b; padding: 22px;">NO RECORDED RUNS YET. START A SHIFT TO RECORD YOUR SURVIVAL TIME!</td>';
+      this.leaderboardTbody.appendChild(row);
+      return;
+    }
+
+    records.forEach((rec, idx) => {
+      const row = document.createElement('tr');
+      const rankBadge = idx === 0 ? '🥇 1ST' : (idx === 1 ? '🥈 2ND' : (idx === 2 ? '🥉 3RD' : `#${idx + 1}`));
+      row.innerHTML = `
+        <td style="font-weight: 700; color: ${idx === 0 ? '#ffb800' : (idx === 1 ? '#00f3ff' : '#94a3b8')};">${rankBadge}</td>
+        <td style="color: #00ff9d; font-weight: 700;">${rec.durationStr || '0m 00s'}</td>
+        <td style="color: #ffaa00;">${rec.bossesCleared ?? 0} Waves</td>
+        <td style="color: #00f3ff;">${rec.credits ?? 0} ⚡</td>
+        <td style="color: #64748b;">${rec.dateStr || '--'}</td>
+      `;
+      this.leaderboardTbody.appendChild(row);
+    });
+  }
+
+  clearLeaderboard() {
+    if (confirm('Are you sure you want to reset your local data center uptime records?')) {
+      localStorage.removeItem('cabled_in_leaderboard');
+      this.renderLeaderboardTable();
+      this.sound.playKey();
+    }
   }
 
   // ==========================================================================
@@ -7218,7 +7710,7 @@ class Game {
     ctx.restore();
   }
 
-  showTemporaryToast(message) {
+  showTemporaryToast(message, duration = 3500) {
     if (!this.notificationToast || !this.notificationToastText) return;
 
     // Determine icon and color scheme based on notification type
@@ -7274,7 +7766,7 @@ class Game {
     }
     this.notificationToastTimeout = setTimeout(() => {
       this.notificationToast?.classList.add('hidden');
-    }, 3500);
+    }, duration);
   }
 
   executePhaseDash() {
@@ -7399,21 +7891,17 @@ class Game {
     if (!this.unlockedErrors) {
       this.unlockedErrors = new Set();
     }
-    // Check unlocked boss incident errors:
-    if (this.unlockedErrors.has(CONFIG.ERRORS.BUG_INFESTATION) && this.smallBugs.length < 2 && Math.random() < 0.22) {
-      this.triggerSmallBugError();
+    // Check unlocked boss incident errors from design brief:
+    if (this.unlockedErrors.has(CONFIG.ERRORS.SERVER_BUG) && Math.random() < 0.25) {
+      this.triggerServerBugIncident();
       return;
     }
-    if (this.unlockedErrors.has(CONFIG.ERRORS.COOLANT_LEAK) && Math.random() < 0.20) {
-      this.triggerCoolantLeakError();
+    if (this.unlockedErrors.has(CONFIG.ERRORS.SERVER_OVERHEAT) && Math.random() < 0.25) {
+      this.triggerServerOverheatIncident();
       return;
     }
-    if (this.unlockedErrors.has(CONFIG.ERRORS.PHANTOM_GLITCH) && Math.random() < 0.20) {
-      this.triggerPhantomGlitchError();
-      return;
-    }
-    if (this.unlockedErrors.has(CONFIG.ERRORS.NETWORK_WORM) && Math.random() < 0.20) {
-      this.triggerNetworkWormError();
+    if (this.unlockedErrors.has(CONFIG.ERRORS.SERVER_SMALL_VIRUS) && Math.random() < 0.25) {
+      this.triggerServerSmallVirusIncident();
       return;
     }
 
@@ -7429,35 +7917,64 @@ class Game {
     }
   }
 
-  triggerSmallBugError(isDevShortcut = false) {
+  triggerServerBugIncident(isDevShortcut = false) {
     const availableRacks = this.racks.filter(r => !r.isDestroyed);
     if (availableRacks.length < 2) return;
 
-    // Pick origin rack from which the small bug crawls out
     const originRack = availableRacks[Math.floor(Math.random() * availableRacks.length)];
-
-    // Pick target rack across the warehouse to scuttle towards and destroy
-    const candidateTargets = availableRacks.filter(r => r.id !== originRack.id);
+    const candidateTargets = availableRacks.filter(r => r.id !== originRack.id && !r.isDestroyed && !r.isFailing);
     if (candidateTargets.length === 0) return;
     const targetRack = candidateTargets[Math.floor(Math.random() * candidateTargets.length)];
 
-    const spawnX = originRack.x + originRack.width / 2;
-    const spawnY = originRack.y + originRack.height / 2;
-
-    const bug = new SmallBug(spawnX, spawnY, originRack, targetRack);
-    this.smallBugs.push(bug);
-
-    // Audio and visuals
+    targetRack.triggerServerBugError(originRack);
     this.sound.playBossAlarm();
-    this.camera.shake(14, 0.4);
-    this.particles.spawnSparks(spawnX, spawnY, 35, '#ff0055');
-    this.particles.spawnSparks(spawnX, spawnY, 20, '#00ff9d');
+    this.camera.shake(16, 0.4);
+    this.particles.spawnSparks(originRack.x + originRack.width / 2, originRack.y + originRack.height / 2, 35, '#ff0055');
+    this.particles.spawnSparks(targetRack.x + targetRack.width / 2, targetRack.y + targetRack.height / 2, 35, '#00ff9d');
 
-    const prefix = isDevShortcut ? '🛠️ [DEV] ' : '⚠️ ';
+    const prefix = isDevShortcut ? '🛠️ [DEV] ' : '🐛 ';
     this.showTemporaryToast(
-      `${prefix}ROGUE BUG ESCAPED FROM ${originRack.id}! SCUTTLING TO DESTROY ${targetRack.id} ➔ SQUISH IT!`,
+      `${prefix}ROGUE BUG ENTERED ${targetRack.id}! SHUT DOWN AT NOC TERMINAL TO TRAP & SQUISH IT!`,
       '🐛'
     );
+  }
+
+  triggerServerOverheatIncident(isDevShortcut = false) {
+    const availableRacks = this.racks.filter(r => !r.isFailing && !r.isDestroyed);
+    if (availableRacks.length === 0) return;
+    const rack = availableRacks[Math.floor(Math.random() * availableRacks.length)];
+
+    rack.triggerServerOverheatError();
+    this.sound.playBossAlarm();
+    this.camera.shake(16, 0.4);
+    this.particles.spawnSparks(rack.x + rack.width / 2, rack.y + rack.height / 2, 45, '#ff5500');
+
+    const prefix = isDevShortcut ? '🛠️ [DEV] ' : '🔥 ';
+    this.showTemporaryToast(
+      `${prefix}SERVER OVERHEAT AT ${rack.id}! SHUT DOWN AT NOC TERMINAL BEFORE FIRE SPREAD (30s)!`,
+      '🔥'
+    );
+  }
+
+  triggerServerSmallVirusIncident(isDevShortcut = false) {
+    const availableRacks = this.racks.filter(r => !r.isFailing && !r.isDestroyed);
+    if (availableRacks.length === 0) return;
+    const rack = availableRacks[Math.floor(Math.random() * availableRacks.length)];
+
+    rack.triggerServerSmallVirusError();
+    this.sound.playBossAlarm();
+    this.camera.shake(16, 0.4);
+    this.particles.spawnSparks(rack.x + rack.width / 2, rack.y + rack.height / 2, 45, '#a855f7');
+
+    const prefix = isDevShortcut ? '🛠️ [DEV] ' : '☣️ ';
+    this.showTemporaryToast(
+      `${prefix}VIRUS SLIME ERUPTED AT ${rack.id}! SHUT DOWN & DISINFECT BEFORE MAJOR VIRUS ERUPTS (60s)!`,
+      '☣️'
+    );
+  }
+
+  triggerSmallBugError(isDevShortcut = false) {
+    this.triggerServerBugIncident(isDevShortcut);
   }
 
   triggerCableError() {
@@ -7478,7 +7995,7 @@ class Game {
     sourceRack.triggerCableError(targetRack);
     sourceRack.uptime = 90;
     this.sound.playError();
-    this.showTemporaryToast(`⚠️ FAULT AT ${sourceRack.id}! [30s UNTIL EXPLOSION] ➔ RUN CABLE TO ${targetRack.id}`);
+    this.showTemporaryToast(`⚠️ FAULT AT ${sourceRack.id}! [45s UNTIL EXPLOSION] ➔ RUN CABLE TO ${targetRack.id}`);
   }
 
   triggerMultiChainError() {
@@ -7530,7 +8047,7 @@ class Game {
     sourceRack.triggerMultiChainError(hops);
     sourceRack.uptime = 90;
     this.sound.playError();
-    this.showTemporaryToast(`⚠️ FAULT AT ${sourceRack.id}! [30s UNTIL EXPLOSION] ➔ CHAIN ${hops.length} SERVERS`);
+    this.showTemporaryToast(`⚠️ FAULT AT ${sourceRack.id}! [90s UNTIL EXPLOSION] ➔ CHAIN ${hops.length} SERVERS`);
   }
 
   triggerHardRebootError() {
@@ -7541,7 +8058,7 @@ class Game {
     rack.triggerHardRebootError();
     rack.uptime = 90;
     this.sound.playError();
-    this.showTemporaryToast(`⚠️ FAULT AT ${rack.id}! [30s UNTIL EXPLOSION] ➔ HOLD POWER BREAKER (5s)`);
+    this.showTemporaryToast(`⚠️ FAULT AT ${rack.id}! [45s UNTIL EXPLOSION] ➔ HOLD POWER BREAKER (5s)`);
   }
 
   triggerAuthLockoutError() {
@@ -7552,7 +8069,7 @@ class Game {
     rack.triggerAuthError();
     rack.uptime = 90;
     this.sound.playError();
-    this.showTemporaryToast(`⚠️ FAULT AT ${rack.id}! [30s UNTIL EXPLOSION] ➔ SCAN PIN FOR NOC DESK`);
+    this.showTemporaryToast(`⚠️ FAULT AT ${rack.id}! [45s UNTIL EXPLOSION] ➔ SCAN PIN FOR NOC DESK`);
   }
 
   // ==========================================================================
@@ -7577,11 +8094,43 @@ class Game {
     window.addEventListener('keydown', (e) => {
       this.sound.init();
 
+      if (this.isStatsOpen) {
+        if (e.code === 'Escape' || e.code === 'Tab' || e.code === 'KeyC') {
+          e.preventDefault();
+          this.closeStats();
+          return;
+        }
+      }
+
+      // Stats Modal Toggle [TAB] or [C]
+      if (e.code === 'Tab' || e.code === 'KeyC') {
+        e.preventDefault();
+        if (this.isCannonAiming) this.cancelCannonAim();
+        if (this.gameState === 'PLAYING') {
+          this.openStats();
+          return;
+        }
+      }
+
       if (this.isSettingsOpen) {
         if (e.code === 'Escape') {
           this.closeSettings();
         }
         return;
+      }
+
+      if (this.leaderboardModal && !this.leaderboardModal.classList.contains('hidden')) {
+        if (e.code === 'Escape') {
+          this.closeLeaderboard();
+          return;
+        }
+      }
+
+      if (this.runPreviewModal && !this.runPreviewModal.classList.contains('hidden')) {
+        if (e.code === 'Escape') {
+          this.closeRunPreviewModal();
+          return;
+        }
       }
 
       // Tutorial navigation & toggle
@@ -7619,10 +8168,26 @@ class Game {
         return;
       }
 
-      // Dev Tool: Press [N] to spawn a Rogue Small Bug immediately!
+      // Dev Tool: Press [N] to spawn a Server Bug incident immediately!
       if (e.code === 'KeyN') {
         if (this.gameState === 'PLAYING') {
-          this.triggerSmallBugError(true);
+          this.triggerServerBugIncident(true);
+        }
+        return;
+      }
+
+      // Dev Tool: Press [8] to spawn a Server Overheat fire incident immediately!
+      if (e.code === 'Digit8') {
+        if (this.gameState === 'PLAYING' && !this.isTerminalOpen) {
+          this.triggerServerOverheatIncident(true);
+        }
+        return;
+      }
+
+      // Dev Tool: Press [9] to spawn a Server Small Virus incident immediately!
+      if (e.code === 'Digit9') {
+        if (this.gameState === 'PLAYING' && !this.isTerminalOpen) {
+          this.triggerServerSmallVirusIncident(true);
         }
         return;
       }
@@ -7730,19 +8295,66 @@ class Game {
 
       if (this.gameState !== 'PLAYING') return;
 
+      if (e.repeat) return; // Prevent OS key-repeat events while holding [E] from constantly zeroing hold progress
+
       this.keys[e.code] = true;
 
       if (e.code === 'KeyE') {
-        const nearRack = this.getNearestRack();
-        if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.HARD_REBOOT) {
-          this.rebootingRack = nearRack;
-          this.rebootHoldTime = 0;
+        const nearRack = this.getNearestRack(105);
+        if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED) {
+          if (nearRack.isShutdown) {
+            if (this.rebootingRack !== nearRack) {
+              this.rebootingRack = nearRack;
+              this.rebootHoldTime = 0;
+            }
+          } else {
+            nearRack.error.hasBeenInspected = true;
+            this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
+            if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+            this.showTemporaryToast(`🛑 ${nearRack.id} PIN: [${nearRack.code}] SCANNED! TYPE AT MASTER TERMINAL TO SHUT DOWN FIRST!`, '🛑');
+            this.sound.playKey();
+          }
+        } else if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.SERVER_BUG) {
+          if (nearRack.isShutdown) {
+            if (this.shakingRack !== nearRack) {
+              this.shakingRack = nearRack;
+              this.shakeHoldTime = 0;
+            }
+          } else {
+            nearRack.error.hasBeenInspected = true;
+            this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
+            if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+            this.showTemporaryToast(`🐛 ${nearRack.id} PIN: [${nearRack.code}] SCANNED! TYPE AT MASTER TERMINAL TO SHUT DOWN & TRAP BUG!`, '🐛');
+            this.sound.playKey();
+          }
+        } else if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS) {
+          if (nearRack.isShutdown) {
+            if (this.disinfectingRack !== nearRack) {
+              this.disinfectingRack = nearRack;
+              this.disinfectHoldTime = 0;
+            }
+          } else {
+            nearRack.error.hasBeenInspected = true;
+            this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
+            if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+            this.showTemporaryToast(`🦠 ${nearRack.id} PIN: [${nearRack.code}] SCANNED! TYPE AT MASTER TERMINAL TO SHUT DOWN FIRST!`, '🦠');
+            this.sound.playKey();
+          }
+        } else if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.HARD_REBOOT) {
+          if (this.rebootingRack !== nearRack) {
+            this.rebootingRack = nearRack;
+            this.rebootHoldTime = 0;
+          }
         } else if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.COOLANT_LEAK) {
-          this.coolingRack = nearRack;
-          this.coolantHoldTime = 0;
+          if (this.coolingRack !== nearRack) {
+            this.coolingRack = nearRack;
+            this.coolantHoldTime = 0;
+          }
         } else if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.NETWORK_WORM) {
-          this.wormRack = nearRack;
-          this.wormHoldTime = 0;
+          if (this.wormRack !== nearRack) {
+            this.wormRack = nearRack;
+            this.wormHoldTime = 0;
+          }
         } else {
           this.handleInteractKey();
         }
@@ -7760,6 +8372,14 @@ class Game {
           this.rebootHoldTime = 0;
           this.rebootingRack = null;
           this.updateObjectiveUI();
+        }
+        if (this.shakingRack) {
+          this.shakingRack = null;
+          this.shakeHoldTime = 0;
+        }
+        if (this.disinfectingRack) {
+          this.disinfectingRack = null;
+          this.disinfectHoldTime = 0;
         }
         if (this.coolingRack) {
           this.coolingRack = null;
@@ -7857,18 +8477,55 @@ class Game {
     const selectedRackId = this.terminalSelect?.value;
     const rack = this.racks.find(r => r.id === selectedRackId);
 
-    if (rack && !rack.error?.hasBeenInspected) {
-      this.terminalFeedback.textContent = `PIN UNKNOWN ➔ VISIT ${rack.id} TO RETRIEVE OVERRIDE CODE`;
+    // Keypad is always available for entering the 4-digit PIN!
+    if (this.terminalKeypad) this.terminalKeypad.classList.remove('hidden');
+    if (this.terminalShutdownPanel) this.terminalShutdownPanel.classList.add('hidden');
+
+    const promptElem = document.querySelector('.terminal-prompt');
+
+    if (!rack || !rack.isFailing) {
+      this.terminalFeedback.textContent = 'AWAITING NODE SELECTION';
       this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
-    } else if (rack && rack.error?.hasBeenInspected) {
-      const isGlitch = rack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH;
-      this.terminalFeedback.textContent = isGlitch 
-        ? `AUTHENTIC PIN: [${rack.code}] ➔ ENTER PIN TO DISPEL PHANTOM GLITCH`
-        : `SAVED PIN: [${rack.code}] ➔ ENTER PIN TO RESTORE NODE`;
-      this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+      if (promptElem) promptElem.textContent = '> ENTER PIN:';
+      return;
+    }
+
+    const errType = rack.error?.type;
+    const isShutdownType = (
+      errType === CONFIG.ERRORS.RESTART_REQUIRED ||
+      errType === CONFIG.ERRORS.SERVER_BUG ||
+      errType === CONFIG.ERRORS.SERVER_OVERHEAT ||
+      errType === CONFIG.ERRORS.SERVER_SMALL_VIRUS
+    );
+
+    if (isShutdownType) {
+      if (rack.isShutdown) {
+        if (promptElem) promptElem.textContent = '> NODE BREAKER IS OFF [ISOLATED]:';
+        this.terminalFeedback.textContent = `BREAKER POWER OFF: ${rack.id} SHUT DOWN // COMPLETE ON-FOOT ACTION`;
+        this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+      } else {
+        if (promptElem) promptElem.textContent = '> ENTER RACK PIN TO SHUT DOWN BREAKER:';
+        if (!rack.error?.hasBeenInspected) {
+          this.terminalFeedback.textContent = `PIN UNKNOWN ➔ VISIT ${rack.id} TO SCAN PIN FOR SHUTDOWN (OR USE HEX DECODER)`;
+          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
+        } else {
+          this.terminalFeedback.textContent = `SAVED PIN: [${rack.code}] ➔ TYPE 4-DIGIT PIN & PRESS [ENTER] TO SHUT DOWN`;
+          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+        }
+      }
     } else {
-      this.terminalFeedback.textContent = 'AWAITING 4-DIGIT AUTHORIZATION CODE';
-      this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
+      // Keypad PIN entry types (Auth lockout, phantom glitch)
+      if (promptElem) promptElem.textContent = '> ENTER AUTH OVERRIDE PIN:';
+      if (!rack.error?.hasBeenInspected) {
+        this.terminalFeedback.textContent = `PIN UNKNOWN ➔ VISIT ${rack.id} TO RETRIEVE OVERRIDE CODE`;
+        this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
+      } else {
+        const isGlitch = errType === CONFIG.ERRORS.PHANTOM_GLITCH;
+        this.terminalFeedback.textContent = isGlitch 
+          ? `AUTHENTIC PIN: [${rack.code}] ➔ ENTER PIN TO DISPEL PHANTOM GLITCH`
+          : `SAVED PIN: [${rack.code}] ➔ ENTER PIN TO RESTORE NODE`;
+        this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+      }
     }
     this.updateKeypadHexHighlight();
   }
@@ -7881,30 +8538,49 @@ class Game {
 
     if (this.terminalSelect) {
       this.terminalSelect.innerHTML = '';
-      const lockoutRacks = this.racks.filter(r => r.isFailing && (r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT || r.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH));
+      const actionableRacks = this.racks.filter(r => r.isFailing && (
+        r.error?.type === CONFIG.ERRORS.ACCESS_DENIED ||
+        r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT ||
+        r.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH ||
+        r.error?.type === CONFIG.ERRORS.RESTART_REQUIRED ||
+        r.error?.type === CONFIG.ERRORS.SERVER_BUG ||
+        r.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT ||
+        r.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS
+      ));
 
-      if (lockoutRacks.length === 0) {
+      if (actionableRacks.length === 0) {
         const opt = document.createElement('option');
-        opt.textContent = 'NO ACTIVE LOCKOUTS';
+        opt.textContent = 'NO ACTIVE TERMINAL FAULTS';
         opt.disabled = true;
         this.terminalSelect.appendChild(opt);
         if (this.terminalFeedback) this.terminalFeedback.textContent = 'ALL SERVER NODES OPERATING NORMALLY';
+        if (this.terminalKeypad) this.terminalKeypad.classList.remove('hidden');
+        if (this.terminalShutdownPanel) this.terminalShutdownPanel.classList.add('hidden');
       } else {
-        lockoutRacks.forEach(r => {
+        actionableRacks.forEach(r => {
           const opt = document.createElement('option');
           opt.value = r.id;
-          const isGlitch = r.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH;
-          const tag = isGlitch ? 'HOLO-GLITCH' : 'SEC-AUTH';
-          if (r.error?.hasBeenInspected) {
-            opt.textContent = `${r.id} // ${tag} [PIN: ${r.code}]`;
+          const t = r.error?.type;
+          let tag = 'SEC-AUTH';
+          if (t === CONFIG.ERRORS.RESTART_REQUIRED) tag = r.isShutdown ? 'OFFLINE // READY FOR REBOOT' : 'REQ-SHUTDOWN';
+          else if (t === CONFIG.ERRORS.SERVER_BUG) tag = r.isShutdown ? 'OFFLINE // SHAKE BUG OUT' : 'BUG INFESTATION';
+          else if (t === CONFIG.ERRORS.SERVER_OVERHEAT) tag = r.isShutdown ? 'OFFLINE // COOLING' : 'FIRE OVERHEAT';
+          else if (t === CONFIG.ERRORS.SERVER_SMALL_VIRUS) tag = r.isShutdown ? 'OFFLINE // DISINFECT' : 'VIRUS SLIME';
+          else if (t === CONFIG.ERRORS.PHANTOM_GLITCH) tag = 'HOLO-GLITCH';
+
+          if (!r.isShutdown) {
+            opt.textContent = r.error?.hasBeenInspected
+              ? `${r.id} // ${tag} [PIN: ${r.code}]`
+              : `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`;
           } else {
-            opt.textContent = `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`;
+            opt.textContent = `${r.id} // ${tag}`;
           }
           this.terminalSelect.appendChild(opt);
         });
 
         if (this.activeCodeMemo) {
-          this.terminalSelect.value = this.activeCodeMemo.rackId;
+          const matching = actionableRacks.find(r => r.id === this.activeCodeMemo.rackId);
+          if (matching) this.terminalSelect.value = matching.id;
         }
 
         this.updateTerminalSelectionFeedback();
@@ -7914,6 +8590,56 @@ class Game {
     this.terminalModal?.classList.remove('hidden');
     this.updateTerminalLiveCountdowns();
     this.updateKeypadHexHighlight();
+  }
+
+  shutdownServerNode(rackId, bypassPin = false) {
+    const rack = this.racks.find(r => r.id === rackId);
+    if (!rack || !rack.isFailing) {
+      this.sound.playTerminalFail();
+      return;
+    }
+
+    if (rack.isShutdown) {
+      this.showTemporaryToast(`⚠️ ${rack.id} IS ALREADY POWERED OFF! COMPLETE ON-FOOT REPAIR.`);
+      return;
+    }
+
+    if (!bypassPin && this.terminalInputBuffer !== rack.code) {
+      this.sound.playTerminalFail();
+      if (this.terminalFeedback) {
+        this.terminalFeedback.textContent = 'TYPE CORRECT 4-DIGIT RACK PIN FIRST TO SHUT DOWN!';
+        this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_RED;
+      }
+      return;
+    }
+
+    rack.shutdownBreaker();
+    this.sound.playShutdown?.() || this.sound.playPowerup();
+    this.particles.spawnSparks(this.nocDesk.x + this.nocDesk.width / 2, this.nocDesk.y, 40, '#ff2a55');
+    this.particles.spawnSparks(rack.x + rack.width / 2, rack.y + rack.height / 2, 45, '#00f3ff');
+
+    const errType = rack.error?.type;
+    let toastMsg = `🛑 ${rack.id} POWER BREAKER SHUT DOWN! `;
+    if (errType === CONFIG.ERRORS.RESTART_REQUIRED) {
+      toastMsg += `COUNTDOWN FROZEN! VISIT RACK & HOLD [E] FOR 5s TO TURN ON.`;
+    } else if (errType === CONFIG.ERRORS.SERVER_BUG) {
+      toastMsg += `NODE ISOLATED & BUG TRAPPED! VISIT RACK, HOLD [E] TO TAKE IT OUT & SQUISH IT!`;
+    } else if (errType === CONFIG.ERRORS.SERVER_OVERHEAT) {
+      toastMsg += `FIRE RISK ISOLATED! RACK RESTORING COOLANT RESERVES.`;
+      setTimeout(() => {
+        if (rack.isFailing && rack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) {
+          rack.resolveError();
+          this.addCredits(80, `+80 ⚡ ${rack.id} OVERHEAT RESOLVED`);
+        }
+      }, 4000);
+    } else if (errType === CONFIG.ERRORS.SERVER_SMALL_VIRUS) {
+      toastMsg += `VIRUS CONFINED! VISIT RACK & HOLD [E] TO DISINFECT BEFORE 60s!`;
+    }
+    this.showTemporaryToast(toastMsg, '🛑');
+
+    this.updateTerminalSelectionFeedback();
+    this.updateTerminalLiveCountdowns();
+    this.updateObjectiveUI();
   }
 
   closeTerminal() {
@@ -7931,21 +8657,62 @@ class Game {
     const selectedRackId = this.terminalSelect?.value;
     const targetRack = this.racks.find(r => r.id === selectedRackId);
 
-    const isValidErrorType = targetRack?.isFailing && (
-      targetRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT ||
-      targetRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH
-    );
-
-    if (!targetRack || !isValidErrorType) {
+    if (!targetRack || !targetRack.isFailing) {
       if (this.terminalFeedback) {
-        this.terminalFeedback.textContent = 'SELECT AN ACTIVE LOCKOUT FAULT FIRST';
+        this.terminalFeedback.textContent = 'SELECT AN ACTIVE FAULT FIRST';
         this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_RED;
       }
       this.sound.playTerminalFail();
       return;
     }
 
+    const isShutdownType = (
+      targetRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED ||
+      targetRack.error?.type === CONFIG.ERRORS.SERVER_BUG ||
+      targetRack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT ||
+      targetRack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS
+    );
+
+    const isAuthType = (
+      targetRack.error?.type === CONFIG.ERRORS.ACCESS_DENIED ||
+      targetRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT ||
+      targetRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH
+    );
+
+    if (!isShutdownType && !isAuthType) {
+      if (this.terminalFeedback) {
+        this.terminalFeedback.textContent = 'THIS FAULT REQUIRES PHYSICAL ON-FOOT REPAIR';
+        this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_RED;
+      }
+      this.sound.playTerminalFail();
+      return;
+    }
+
+    if (isShutdownType && targetRack.isShutdown) {
+      if (this.terminalFeedback) {
+        this.terminalFeedback.textContent = `${targetRack.id} IS ALREADY SHUT DOWN // COMPLETE ON-FOOT ACTION`;
+        this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+      }
+      this.sound.playTerminalFail();
+      return;
+    }
+
     if (this.terminalInputBuffer === targetRack.code) {
+      if (isShutdownType) {
+        this.sound.playTerminalSuccess();
+        this.shutdownServerNode(targetRack.id, true);
+        if (this.terminalFeedback) {
+          this.terminalFeedback.textContent = `AUTH ACCEPTED: ${targetRack.id} POWER BREAKER SHUT DOWN // TIMER FROZEN`;
+          this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_GREEN;
+        }
+        this.terminalInputBuffer = '';
+        this.updateTerminalDisplay();
+        this.updateTerminalSelectionFeedback();
+        this.updateObjectiveUI();
+        return;
+      }
+
+      // isAuthType:
       const isGlitch = targetRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH;
       targetRack.resolveError();
       this.sound.playTerminalSuccess();
@@ -7973,7 +8740,9 @@ class Game {
     } else {
       this.sound.playTerminalFail();
       if (this.terminalFeedback) {
-        this.terminalFeedback.textContent = 'INVALID OVERRIDE PIN // ACCESS DENIED';
+        this.terminalFeedback.textContent = isShutdownType
+          ? 'INVALID PIN // SHUTDOWN AUTHORIZATION REJECTED'
+          : 'INVALID OVERRIDE PIN // ACCESS DENIED';
         this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_RED;
       }
       this.terminalInputBuffer = '';
@@ -8016,7 +8785,7 @@ class Game {
     return Math.hypot(this.player.x - clampX, this.player.y - clampY);
   }
 
-  getNearestRack(maxDist = 75) {
+  getNearestRack(maxDist = 95) {
     // If boss is active and player is near bossHostRack, prioritize bossHostRack above all others
     const activeBoss = this.activeBoss || this.bugBoss;
     if (this.bossHostRack && activeBoss && activeBoss.isAlive) {
@@ -8025,6 +8794,8 @@ class Game {
       }
     }
 
+    let closestFailing = null;
+    let closestFailingDist = maxDist;
     let closest = null;
     let closestDist = maxDist;
 
@@ -8034,27 +8805,45 @@ class Game {
         closest = rack;
         closestDist = d;
       }
+      if (rack.isFailing && d < closestFailingDist) {
+        closestFailing = rack;
+        closestFailingDist = d;
+      }
     }
-    return closest;
+    return closestFailing || closest;
   }
 
-  isNearNOCDesk(maxDist = 120) {
+  getDistanceToNOCDesk() {
+    if (!this.nocDesk) return Infinity;
     const clampX = Math.max(this.nocDesk.x, Math.min(this.player.x, this.nocDesk.x + this.nocDesk.width));
     const clampY = Math.max(this.nocDesk.y, Math.min(this.player.y, this.nocDesk.y + this.nocDesk.height));
-    return Math.hypot(this.player.x - clampX, this.player.y - clampY) <= maxDist;
+    return Math.hypot(this.player.x - clampX, this.player.y - clampY);
   }
 
-  isNearShopKiosk(maxDist = 120) {
+  getDistanceToShopKiosk() {
+    if (!this.shopKiosk) return Infinity;
     const clampX = Math.max(this.shopKiosk.x, Math.min(this.player.x, this.shopKiosk.x + this.shopKiosk.width));
     const clampY = Math.max(this.shopKiosk.y, Math.min(this.player.y, this.shopKiosk.y + this.shopKiosk.height));
-    return Math.hypot(this.player.x - clampX, this.player.y - clampY) <= maxDist;
+    return Math.hypot(this.player.x - clampX, this.player.y - clampY);
   }
 
-  isNearSuppliesCloset(maxDist = 140) {
-    if (!this.suppliesCloset) return false;
+  getDistanceToSuppliesCloset() {
+    if (!this.suppliesCloset) return Infinity;
     const clampX = Math.max(this.suppliesCloset.x, Math.min(this.player.x, this.suppliesCloset.x + this.suppliesCloset.width));
     const clampY = Math.max(this.suppliesCloset.y, Math.min(this.player.y, this.suppliesCloset.y + this.suppliesCloset.height));
-    return Math.hypot(this.player.x - clampX, this.player.y - clampY) <= maxDist;
+    return Math.hypot(this.player.x - clampX, this.player.y - clampY);
+  }
+
+  isNearNOCDesk(maxDist = 110) {
+    return this.getDistanceToNOCDesk() <= maxDist;
+  }
+
+  isNearShopKiosk(maxDist = 100) {
+    return this.getDistanceToShopKiosk() <= maxDist;
+  }
+
+  isNearSuppliesCloset(maxDist = 100) {
+    return this.getDistanceToSuppliesCloset() <= maxDist;
   }
 
   getNearTeleporterNode(maxDist = (CONFIG.TELEPORTER?.INTERACT_RADIUS ?? 52)) {
@@ -8079,129 +8868,85 @@ class Game {
       }
     }
 
-    // 1. Facility Supplies Closet (Boss Response Gear & Maintenance Items)
-    if (this.isNearSuppliesCloset()) {
-      const boss = this.activeBoss || this.bugBoss;
-      if (boss && boss.isAlive) {
-        if (boss instanceof BugBoss) {
-          if (!(this.activeCable instanceof RestraintRope)) {
-            // Drop regular network patch cable if dragging one; player inventory & perks are completely preserved
-            if (this.activeCable && !(this.activeCable instanceof RestraintRope)) {
-              this.dropActiveCable();
-            }
-            this.activeCable = new RestraintRope(this.suppliesCloset, boss);
-            this.sound.playCabinetOpen();
-            this.sound.playGrab();
-            this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 45, '#f59e0b');
-            this.showTemporaryToast('🪢 HEAVY RESTRAINT ROPE RETRIEVED FROM SUPPLIES CLOSET! CIRCLE BUG BOSS TO WRAP IT!', '🪢');
-            this.updateObjectiveUI();
-            this.updateBossHUD();
-            return;
-          }
-        } else if (boss instanceof ThermalGolemBoss) {
-          if (!this.hasCryoCanister) {
-            this.hasCryoCanister = true;
-            this.sound.playCabinetOpen();
-            this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 35, '#00f3ff');
-            this.showTemporaryToast('❄️ CRYO COOLANT CANISTER EQUIPPED! HOLD [E] NEAR TITAN TO FREEZE ITS CORE!', '❄️');
-            this.updateBossHUD();
-            return;
-          }
-        } else if (boss instanceof SpectralDaemonBoss) {
-          if (this.emfPylonsRemaining === 0 && this.deployedPylons.length === 0) {
-            this.emfPylonsRemaining = 3;
-            this.deployedPylons = [];
-            this.sound.playCabinetOpen();
-            this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 35, '#c084fc');
-            this.showTemporaryToast('⚡ 3x EMF PYLONS RETRIEVED! PRESS [E] TO DEPLOY 3 NODES AROUND DAEMON!', '⚡');
-            this.updateBossHUD();
-            return;
-          }
-        } else if (boss instanceof TitanColossusBoss) {
-          if (this.scramLimpetsRemaining === 0 && (boss.limpetsAttached || 0) === 0) {
-            this.scramLimpetsRemaining = 3;
-            this.sound.playCabinetOpen();
-            this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 35, '#ffaa00');
-            this.showTemporaryToast('💣 3x SCRAM LIMPETS RETRIEVED! PRESS [E] NEAR EXHAUST VENTS TO ATTACH!', '💣');
-            this.updateBossHUD();
-            return;
-          }
-        } else {
-          // Wave 5+ Procedural Apex
-          if (!(this.activeCable instanceof ContainmentWire)) {
-            if (this.activeCable && !(this.activeCable instanceof ContainmentWire)) {
-              this.dropActiveCable();
-            }
-            this.activeCable = new ContainmentWire(this.suppliesCloset, boss);
-            this.sound.playCabinetOpen();
-            this.sound.playGrab();
-            this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 45, '#00ff9d');
-            this.showTemporaryToast(`👑 ${boss.restraintName} RETRIEVED FROM SUPPLIES CLOSET!`, '👑');
-            this.updateObjectiveUI();
-            this.updateBossHUD();
-            return;
-          }
-        }
-      }
-      this.openSuppliesModal();
-      return;
-    }
+    // 1. South Stations: Master NOC Desk, Supplies Closet, and IT Supply Kiosk (Resolved by closest proximity)
+    const dNOC = this.isNearNOCDesk() ? this.getDistanceToNOCDesk() : Infinity;
+    const dCloset = this.isNearSuppliesCloset() ? this.getDistanceToSuppliesCloset() : Infinity;
+    const dShop = this.isNearShopKiosk() ? this.getDistanceToShopKiosk() : Infinity;
+    const minSouthDist = Math.min(dNOC, dCloset, dShop);
 
-    // 2. South NOC Console Desk
-    if (this.isNearNOCDesk()) {
-      this.openTerminal();
-      return;
-    }
-
-    // 3. Hardware Supply Shop Kiosk
-    if (this.isNearShopKiosk()) {
-      this.openShop();
-      return;
-    }
-
-    // 2c. Deploy EMF Grounding Pylon in Field (Boss 3)
-    if (this.emfPylonsRemaining > 0) {
-      const tooClose = this.deployedPylons.some(p => Math.hypot(this.player.x - p.x, this.player.y - p.y) < 75);
-      if (tooClose) {
-        this.showTemporaryToast('⚠️ TOO CLOSE TO EXISTING PYLON! SPREAD THEM OUT TO FORM A WIDE TRIANGLE!');
+    if (minSouthDist < Infinity) {
+      if (minSouthDist === dNOC) {
+        this.openTerminal();
         return;
       }
-      const pylonIdx = 4 - this.emfPylonsRemaining;
-      const pylon = new EMFGroundingPylon(this.player.x, this.player.y, pylonIdx);
-      this.deployedPylons.push(pylon);
-      this.emfPylonsRemaining--;
-      this.sound.playPylonDeploy();
-      this.camera.shake(10, 0.25);
-      this.particles.spawnSparks(this.player.x, this.player.y, 30, '#c084fc');
-      this.particles.spawnSparks(this.player.x, this.player.y, 20, '#00f3ff');
-      if (this.deployedPylons.length === 3) {
-        this.sound.playLaserGridHum();
-        this.showTemporaryToast('🔺 TRIANGULAR LASER CAGE ONLINE! LURE SPECTRAL DAEMON INSIDE!', '🔺');
-      } else {
-        this.showTemporaryToast(`⚡ EMF PYLON ${pylonIdx}/3 DEPLOYED! (${this.emfPylonsRemaining} REMAINING IN PACK)`, '⚡');
+      if (minSouthDist === dShop) {
+        this.openShop();
+        return;
       }
-      this.updateBossHUD();
-      return;
-    }
-
-    // 2d. Attach SCRAM Limpet to Titan Colossus Vent (Boss 4)
-    const activeColossus = (this.activeBoss instanceof TitanColossusBoss && this.activeBoss.isAlive) ? this.activeBoss : null;
-    if (activeColossus && this.scramLimpetsRemaining > 0) {
-      for (const vent of activeColossus.vents) {
-        if (!vent.hasLimpet) {
-          const vPos = activeColossus.getVentWorldPos(vent);
-          const distToVent = Math.hypot(this.player.x - vPos.x, this.player.y - vPos.y);
-          if (distToVent < 80) {
-            if (activeColossus.attachLimpet(vent, this)) {
-              this.scramLimpetsRemaining--;
+      if (minSouthDist === dCloset) {
+        const boss = this.activeBoss || this.bugBoss;
+        if (boss && boss.isAlive) {
+          if (boss instanceof BugBoss) {
+            if (!(this.activeCable instanceof RestraintRope)) {
+              if (this.activeCable && !(this.activeCable instanceof RestraintRope)) {
+                this.dropActiveCable();
+              }
+              this.activeCable = new RestraintRope(this.suppliesCloset, boss);
+              this.sound.playCabinetOpen();
+              this.sound.playGrab();
+              this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 45, '#f59e0b');
+              this.showTemporaryToast('🪢 HEAVY RESTRAINT ROPE RETRIEVED FROM SUPPLIES CLOSET! CIRCLE BUG BOSS TO WRAP IT!', '🪢');
+              this.updateObjectiveUI();
+              this.updateBossHUD();
+              return;
+            }
+          } else if (boss instanceof ThermalGolemBoss) {
+            if (!this.hasCryoCanister) {
+              this.hasCryoCanister = true;
+              this.sound.playCabinetOpen();
+              this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 35, '#00f3ff');
+              this.showTemporaryToast('❄️ CRYO COOLANT CANISTER EQUIPPED! HOLD [E] NEAR TITAN TO FREEZE ITS CORE!', '❄️');
+              this.updateBossHUD();
+              return;
+            }
+          } else if (boss instanceof MajorVirusBoss) {
+            this.hasQuarantineBarrier = true;
+            if (!(this.activeCable instanceof ContainmentWire)) {
+              if (this.activeCable && !(this.activeCable instanceof ContainmentWire)) {
+                this.dropActiveCable();
+              }
+              this.activeCable = new ContainmentWire(this.suppliesCloset, boss);
+              this.sound.playCabinetOpen();
+              this.sound.playGrab();
+              this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 45, '#10b981');
+              this.showTemporaryToast('🟡 QUARANTINE CONTAINMENT BARRIER RETRIEVED! RUN A FULL CLOSED LOOP AROUND ALL INFECTED COMPUTERS TO SEAL VIRUS!', '🟡');
+              this.updateObjectiveUI();
+              this.updateBossHUD();
+              return;
+            }
+          } else {
+            // Extensible Catalog Boss
+            if (!(this.activeCable instanceof ContainmentWire)) {
+              if (this.activeCable && !(this.activeCable instanceof ContainmentWire)) {
+                this.dropActiveCable();
+              }
+              this.activeCable = new ContainmentWire(this.suppliesCloset, boss);
+              this.sound.playCabinetOpen();
+              this.sound.playGrab();
+              this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 45, '#00ff9d');
+              this.showTemporaryToast(`👑 ${boss.restraintName} RETRIEVED FROM SUPPLIES CLOSET!`, '👑');
+              this.updateObjectiveUI();
+              this.updateBossHUD();
               return;
             }
           }
         }
+        this.openSuppliesModal();
+        return;
       }
     }
 
-    // 2e. Boss Host Rack Guidance (Rack 92 / Defcon 1 Anomaly Ground Zero)
+    // 2e. Boss Host Rack Guidance (Anomaly Ground Zero)
     const activeBoss = this.activeBoss || this.bugBoss;
     if (this.bossHostRack && activeBoss && activeBoss.isAlive) {
       const distToHost = this.getDistanceToRack(this.bossHostRack);
@@ -8212,11 +8957,8 @@ class Game {
         } else if (activeBoss instanceof ThermalGolemBoss) {
           this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE CRYO CANISTER FROM THE SOUTH SUPPLIES CLOSET!', '❄️');
           return;
-        } else if (activeBoss instanceof SpectralDaemonBoss) {
-          this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE EMF PYLONS FROM THE SOUTH SUPPLIES CLOSET!', '⚡');
-          return;
-        } else if (activeBoss instanceof TitanColossusBoss) {
-          this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE SCRAM LIMPETS FROM THE SOUTH SUPPLIES CLOSET!', '💣');
+        } else if (activeBoss instanceof MajorVirusBoss) {
+          this.showTemporaryToast('⚠️ VIRUS EPICENTER! RETRIEVE QUARANTINE BARRIER AT THE SOUTH SUPPLIES CLOSET!', '🟡');
           return;
         } else {
           this.showTemporaryToast(`⚠️ ANOMALY EPICENTER! RETRIEVE ${activeBoss.restraintName?.toUpperCase() || 'CONTAINMENT WIRE'} AT THE SUPPLIES CLOSET!`, '👑');
@@ -8238,11 +8980,8 @@ class Game {
         } else if (boss instanceof ThermalGolemBoss) {
           this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE CRYO CANISTER FROM THE SOUTH SUPPLIES CLOSET!', '❄️');
           return;
-        } else if (boss instanceof SpectralDaemonBoss) {
-          this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE EMF PYLONS FROM THE SOUTH SUPPLIES CLOSET!', '⚡');
-          return;
-        } else if (boss instanceof TitanColossusBoss) {
-          this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE SCRAM LIMPETS FROM THE SOUTH SUPPLIES CLOSET!', '💣');
+        } else if (boss instanceof MajorVirusBoss) {
+          this.showTemporaryToast('⚠️ VIRUS EPICENTER! RETRIEVE QUARANTINE BARRIER AT THE SOUTH SUPPLIES CLOSET!', '🟡');
           return;
         } else {
           this.showTemporaryToast(`⚠️ ANOMALY EPICENTER! RETRIEVE ${boss.restraintName?.toUpperCase() || 'CONTAINMENT WIRE'} AT THE SUPPLIES CLOSET!`, '👑');
@@ -8296,8 +9035,15 @@ class Game {
         }
         return;
       } else if (this.activeCable instanceof ContainmentWire) {
-        this.showTemporaryToast('⚠️ RESTRAINT TETHER CANNOT BE PLUGGED INTO SERVERS!');
-        return;
+        const boss = this.activeBoss || this.bugBoss;
+        if (!boss || !boss.isAlive) {
+          // Boss is defeated - auto reel in the obsolete tether and proceed to interact with nearRack!
+          this.dropActiveCable(true);
+          this.activeCable = null;
+        } else {
+          this.showTemporaryToast('⚠️ RESTRAINT TETHER CANNOT BE PLUGGED INTO SERVERS!');
+          return;
+        }
       } else if (this.activeCable instanceof PatchCable) {
         if (nearRack.id === this.activeCable.targetRack.id) {
           this.activeCable.connect(nearRack);
@@ -8307,7 +9053,7 @@ class Game {
 
           this.sound.playPlugSuccess();
           this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 28, '#00ff9d');
-          this.addCredits(60, '+60 ⚡ CABLE RESTORED');
+          this.addCredits(60, '+60 ⚡ RUN WIRE LINK RESTORED');
 
           this.activeCable = null;
           this.updateObjectiveUI();
@@ -8318,27 +9064,73 @@ class Game {
       }
     }
 
-    // 5. Grab Cable from failing rack (Single Cable):
-    if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.CABLE_DISCONNECT) {
-      this.activeCable = new PatchCable(nearRack, nearRack.error.targetRack);
+    // 5. Grab Cable from failing rack (Run Wire / Single Cable):
+    if (nearRack.isFailing && (nearRack.error?.type === CONFIG.ERRORS.RUN_WIRE || nearRack.error?.type === CONFIG.ERRORS.CABLE_DISCONNECT)) {
+      const partner = nearRack.error.partnerRack || nearRack.error.targetRack;
+      this.activeCable = new PatchCable(nearRack, partner);
       this.sound.playGrab();
       this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 12, '#ffaa00');
+      this.showTemporaryToast(`🔌 WIRE GRABBED FROM ${nearRack.id} ➔ RUN TO ${partner?.id || 'PARTNER NODE'}!`, '🔌');
       this.updateObjectiveUI();
       return;
     }
 
-    // 6. Grab Multi-Drop Cable from failing bus rack (3 to 8 servers):
-    if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.MULTI_CABLE_CHAIN) {
+    // 6. Grab Multi-Drop Cable from failing bus rack (Chain Wires: 3 to 5 servers):
+    if (nearRack.isFailing && (nearRack.error?.type === CONFIG.ERRORS.CHAIN_WIRES || nearRack.error?.type === CONFIG.ERRORS.MULTI_CABLE_CHAIN)) {
       this.activeCable = new MultiHopCable(nearRack, nearRack.error.hops);
       this.sound.playGrab();
       this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 16, '#00ff9d');
       const target = this.activeCable.getCurrentTargetRack();
-      this.showTemporaryToast(`🔌 CHAIN CABLE GRABBED (1/${nearRack.error.hops.length - 1}) ➔ RUN TO ${target?.id}`);
+      this.showTemporaryToast(`🔌 CHAIN WIRE GRABBED (1/${nearRack.error.hops.length - 1}) ➔ RUN TO ${target?.id}!`, '⛓️');
       this.updateObjectiveUI();
       return;
     }
 
     // 7. Hold interaction tap notifications:
+    if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED) {
+      if (nearRack.isShutdown) {
+        this.showTemporaryToast('⚙️ HOLD [E] FOR 5 SECONDS TO MANUALLY TURN ON SERVER', '⚡');
+      } else {
+        nearRack.error.hasBeenInspected = true;
+        this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
+        if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+        this.showTemporaryToast(`🛑 RESTART REQUIRED: PIN [${nearRack.code}] SCANNED ➔ TYPE AT TERMINAL TO SHUT DOWN!`, '🛑');
+      }
+      this.sound.playKey();
+      return;
+    }
+    if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.SERVER_BUG) {
+      if (nearRack.isShutdown) {
+        this.showTemporaryToast('🐛 HOLD [E] FOR 1.5s TO TAKE BUG OUT, THEN SQUISH IT!', '🐛');
+      } else {
+        nearRack.error.hasBeenInspected = true;
+        this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
+        if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+        this.showTemporaryToast(`🛑 SERVER BUG: PIN [${nearRack.code}] SCANNED ➔ TYPE AT TERMINAL TO SHUT DOWN & TRAP BUG!`, '🛑');
+      }
+      this.sound.playKey();
+      return;
+    }
+    if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS) {
+      if (nearRack.isShutdown) {
+        this.showTemporaryToast('🧪 HOLD [E] FOR 2.5s TO DISINFECT VIRUS SLIME', '🦠');
+      } else {
+        nearRack.error.hasBeenInspected = true;
+        this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
+        if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+        this.showTemporaryToast(`🛑 VIRUS SLIME: PIN [${nearRack.code}] SCANNED ➔ TYPE AT TERMINAL TO SHUT DOWN FIRST!`, '🛑');
+      }
+      this.sound.playKey();
+      return;
+    }
+    if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) {
+      nearRack.error.hasBeenInspected = true;
+      this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
+      if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+      this.showTemporaryToast(`🔥 SERVER OVERHEAT: PIN [${nearRack.code}] SCANNED ➔ TYPE AT TERMINAL TO SHUT DOWN BREAKER!`, '🔥');
+      this.sound.playKey();
+      return;
+    }
     if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.HARD_REBOOT) {
       this.showTemporaryToast('⚠️ HOLD [E] CONTINUOUSLY TO HARD REBOOT POWER BREAKER');
       this.sound.playKey();
@@ -8364,7 +9156,7 @@ class Game {
     }
 
     // 9. ALL SERVERS: Selecting any server rack scans and copies its PIN!
-    if (nearRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT || nearRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH) {
+    if (nearRack.error?.type === CONFIG.ERRORS.ACCESS_DENIED || nearRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT || nearRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH) {
       nearRack.error.hasBeenInspected = true;
     }
 
@@ -8375,7 +9167,7 @@ class Game {
     this.sound.playKey();
     this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 14, '#00ff9d');
 
-    if (nearRack.isFailing && (nearRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT || nearRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH)) {
+    if (nearRack.isFailing && (nearRack.error?.type === CONFIG.ERRORS.ACCESS_DENIED || nearRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT || nearRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH)) {
       this.showTemporaryToast(`SCANNED AUTHENTIC ${nearRack.id} // PIN: [${nearRack.code}] ➔ ENTER AT NOC DESK!`, '🔐');
       this.updateObjectiveUI();
     } else {
@@ -8383,11 +9175,11 @@ class Game {
     }
   }
 
-  dropActiveCable() {
+  dropActiveCable(silent = false) {
     if (this.activeCable) {
       if (this.activeCable instanceof ContainmentWire) {
         const targetBoss = this.activeBoss || this.bugBoss;
-        if (targetBoss) {
+        if (targetBoss && targetBoss.isAlive) {
           targetBoss.completedWraps = 0;
           targetBoss.currentWrapAngle = 0;
           targetBoss.wrapDirection = 0;
@@ -8400,12 +9192,14 @@ class Game {
             h.isTargetDestination = false;
           }
         });
-        if (this.activeCable.sourceRack.error) {
+        if (this.activeCable.sourceRack?.error) {
           this.activeCable.hops[1].isTargetDestination = true;
         }
       }
       this.activeCable = null;
-      this.showTemporaryToast('🔌 CABLE DROPPED / REELED IN');
+      if (!silent) {
+        this.showTemporaryToast('🔌 CABLE DROPPED / REELED IN');
+      }
     }
   }
 
@@ -8618,6 +9412,24 @@ class Game {
       return;
     }
 
+    if (this.isGameOver || this.gameState === 'GAME_OVER') return;
+
+    if (this.isResumingFromSave || this.gameState === 'COUNTDOWN') {
+      this.resumeCountdownTimer -= dt;
+      const displayNum = Math.max(1, Math.ceil(this.resumeCountdownTimer));
+      if (this.countdownNumber) {
+        this.countdownNumber.textContent = displayNum;
+      }
+      if (this.resumeCountdownTimer <= 0) {
+        this.isResumingFromSave = false;
+        this.gameState = 'PLAYING';
+        this.resumeCountdownOverlay?.classList.add('hidden');
+        this.sound.playUpgrade();
+        this.showTemporaryToast('🟢 3... 2... 1... GO! RUN RESUMED!', '⚡');
+      }
+      return; // Hold player movement and error countdowns during countdown
+    }
+
     if (this.isPaused || this.isShopOpen || this.isTutorialOpen) return;
 
     // While in bullet-time Cannon Aiming mode, EVERYTHING FREEZES!
@@ -8726,24 +9538,42 @@ class Game {
         );
       }
 
-      // Hold-to-Reboot Processing
+      // Hold-to-Reboot / Shake / Disinfect Processing
       if (this.keys['KeyE']) {
-        if (!this.rebootingRack) {
-          const near = this.getNearestRack();
-          if (near && near.isFailing && near.error?.type === CONFIG.ERRORS.HARD_REBOOT) {
-            this.rebootingRack = near;
-            this.rebootHoldTime = 0;
+        if (!this.rebootingRack && !this.shakingRack && !this.disinfectingRack && !this.coolingRack && !this.wormRack) {
+          const near = this.getNearestRack(105);
+          if (near && near.isFailing) {
+            if (near.error?.type === CONFIG.ERRORS.RESTART_REQUIRED && near.isShutdown) {
+              this.rebootingRack = near;
+              this.rebootHoldTime = 0;
+            } else if (near.error?.type === CONFIG.ERRORS.SERVER_BUG && near.isShutdown) {
+              this.shakingRack = near;
+              this.shakeHoldTime = 0;
+            } else if (near.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS && near.isShutdown) {
+              this.disinfectingRack = near;
+              this.disinfectHoldTime = 0;
+            } else if (near.error?.type === CONFIG.ERRORS.HARD_REBOOT) {
+              this.rebootingRack = near;
+              this.rebootHoldTime = 0;
+            } else if (near.error?.type === CONFIG.ERRORS.COOLANT_LEAK) {
+              this.coolingRack = near;
+              this.coolantHoldTime = 0;
+            } else if (near.error?.type === CONFIG.ERRORS.NETWORK_WORM) {
+              this.wormRack = near;
+              this.wormHoldTime = 0;
+            }
           }
         }
 
+        // Reboot / Turn-On Processing (5.0s hold)
         if (this.rebootingRack) {
           const rackCenter = {
             x: this.rebootingRack.x + this.rebootingRack.width / 2,
             y: this.rebootingRack.y + this.rebootingRack.height / 2,
           };
-          const dist = Math.hypot(this.player.x - rackCenter.x, this.player.y - rackCenter.y);
+          const dist = this.getDistanceToRack(this.rebootingRack);
 
-          if (dist <= (CONFIG.INTERACT_RADIUS ?? 90) && !this.rebootingRack.isDestroyed && this.rebootingRack.isFailing) {
+          if (dist <= 115 && !this.rebootingRack.isDestroyed && this.rebootingRack.isFailing) {
             this.rebootHoldTime += dt;
             const reqTime = (this.activeSynergies.netops >= 2) ? 3.0 : (CONFIG.ERRORS.REBOOT_HOLD_TIME ?? 5.0);
             const progress = Math.min(1.0, this.rebootHoldTime / reqTime);
@@ -8757,9 +9587,11 @@ class Game {
               this.sound.stopRebootCharge();
               this.sound.playPlugSuccess();
               this.particles.spawnSparks(rackCenter.x, rackCenter.y, 40, '#00ff9d');
+              const isRestartReq = this.rebootingRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED;
               this.rebootingRack.resolveError();
               const bonus = (this.activeSynergies.netops >= 1) ? 30 : 0;
-              this.addCredits(70 + bonus, `+${70 + bonus} ⚡ HARD REBOOT COMPLETED`);
+              const reward = isRestartReq ? 75 : 70;
+              this.addCredits(reward + bonus, `+${reward + bonus} ⚡ ${isRestartReq ? 'SERVER MANUALLY TURNED ON' : 'HARD REBOOT COMPLETED'}`);
               this.rebootHoldTime = 0;
               this.rebootingRack = null;
               this.updateObjectiveUI();
@@ -8773,11 +9605,89 @@ class Game {
           }
         }
 
+        // Proximity inspection at non-shutdown bug server: scans PIN for Master Terminal
+        if (this.keys['KeyE']) {
+          const near = this.getNearestRack(105);
+          if (near && near.isFailing && near.error?.type === CONFIG.ERRORS.SERVER_BUG && !near.isShutdown) {
+            const dist = this.getDistanceToRack(near);
+            if (dist <= 105) {
+              near.error.hasBeenInspected = true;
+              this.activeCodeMemo = { rackId: near.id, code: near.code };
+              if (this.memoCodeVal) {
+                this.memoCodeVal.textContent = `${near.id}: ${near.code}`;
+              }
+            }
+          }
+        }
+
+        // Server Bug Extraction (1.5s hold to take out bug)
+        if (this.shakingRack) {
+          const rackCenter = { x: this.shakingRack.x + this.shakingRack.width / 2, y: this.shakingRack.y + this.shakingRack.height / 2 };
+          const dist = this.getDistanceToRack(this.shakingRack);
+          if (dist <= 120 && !this.shakingRack.isDestroyed && this.shakingRack.isFailing) {
+            this.shakeHoldTime = (this.shakeHoldTime || 0) + dt;
+            this.camera.shake(4, 0.1);
+            if (Math.random() < 0.4) this.particles.spawnSparks(rackCenter.x, rackCenter.y, 2, '#f59e0b');
+            if (this.shakeHoldTime >= 1.5) {
+              this.sound.playShake?.() || this.sound.playIceShatter();
+              this.particles.spawnSparks(rackCenter.x, rackCenter.y, 35, '#ffaa00');
+              const shakenRack = this.shakingRack;
+              const existingBug = shakenRack.error?.bugEntity;
+              shakenRack.resolveError();
+              shakenRack.uptime = 100;
+              this.shakingRack = null;
+              this.shakeHoldTime = 0;
+
+              // Expel the small bug right beside the rack for squishing
+              const bug = existingBug || new SmallBug(rackCenter.x + 35, rackCenter.y + 35, shakenRack);
+              bug.isInsideRack = false;
+              bug.currentRack = null;
+              bug.isAlive = true;
+              bug.x = rackCenter.x + (Math.random() < 0.5 ? 40 : -40);
+              bug.y = rackCenter.y + (Math.random() < 0.5 ? 40 : -40);
+              bug.pickNextTarget(this);
+              if (!this.smallBugs.includes(bug)) {
+                this.smallBugs.push(bug);
+              }
+              const targetStr = bug.targetRack ? `➔ TARGET: ${bug.targetRack.id}` : '';
+              this.showTemporaryToast(`🐛 BUG TAKEN OUT OF ${shakenRack.id}! RUN OVER IT TO SQUISH IT BEFORE IT ENTERS ANOTHER SERVER! ${targetStr}`, '🥾');
+              this.updateObjectiveUI();
+            }
+          } else {
+            this.shakingRack = null;
+            this.shakeHoldTime = 0;
+          }
+        }
+
+        // Server Small Virus Disinfect (2.5s hold)
+        if (this.disinfectingRack) {
+          const rackCenter = { x: this.disinfectingRack.x + this.disinfectingRack.width / 2, y: this.disinfectingRack.y + this.disinfectingRack.height / 2 };
+          const dist = this.getDistanceToRack(this.disinfectingRack);
+          if (dist <= 120 && !this.disinfectingRack.isDestroyed && this.disinfectingRack.isFailing) {
+            this.disinfectHoldTime = (this.disinfectHoldTime || 0) + dt;
+            if (Math.random() < 0.4) this.particles.spawnSparks(rackCenter.x, rackCenter.y, 3, '#10b981');
+            if (this.disinfectHoldTime >= 2.5) {
+              this.sound.playDisinfect?.() || this.sound.playIceShatter();
+              this.sound.playPlugSuccess();
+              this.particles.spawnSparks(rackCenter.x, rackCenter.y, 40, '#00ff9d');
+              this.disinfectingRack.resolveError();
+              const bonus = (this.activeSynergies.netops >= 1) ? 30 : 0;
+              this.addCredits(85 + bonus, `+${85 + bonus} ⚡ VIRUS CLEANSED & DISINFECTED`);
+              this.disinfectingRack = null;
+              this.disinfectHoldTime = 0;
+              this.updateObjectiveUI();
+            }
+          } else {
+            this.disinfectingRack = null;
+            this.disinfectHoldTime = 0;
+          }
+        }
+
         // Coolant Leak Valve Sealing
         if (this.coolingRack) {
           const rackCenter = { x: this.coolingRack.x + this.coolingRack.width / 2, y: this.coolingRack.y + this.coolingRack.height / 2 };
-          const dist = Math.hypot(this.player.x - rackCenter.x, this.player.y - rackCenter.y);
-          if (dist <= 100 && !this.coolingRack.isDestroyed && this.coolingRack.isFailing) {
+          const dist = this.getDistanceToRack(this.coolingRack);
+          if (dist <= 120 && !this.coolingRack.isDestroyed && this.coolingRack.isFailing) {
             this.coolantHoldTime = (this.coolantHoldTime || 0) + dt;
             if (Math.random() < 0.35) this.particles.spawnSparks(rackCenter.x, rackCenter.y, 2, '#00f3ff');
             if (this.coolantHoldTime >= 3.5) {
@@ -8800,8 +9710,8 @@ class Game {
         // Network Worm Purge Hold
         if (this.wormRack) {
           const rackCenter = { x: this.wormRack.x + this.wormRack.width / 2, y: this.wormRack.y + this.wormRack.height / 2 };
-          const dist = Math.hypot(this.player.x - rackCenter.x, this.player.y - rackCenter.y);
-          if (dist <= 100 && !this.wormRack.isDestroyed && this.wormRack.isFailing) {
+          const dist = this.getDistanceToRack(this.wormRack);
+          if (dist <= 120 && !this.wormRack.isDestroyed && this.wormRack.isFailing) {
             this.wormHoldTime = (this.wormHoldTime || 0) + dt;
             if (Math.random() < 0.35) this.particles.spawnSparks(rackCenter.x, rackCenter.y, 2, '#ff0055');
             if (this.wormHoldTime >= 2.5) {
@@ -8827,6 +9737,14 @@ class Game {
           this.rebootHoldTime = 0;
           this.rebootingRack = null;
           this.updateObjectiveUI();
+        }
+        if (this.shakingRack) {
+          this.shakingRack = null;
+          this.shakeHoldTime = 0;
+        }
+        if (this.disinfectingRack) {
+          this.disinfectingRack = null;
+          this.disinfectHoldTime = 0;
         }
         if (this.coolingRack) {
           this.coolingRack = null;
@@ -8976,22 +9894,35 @@ class Game {
       totalUptime += rack.uptime;
     }
 
+    // Loss condition: All server racks exploded
+    if (this.racks.length > 0 && destroyedCount >= this.racks.length && !this.isGameOver && this.gameState === 'PLAYING') {
+      this.triggerGameOver();
+      return;
+    }
+
     // Global Warehouse Uptime Integrity (destroyed racks permanently drag down uptime to 0%!)
     const avgUptime = (totalUptime / this.racks.length).toFixed(1);
     if (this.uptimeVal) this.uptimeVal.textContent = `${avgUptime}%`;
     if (this.uptimeFill) this.uptimeFill.style.width = `${avgUptime}%`;
+    if (this.statsUptimeVal) this.statsUptimeVal.textContent = `${avgUptime}%`;
+    if (this.statsUptimeFill) this.statsUptimeFill.style.width = `${avgUptime}%`;
 
     const speed = (this.player.getSpeed() / 30).toFixed(1);
     if (this.speedReadout) this.speedReadout.textContent = `${speed} m/s`;
+    if (this.statsSpeedVal) this.statsSpeedVal.textContent = `${speed} m/s`;
 
     if (this.alertCountReadout) {
-      if (destroyedCount > 0) {
-        this.alertCountReadout.textContent = `${failingCount} FAULTS // ${destroyedCount} 💥 DESTROYED`;
-        this.alertCountReadout.style.color = '#ff2a55';
-      } else {
-        this.alertCountReadout.textContent = `${failingCount} ALERTS`;
-        this.alertCountReadout.style.color = failingCount > 0 ? CONFIG.COLORS.RACK_LED_RED : CONFIG.COLORS.RACK_LED_GREEN;
-      }
+      const faultLabel = failingCount === 1 ? '1 FAULT' : `${failingCount} FAULTS`;
+      this.alertCountReadout.textContent = faultLabel;
+      this.alertCountReadout.style.color = failingCount > 0 ? CONFIG.COLORS.RACK_LED_RED : CONFIG.COLORS.RACK_LED_GREEN;
+    }
+    if (this.statsFaultsVal) {
+      this.statsFaultsVal.textContent = failingCount === 1 ? '1 FAULT' : `${failingCount} FAULTS`;
+      this.statsFaultsVal.style.color = failingCount > 0 ? '#ffb800' : '#00ff9d';
+    }
+
+    if (this.isStatsOpen) {
+      this.updateStatsUI();
     }
 
     // Live terminal keypad countdowns
@@ -9006,33 +9937,51 @@ class Game {
     const selectedRackId = this.terminalSelect?.value;
     const targetRack = this.racks.find(r => r.id === selectedRackId);
 
-    // Sync options if active lockouts changed (e.g. rack exploded or new incident spawned)
-    const activeLockouts = this.racks.filter(r => r.isFailing && r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT);
+    // Sync options if active errors changed (e.g. rack exploded or new incident spawned)
+    const actionableRacks = this.racks.filter(r => r.isFailing && (
+      r.error?.type === CONFIG.ERRORS.ACCESS_DENIED ||
+      r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT ||
+      r.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH ||
+      r.error?.type === CONFIG.ERRORS.RESTART_REQUIRED ||
+      r.error?.type === CONFIG.ERRORS.SERVER_BUG ||
+      r.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT ||
+      r.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS
+    ));
     const currentOptionValues = Array.from(this.terminalSelect?.options || []).map(o => o.value);
-    const activeIds = activeLockouts.map(r => r.id);
-    const optionsNeedSync = activeIds.length !== currentOptionValues.filter(v => v && v !== 'NO ACTIVE LOCKOUTS').length ||
+    const activeIds = actionableRacks.map(r => r.id);
+    const optionsNeedSync = activeIds.length !== currentOptionValues.filter(v => v && v !== 'NO ACTIVE TERMINAL FAULTS').length ||
                             !activeIds.every(id => currentOptionValues.includes(id));
 
     if (optionsNeedSync && this.terminalSelect) {
       const prevVal = this.terminalSelect.value;
       this.terminalSelect.innerHTML = '';
-      if (activeLockouts.length === 0) {
+      if (actionableRacks.length === 0) {
         const opt = document.createElement('option');
-        opt.textContent = 'NO ACTIVE LOCKOUTS';
+        opt.textContent = 'NO ACTIVE TERMINAL FAULTS';
         opt.disabled = true;
         this.terminalSelect.appendChild(opt);
         if (this.terminalFeedback && !this.terminalFeedback.textContent.includes('ACCEPTED')) {
           this.terminalFeedback.textContent = 'ALL SERVER NODES OPERATING NORMALLY';
           this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
         }
+        if (this.terminalKeypad) this.terminalKeypad.classList.remove('hidden');
+        if (this.terminalShutdownPanel) this.terminalShutdownPanel.classList.add('hidden');
       } else {
-        activeLockouts.forEach(r => {
+        actionableRacks.forEach(r => {
           const opt = document.createElement('option');
           opt.value = r.id;
-          if (r.error?.hasBeenInspected) {
-            opt.textContent = `${r.id} // SEC-AUTH [PIN: ${r.code}]`;
+          const t = r.error?.type;
+          let tag = 'SEC-AUTH';
+          if (t === CONFIG.ERRORS.RESTART_REQUIRED) tag = r.isShutdown ? 'OFFLINE // READY FOR REBOOT' : 'REQ-SHUTDOWN';
+          else if (t === CONFIG.ERRORS.SERVER_BUG) tag = r.isShutdown ? 'OFFLINE // SHAKE BUG OUT' : 'BUG INFESTATION';
+          else if (t === CONFIG.ERRORS.SERVER_OVERHEAT) tag = r.isShutdown ? 'OFFLINE // COOLING' : 'FIRE OVERHEAT';
+          else if (t === CONFIG.ERRORS.SERVER_SMALL_VIRUS) tag = r.isShutdown ? 'OFFLINE // DISINFECT' : 'VIRUS SLIME';
+          else if (t === CONFIG.ERRORS.PHANTOM_GLITCH) tag = 'HOLO-GLITCH';
+
+          if (!r.isShutdown) {
+            opt.textContent = r.error?.hasBeenInspected ? `${r.id} // ${tag} [PIN: ${r.code}]` : `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`;
           } else {
-            opt.textContent = `${r.id} // SEC-AUTH [PIN UNKNOWN - INSPECT RACK]`;
+            opt.textContent = `${r.id} // ${tag}`;
           }
           this.terminalSelect.appendChild(opt);
         });
@@ -9058,28 +10007,43 @@ class Game {
         this.terminalFeedback.textContent = `CRITICAL OVERHEAT: ${targetRack.id} EXPLODED! NODE COMPROMISED`;
         this.terminalFeedback.style.color = '#ff2a55';
       }
-    } else if (targetRack && targetRack.isFailing && targetRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT) {
-      const maxTime = CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 30.0;
-      const timeLeft = Math.max(0, maxTime - targetRack.failDuration);
-      const pct = Math.max(0, Math.min(100, (timeLeft / maxTime) * 100));
-
-      if (this.terminalCountdownVal) {
-        let statusTag = 'OVERHEATING';
-        let color = '#00f3ff';
-        if (timeLeft <= 8.0) {
-          statusTag = 'CASCADE IMMINENT!';
-          color = '#ff2a55';
-        } else if (timeLeft <= 16.0) {
-          statusTag = 'WARNING';
-          color = '#ffaa00';
+    } else if (targetRack && targetRack.isFailing) {
+      if (targetRack.isShutdown) {
+        if (this.terminalCountdownVal) {
+          this.terminalCountdownVal.textContent = '🛑 BREAKER OFF [TIMER PAUSED]';
+          this.terminalCountdownVal.style.color = '#00f3ff';
         }
-        this.terminalCountdownVal.textContent = `${timeLeft.toFixed(1)}s [${statusTag}]`;
-        this.terminalCountdownVal.style.color = color;
-      }
+        if (this.terminalCountdownFill) {
+          this.terminalCountdownFill.style.width = '100%';
+          this.terminalCountdownFill.style.backgroundColor = '#00f3ff';
+        }
+      } else {
+        const maxTime = (targetRack.error?.type === CONFIG.ERRORS.CHAIN_WIRES) ? (CONFIG.ERRORS.CHAIN_WIRES_TIME ?? 90.0) :
+                        (targetRack.error?.type === CONFIG.ERRORS.SERVER_BUG) ? (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0) :
+                        (targetRack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS ? 60.0 : (CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 45.0));
+        const timeLeft = (targetRack.error?.type === CONFIG.ERRORS.SERVER_BUG && typeof targetRack.error?.bugTimer === 'number') ?
+                         Math.max(0, targetRack.error.bugTimer) :
+                         Math.max(0, maxTime - targetRack.failDuration);
+        const pct = Math.max(0, Math.min(100, (timeLeft / maxTime) * 100));
 
-      if (this.terminalCountdownFill) {
-        this.terminalCountdownFill.style.width = `${pct}%`;
-        this.terminalCountdownFill.style.backgroundColor = (timeLeft <= 8.0) ? '#ff2a55' : (timeLeft <= 16.0 ? '#ffaa00' : '#00f3ff');
+        if (this.terminalCountdownVal) {
+          let statusTag = 'OVERHEATING';
+          let color = '#00f3ff';
+          if (timeLeft <= 8.0) {
+            statusTag = 'CASCADE IMMINENT!';
+            color = '#ff2a55';
+          } else if (timeLeft <= 16.0) {
+            statusTag = 'WARNING';
+            color = '#ffaa00';
+          }
+          this.terminalCountdownVal.textContent = `${timeLeft.toFixed(1)}s [${statusTag}]`;
+          this.terminalCountdownVal.style.color = color;
+        }
+
+        if (this.terminalCountdownFill) {
+          this.terminalCountdownFill.style.width = `${pct}%`;
+          this.terminalCountdownFill.style.backgroundColor = (timeLeft <= 8.0) ? '#ff2a55' : (timeLeft <= 16.0 ? '#ffaa00' : '#00f3ff');
+        }
       }
     } else {
       if (this.terminalCountdownVal) {
@@ -9138,7 +10102,7 @@ class Game {
 
       if (isVisible) {
         this.renderRack(ctx, cam, rack, rack === nearRack);
-      } else if (rack.isFailing || rack.isDestroyed) {
+      } else if (rack.isFailing && !rack.isDestroyed) {
         offscreenAlerts.push(rack);
       }
     }
@@ -9192,16 +10156,23 @@ class Game {
     // 10. In-World Interactive Prompts
     const nearTeleNode = this.getNearTeleporterNode();
     const isNearHost = this.bossHostRack && activeBoss && activeBoss.isAlive && this.getDistanceToRack(this.bossHostRack) <= 120;
+    const dNOCPrompt = this.isNearNOCDesk() ? this.getDistanceToNOCDesk() : Infinity;
+    const dClosetPrompt = this.isNearSuppliesCloset() ? this.getDistanceToSuppliesCloset() : Infinity;
+    const dShopPrompt = this.isNearShopKiosk() ? this.getDistanceToShopKiosk() : Infinity;
+    const minSouthPromptDist = Math.min(dNOCPrompt, dClosetPrompt, dShopPrompt);
+
     if (isNearHost) {
       this.renderRackInteractionPrompt(ctx, cam, this.bossHostRack);
     } else if (nearRack) {
       this.renderRackInteractionPrompt(ctx, cam, nearRack);
-    } else if (this.isNearSuppliesCloset()) {
-      this.renderSuppliesClosetPrompt(ctx, cam);
-    } else if (this.isNearNOCDesk()) {
-      this.renderNOCDeskPrompt(ctx, cam);
-    } else if (this.isNearShopKiosk()) {
-      this.renderShopKioskPrompt(ctx, cam);
+    } else if (minSouthPromptDist < Infinity) {
+      if (minSouthPromptDist === dNOCPrompt) {
+        this.renderNOCDeskPrompt(ctx, cam);
+      } else if (minSouthPromptDist === dShopPrompt) {
+        this.renderShopKioskPrompt(ctx, cam);
+      } else {
+        this.renderSuppliesClosetPrompt(ctx, cam);
+      }
     } else if (nearTeleNode) {
       this.renderTeleporterPrompt(ctx, cam, nearTeleNode);
     }
@@ -9273,14 +10244,6 @@ class Game {
         needsGear = true;
         gearName = 'CRYO CANISTER';
         gearColor = '#00f3ff';
-      } else if (activeBoss instanceof SpectralDaemonBoss && this.emfPylonsRemaining === 0 && this.deployedPylons.length < 3) {
-        needsGear = true;
-        gearName = 'EMF PYLONS';
-        gearColor = '#c084fc';
-      } else if (activeBoss instanceof TitanColossusBoss && this.scramLimpetsRemaining === 0 && (activeBoss.limpetsAttached || 0) < 3) {
-        needsGear = true;
-        gearName = 'SCRAM LIMPETS';
-        gearColor = '#ffaa00';
       } else if (!(this.activeCable instanceof ContainmentWire)) {
         needsGear = true;
         gearName = activeBoss.restraintName || 'GEAR';
@@ -9344,8 +10307,6 @@ class Game {
     } else if (this.suppliesCloset) {
       let needsGear = (activeBoss instanceof BugBoss && !(this.activeCable instanceof RestraintRope)) ||
                       (activeBoss instanceof ThermalGolemBoss && !this.hasCryoCanister) ||
-                      (activeBoss instanceof SpectralDaemonBoss && this.emfPylonsRemaining === 0 && this.deployedPylons.length < 3) ||
-                      (activeBoss instanceof TitanColossusBoss && this.scramLimpetsRemaining === 0 && (activeBoss.limpetsAttached || 0) < 3) ||
                       (!(this.activeCable instanceof ContainmentWire));
       if (needsGear) {
         const closetCenterX = this.suppliesCloset.x + this.suppliesCloset.width / 2;
@@ -9587,11 +10548,18 @@ class Game {
       ctx.fillRect(pos.x + rack.width - 10, uY + 4, 3, 3);
     }
 
-    // 30s (or 45s Gold NetOps) Overheat Countdown Bar (if failing)
+    // 45s (or 60s Gold NetOps / 90s Chain / 30s Bug) Overheat Countdown Bar (if failing)
     if (rack.isFailing) {
       const isGoldNetOps = Boolean(this.activeSynergies?.netops >= 3);
-      const maxTime = (CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 30.0) + (isGoldNetOps ? 15.0 : 0);
-      const progress = Math.min(1.0, rack.failDuration / maxTime);
+      let maxTime = (CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 45.0) + (isGoldNetOps ? 15.0 : 0);
+      if (rack.error?.type === CONFIG.ERRORS.CHAIN_WIRES) {
+        maxTime = (CONFIG.ERRORS.CHAIN_WIRES_TIME ?? 90.0) + (isGoldNetOps ? 15.0 : 0);
+      } else if (rack.error?.type === CONFIG.ERRORS.SERVER_BUG) {
+        maxTime = (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0);
+      }
+      const progress = (rack.error?.type === CONFIG.ERRORS.SERVER_BUG && typeof rack.error?.bugTimer === 'number')
+        ? Math.min(1.0, Math.max(0, 1 - rack.error.bugTimer / maxTime))
+        : Math.min(1.0, rack.failDuration / maxTime);
       ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
       ctx.fillRect(pos.x + 4, pos.y + rack.height - 8, rack.width - 8, 4);
       let barColor = '#ffaa00';
@@ -9641,22 +10609,65 @@ class Game {
       ctx.strokeRect(pos.x - 4, pos.y - 18, rack.width + 8, 8);
     }
 
+    // Bug Shake Out Live Meter
+    if (this.shakingRack === rack && (this.shakeHoldTime || 0) > 0) {
+      const p = Math.min(1.0, this.shakeHoldTime / 1.5);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+      ctx.fillRect(pos.x - 4, pos.y - 18, rack.width + 8, 8);
+      ctx.fillStyle = '#ffaa00';
+      ctx.fillRect(pos.x - 4, pos.y - 18, (rack.width + 8) * p, 8);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(pos.x - 4, pos.y - 18, rack.width + 8, 8);
+    }
+
+    // Virus Disinfect Live Meter
+    if (this.disinfectingRack === rack && (this.disinfectHoldTime || 0) > 0) {
+      const p = Math.min(1.0, this.disinfectHoldTime / 2.5);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+      ctx.fillRect(pos.x - 4, pos.y - 18, rack.width + 8, 8);
+      ctx.fillStyle = '#10b981';
+      ctx.fillRect(pos.x - 4, pos.y - 18, (rack.width + 8) * p, 8);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(pos.x - 4, pos.y - 18, rack.width + 8, 8);
+    }
+
     // Rack ID & Countdown Timer label
     ctx.font = '600 9px "JetBrains Mono", monospace';
     if (rack.isFailing) {
-      const isGoldNetOps = Boolean(this.activeSynergies?.netops >= 3);
-      const maxFailTime = (CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 30) + (isGoldNetOps ? 15 : 0);
-      const timeLeft = Math.max(0, Math.ceil(maxFailTime - rack.failDuration));
-      let lblColor = '#ff2a55';
-      let tag = '';
-      if (isChainError) { lblColor = '#e879f9'; tag = ' BUS'; }
-      else if (isRebootError) { lblColor = '#00f3ff'; tag = ' REBOOT'; }
-      else if (isCoolantError) { lblColor = '#00f3ff'; tag = ' CRYO'; }
-      else if (isGlitchError) { lblColor = '#c084fc'; tag = ' GLITCH'; }
-      else if (isWormError) { lblColor = '#ff0055'; tag = ' WORM'; }
-      ctx.fillStyle = lblColor;
-      ctx.textAlign = 'center';
-      ctx.fillText(`${rack.id} [${timeLeft}s!${tag}]`, pos.x + rack.width / 2, pos.y - 4);
+      if (rack.isShutdown) {
+        ctx.fillStyle = '#00f3ff';
+        ctx.textAlign = 'center';
+        let actTag = 'OFFLINE';
+        if (rack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED) actTag = 'REBOOT [E]';
+        else if (rack.error?.type === CONFIG.ERRORS.SERVER_BUG) actTag = 'SHAKE [E]';
+        else if (rack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) actTag = 'COOLING';
+        else if (rack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS) actTag = 'DISINFECT [E]';
+        ctx.fillText(`${rack.id} [${actTag}]`, pos.x + rack.width / 2, pos.y - 4);
+      } else {
+        const isGoldNetOps = Boolean(this.activeSynergies?.netops >= 3);
+        const maxFailTime = (rack.error?.type === CONFIG.ERRORS.CHAIN_WIRES ? (CONFIG.ERRORS.CHAIN_WIRES_TIME ?? 90.0) :
+                            (rack.error?.type === CONFIG.ERRORS.SERVER_BUG ? (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0) :
+                            (rack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS ? (CONFIG.ERRORS.SMALL_VIRUS_TIME ?? 60.0) :
+                            ((CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 45.0) + (isGoldNetOps ? 15 : 0)))));
+        const timeLeft = (rack.error?.type === CONFIG.ERRORS.SERVER_BUG && typeof rack.error?.bugTimer === 'number')
+          ? Math.max(0, Math.ceil(rack.error.bugTimer))
+          : Math.max(0, Math.ceil(maxFailTime - rack.failDuration));
+        let lblColor = '#ff2a55';
+        let tag = '';
+        if (isChainError) { lblColor = '#e879f9'; tag = ' BUS'; }
+        else if (isRebootError) { lblColor = '#00f3ff'; tag = ' REBOOT'; }
+        else if (isCoolantError) { lblColor = '#00f3ff'; tag = ' CRYO'; }
+        else if (isGlitchError) { lblColor = '#c084fc'; tag = ' GLITCH'; }
+        else if (isWormError) { lblColor = '#ff0055'; tag = ' WORM'; }
+        else if (rack.error?.type === CONFIG.ERRORS.SERVER_BUG) { lblColor = '#ffaa00'; tag = ' BUG'; }
+        else if (rack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) { lblColor = '#ff5500'; tag = ' FIRE'; }
+        else if (rack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS) { lblColor = '#10b981'; tag = ' VIRUS'; }
+        ctx.fillStyle = lblColor;
+        ctx.textAlign = 'center';
+        ctx.fillText(`${rack.id} [${timeLeft}s!${tag}]`, pos.x + rack.width / 2, pos.y - 4);
+      }
     } else if (isDecoy) {
       ctx.fillStyle = '#c084fc';
       ctx.textAlign = 'center';
@@ -9681,12 +10692,6 @@ class Game {
       } else if (activeBoss instanceof ThermalGolemBoss) {
         label = `⚠️ EMERGENCE POINT ➔ GET CRYO AT SUPPLIES CLOSET`;
         badgeColor = '#00f3ff';
-      } else if (activeBoss instanceof SpectralDaemonBoss) {
-        label = `⚠️ EMERGENCE POINT ➔ GET PYLONS AT SUPPLIES CLOSET`;
-        badgeColor = '#c084fc';
-      } else if (activeBoss instanceof TitanColossusBoss) {
-        label = `⚠️ EMERGENCE POINT ➔ GET LIMPETS AT SUPPLIES CLOSET`;
-        badgeColor = '#ffaa00';
       } else {
         label = `[E] GRAB ${activeBoss.restraintName?.toUpperCase() || 'CONTAINMENT WIRE'}`;
         badgeColor = activeBoss.restraintColor || '#00ff9d';
@@ -9733,53 +10738,97 @@ class Game {
       }
     } else if (rack.isFailing) {
       const isGoldNetOps = Boolean(this.activeSynergies?.netops >= 3);
-      const maxFailTime = (CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 30) + (isGoldNetOps ? 15 : 0);
-      const timeLeft = Math.max(0, Math.ceil(maxFailTime - rack.failDuration));
-      if (rack.error?.type === CONFIG.ERRORS.CABLE_DISCONNECT) {
-        label = `[E] GRAB CABLE [${timeLeft}s!] ➔ ${rack.error.targetRackId}`;
+      const maxFailTime = (rack.error?.type === CONFIG.ERRORS.CHAIN_WIRES ? (CONFIG.ERRORS.CHAIN_WIRES_TIME ?? 90.0) :
+                          (rack.error?.type === CONFIG.ERRORS.SERVER_BUG ? (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0) :
+                          (rack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS ? (CONFIG.ERRORS.SMALL_VIRUS_TIME ?? 60.0) :
+                          ((CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 45.0) + (isGoldNetOps ? 15 : 0)))));
+      const timeLeft = (rack.error?.type === CONFIG.ERRORS.SERVER_BUG && typeof rack.error?.bugTimer === 'number')
+        ? Math.max(0, Math.ceil(rack.error.bugTimer))
+        : Math.max(0, Math.ceil(maxFailTime - rack.failDuration));
+      const errType = rack.error?.type;
+
+      if (errType === CONFIG.ERRORS.RUN_WIRE || errType === CONFIG.ERRORS.CABLE_DISCONNECT) {
+        const partner = rack.error?.partnerRack || rack.error?.targetRack;
+        label = `[E] GRAB CABLE [${timeLeft}s!] ➔ ${partner?.id || 'PARTNER NODE'}`;
         badgeColor = '#ff8800';
-      } else if (rack.error?.type === CONFIG.ERRORS.MULTI_CABLE_CHAIN) {
-        const chainCount = rack.error.hops ? rack.error.hops.length : 3;
+      } else if (errType === CONFIG.ERRORS.CHAIN_WIRES || errType === CONFIG.ERRORS.MULTI_CABLE_CHAIN) {
+        const chainCount = rack.error?.hops ? rack.error.hops.length : 3;
         label = `[E] GRAB CHAIN CABLE [${timeLeft}s!] ➔ ${chainCount} SERVERS`;
         badgeColor = '#e879f9';
-      } else if (rack.error?.type === CONFIG.ERRORS.HARD_REBOOT) {
-        const req = (this.activeSynergies?.netops >= 2) ? 3.0 : 5.0;
-        if (this.rebootingRack === rack && this.rebootHoldTime > 0) {
-          const prog = Math.min(req, this.rebootHoldTime).toFixed(1);
-          label = `⚡ REBOOTING: ${prog}s / ${req.toFixed(1)}s (HOLD [E])`;
+      } else if (errType === CONFIG.ERRORS.RESTART_REQUIRED || errType === CONFIG.ERRORS.HARD_REBOOT) {
+        const req = (this.activeSynergies?.netops >= 2) ? 3.0 : (CONFIG.ERRORS.REBOOT_HOLD_TIME ?? 5.0);
+        if (rack.isShutdown) {
+          if (this.rebootingRack === rack && this.rebootHoldTime > 0) {
+            const prog = Math.min(req, this.rebootHoldTime).toFixed(1);
+            label = `⚡ REBOOTING: ${prog}s / ${req.toFixed(1)}s (HOLD [E])`;
+            badgeColor = '#00f3ff';
+          } else {
+            label = `⚡ HOLD [E] TO TURN ON (${req.toFixed(1)}s)`;
+            badgeColor = '#00f3ff';
+          }
+        } else {
+          if (!rack.error?.hasBeenInspected) {
+            label = `[E] SCAN PIN [${rack.code}] ➔ TYPE AT TERMINAL [${timeLeft}s!]`;
+            badgeColor = '#ff2a55';
+          } else {
+            label = `PIN: ${rack.code} ➔ TYPE AT TERMINAL TO SHUT DOWN [${timeLeft}s!]`;
+            badgeColor = '#00f3ff';
+          }
+        }
+      } else if (errType === CONFIG.ERRORS.SERVER_BUG) {
+        if (rack.isShutdown) {
+          if (this.shakingRack === rack && (this.shakeHoldTime || 0) > 0) {
+            const prog = Math.min(1.5, this.shakeHoldTime).toFixed(1);
+            label = `🐛 EXTRACTING BUG: ${prog}s / 1.5s (HOLD [E])`;
+            badgeColor = '#ffaa00';
+          } else {
+            label = `🐛 HOLD [E] TO TAKE BUG OUT (1.5s)`;
+            badgeColor = '#ffaa00';
+          }
+        } else {
+          const bugSecs = Math.max(0, Math.ceil(rack.error?.bugTimer ?? (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0)));
+          if (!rack.error?.hasBeenInspected) {
+            label = `[E] SCAN PIN [${rack.code}] ➔ TYPE AT TERMINAL [${bugSecs}s!]`;
+            badgeColor = '#ff2a55';
+          } else {
+            label = `PIN: ${rack.code} ➔ TYPE AT TERMINAL TO TRAP BUG [${bugSecs}s!]`;
+            badgeColor = '#ffaa00';
+          }
+        }
+      } else if (errType === CONFIG.ERRORS.SERVER_OVERHEAT) {
+        if (rack.isShutdown) {
+          label = `❄️ OFFLINE // RESTORING COOLANT RESERVES...`;
           badgeColor = '#00f3ff';
         } else {
-          label = `HOLD [E] TO HARD REBOOT (${req.toFixed(1)}s) [${timeLeft}s!]`;
-          badgeColor = '#38bdf8';
+          if (!rack.error?.hasBeenInspected) {
+            label = `[E] SCAN PIN [${rack.code}] ➔ TYPE AT TERMINAL [${timeLeft}s!]`;
+            badgeColor = '#ff5500';
+          } else {
+            label = `PIN: ${rack.code} ➔ TYPE AT TERMINAL TO SHUT DOWN [${timeLeft}s!]`;
+            badgeColor = '#ffaa00';
+          }
         }
-      } else if (rack.error?.type === CONFIG.ERRORS.COOLANT_LEAK) {
-        if (this.coolingRack === rack && this.coolantHoldTime > 0) {
-          const prog = Math.min(3.5, this.coolantHoldTime).toFixed(1);
-          label = `❄️ SEALING VALVE: ${prog}s / 3.5s (HOLD [E])`;
-          badgeColor = '#00f3ff';
+      } else if (errType === CONFIG.ERRORS.SERVER_SMALL_VIRUS) {
+        if (rack.isShutdown) {
+          if (this.disinfectingRack === rack && (this.disinfectHoldTime || 0) > 0) {
+            const prog = Math.min(2.5, this.disinfectHoldTime).toFixed(1);
+            label = `🧪 DISINFECTING: ${prog}s / 2.5s (HOLD [E])`;
+            badgeColor = '#10b981';
+          } else {
+            label = `🧪 HOLD [E] TO DISINFECT NODE (2.5s)`;
+            badgeColor = '#10b981';
+          }
         } else {
-          label = `HOLD [E] TO SEAL CRYO VALVE (3.5s) [${timeLeft}s!]`;
-          badgeColor = '#00f3ff';
+          if (!rack.error?.hasBeenInspected) {
+            label = `[E] SCAN PIN [${rack.code}] ➔ TYPE AT TERMINAL [${timeLeft}s!]`;
+            badgeColor = '#ff2a55';
+          } else {
+            label = `PIN: ${rack.code} ➔ TYPE AT TERMINAL TO SHUT DOWN [${timeLeft}s!]`;
+            badgeColor = '#10b981';
+          }
         }
-      } else if (rack.error?.type === CONFIG.ERRORS.NETWORK_WORM) {
-        if (this.wormRack === rack && this.wormHoldTime > 0) {
-          const prog = Math.min(2.5, this.wormHoldTime).toFixed(1);
-          label = `⚡ PURGING WORM: ${prog}s / 2.5s (HOLD [E])`;
-          badgeColor = '#ff0055';
-        } else {
-          label = `HOLD [E] TO PURGE VIRUS (2.5s) [${timeLeft}s!]`;
-          badgeColor = '#ff0055';
-        }
-      } else if (rack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH) {
-        if (!rack.error.hasBeenInspected) {
-          label = `[E] SCAN AUTHENTIC PIN [${rack.code}] (${timeLeft}s!)`;
-          badgeColor = '#ffb800';
-        } else {
-          label = `REAL PIN: ${rack.code} ➔ ENTER AT NOC DESK (${timeLeft}s!)`;
-          badgeColor = '#00ff9d';
-        }
-      } else if (rack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT) {
-        if (!rack.error.hasBeenInspected) {
+      } else if (errType === CONFIG.ERRORS.ACCESS_DENIED || errType === CONFIG.ERRORS.AUTH_LOCKOUT || errType === CONFIG.ERRORS.PHANTOM_GLITCH) {
+        if (!rack.error?.hasBeenInspected) {
           label = `[E] SCAN PIN [${rack.code}] (${timeLeft}s!)`;
           badgeColor = '#ffb800';
         } else {
@@ -9883,12 +10932,6 @@ class Game {
       } else if (boss instanceof ThermalGolemBoss) {
         label = this.hasCryoCanister ? '[E] OPEN SUPPLIES CLOSET' : '[E] RETRIEVE CRYO CANISTER';
         badgeColor = '#00f3ff';
-      } else if (boss instanceof SpectralDaemonBoss) {
-        label = (this.emfPylonsRemaining > 0 || this.deployedPylons.length > 0) ? '[E] OPEN SUPPLIES CLOSET' : '[E] RETRIEVE EMF PYLONS';
-        badgeColor = '#c084fc';
-      } else if (boss instanceof TitanColossusBoss) {
-        label = (this.scramLimpetsRemaining > 0 || (boss.limpetsAttached || 0) > 0) ? '[E] OPEN SUPPLIES CLOSET' : '[E] RETRIEVE SCRAM LIMPETS';
-        badgeColor = '#ffaa00';
       } else {
         label = `[E] RETRIEVE ${boss.restraintName?.toUpperCase() || 'DEFCON GEAR'}`;
         badgeColor = '#00ff9d';
@@ -9917,6 +10960,8 @@ class Game {
   renderPlayer(ctx, cam) {
     const p = this.player;
     const isPuck = this.cannonPuckTimer > 0;
+    const isLowHealth = p.hp <= 25 && p.hp > 0;
+    const pulseWarn = 0.65 + 0.35 * Math.sin(performance.now() * 0.016);
 
     for (let i = 0; i < p.trail.length; i++) {
       const pt = p.trail[i];
@@ -9925,7 +10970,9 @@ class Game {
 
       ctx.beginPath();
       ctx.arc(screenPt.x, screenPt.y, p.radius * (0.4 + alpha * (pt.isPuck ? 0.7 : 0.5)), 0, Math.PI * 2);
-      let trailColor = `rgba(0, 243, 255, ${alpha * (pt.isPuck ? 0.65 : 0.25)})`;
+      let trailColor = isLowHealth
+        ? `rgba(255, 42, 85, ${alpha * 0.45})`
+        : `rgba(0, 243, 255, ${alpha * (pt.isPuck ? 0.65 : 0.25)})`;
       ctx.fillStyle = trailColor;
       ctx.fill();
     }
@@ -9942,14 +10989,22 @@ class Game {
       }
     }
 
-    const playerAccent = isPuck
-      ? '#ffffff'
-      : (this.activeCable 
-          ? '#ff8800' 
-          : CONFIG.COLORS.PLAYER);
+    let playerAccent;
+    let ringColor;
 
-    let ringColor = this.activeCable ? '#ff8800' : 'rgba(0, 243, 255, 0.4)';
-    if (isPuck) ringColor = '#00f3ff';
+    if (isLowHealth) {
+      playerAccent = `rgb(255, ${Math.floor(40 * pulseWarn)}, ${Math.floor(80 * pulseWarn)})`;
+      ringColor = `rgba(255, 42, 85, ${pulseWarn * 0.95})`;
+    } else if (isPuck) {
+      playerAccent = '#ffffff';
+      ringColor = '#00f3ff';
+    } else if (this.activeCable) {
+      playerAccent = '#ff8800';
+      ringColor = '#ff8800';
+    } else {
+      playerAccent = CONFIG.COLORS.PLAYER;
+      ringColor = 'rgba(0, 243, 255, 0.4)';
+    }
 
     // Air-hockey puck cushion rings when in cannon puck mode
     if (isPuck) {
@@ -9972,15 +11027,15 @@ class Game {
     ctx.beginPath();
     ctx.arc(0, 0, p.radius + 4, 0, Math.PI * 2);
     ctx.strokeStyle = ringColor;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = isLowHealth ? 2.8 : 2;
     ctx.stroke();
 
     ctx.beginPath();
     ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
-    ctx.fillStyle = isPuck ? '#08172c' : '#0f172a';
+    ctx.fillStyle = isLowHealth ? `rgba(65, 8, 18, ${0.85 + 0.15 * pulseWarn})` : (isPuck ? '#08172c' : '#0f172a');
     ctx.fill();
     ctx.strokeStyle = playerAccent;
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = isLowHealth ? 3.5 : 2.5;
     ctx.stroke();
 
     ctx.rotate(p.angle);
@@ -10064,16 +11119,9 @@ class Game {
       ctx.fillText(`${labelText} (${Math.round(distance / 10)}m)`, edgeX, edgeY + 28);
     };
 
-    // 1. Failing and Destroyed Racks
+    // 1. Active Failing Racks (Destroyed racks are omitted to eliminate HUD radar clutter)
     for (const rack of alertRacks) {
-      if (rack.isDestroyed) {
-        drawIndicator(
-          rack.x + rack.width / 2,
-          rack.y + rack.height / 2,
-          '#b91c1c',
-          `${rack.id} 💥 DESTROYED`
-        );
-      } else if (rack.isFailing) {
+      if (rack.isFailing && !rack.isDestroyed) {
         const isGoldNetOps = Boolean(this.activeSynergies?.netops >= 3);
         const maxFailTime = (CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 30) + (isGoldNetOps ? 15 : 0);
         const timeLeft = Math.max(0, Math.ceil(maxFailTime - rack.failDuration));
@@ -10172,12 +11220,6 @@ class Game {
       } else if (activeBoss instanceof ThermalGolemBoss && !this.hasCryoCanister) {
         needsGear = true;
         closetLabel = '❄️ SUPPLIES CLOSET (CRYO)';
-      } else if (activeBoss instanceof SpectralDaemonBoss && this.emfPylonsRemaining === 0 && this.deployedPylons.length < 3) {
-        needsGear = true;
-        closetLabel = '⚡ SUPPLIES CLOSET (PYLONS)';
-      } else if (activeBoss instanceof TitanColossusBoss && this.scramLimpetsRemaining === 0 && (activeBoss.limpetsAttached || 0) < 3) {
-        needsGear = true;
-        closetLabel = '💣 SUPPLIES CLOSET (LIMPETS)';
       } else if (!(this.activeCable instanceof ContainmentWire)) {
         needsGear = true;
         closetLabel = `👑 SUPPLIES CLOSET (${activeBoss.restraintName?.toUpperCase() || 'GEAR'})`;
@@ -10206,17 +11248,7 @@ class Game {
       }
     }
 
-    // 7. Offscreen Quantum Teleporter Node Beacons
-    for (const node of this.teleporterNodes) {
-      if (!cam.isBoundingBoxVisible(node.x - 40, node.y - 40, 80, 80)) {
-        drawIndicator(
-          node.x,
-          node.y,
-          node.color,
-          `🌀 ${node.name}`
-        );
-      }
-    }
+    // End of offscreen alerts
   }
 
   // ==========================================================================
@@ -10275,38 +11307,11 @@ class Game {
           if (!rack.isFailing && !rack.isDestroyed) {
             // Pick incident based on boss archetype
             if (boss instanceof ThermalGolemBoss) {
-              const roll = Math.random();
-              if (roll < 0.6) rack.triggerCoolantLeakError();
-              else rack.triggerHardRebootError();
-            } else if (boss instanceof SpectralDaemonBoss) {
-              const roll = Math.random();
-              if (roll < 0.5) {
-                const otherCandidates = this.racks.filter(r => !r.isFailing && !r.isDestroyed && !r.isTargetDestination && r.id !== rack.id);
-                if (otherCandidates.length >= 2) {
-                  const decoys = [otherCandidates[0], otherCandidates[1]];
-                  decoys.forEach(d => { d.isDecoy = true; });
-                  rack.triggerPhantomGlitchError(decoys);
-                } else {
-                  rack.triggerAuthError();
-                }
-              } else {
-                rack.triggerAuthError();
-              }
-            } else if (boss instanceof TitanColossusBoss) {
-              const roll = Math.random();
-              if (roll < 0.5) {
-                const candidateTargets = this.racks.filter(r => r.id !== rack.id && !r.isFailing && !r.isDestroyed && !r.isTargetDestination);
-                if (candidateTargets.length > 0) {
-                  const target = candidateTargets[Math.floor(Math.random() * candidateTargets.length)];
-                  rack.triggerCableError(target);
-                } else {
-                  rack.triggerHardRebootError();
-                }
-              } else {
-                rack.triggerHardRebootError();
-              }
+              rack.triggerServerOverheatError();
+            } else if (boss instanceof MajorVirusBoss) {
+              rack.triggerServerSmallVirusError();
             } else {
-              // BugBoss / Procedural Apex
+              // BugBoss
               const roll = Math.random();
               if (roll < 0.5) {
                 const candidateTargets = this.racks.filter(r => r.id !== rack.id && !r.isFailing && !r.isDestroyed && !r.isTargetDestination);
@@ -10344,6 +11349,12 @@ class Game {
         if (this.currentFps >= 50) this.fpsVal.style.color = '#00ff9d';
         else if (this.currentFps >= 30) this.fpsVal.style.color = '#ffb800';
         else this.fpsVal.style.color = '#ff2a55';
+      }
+      if (this.statsFpsVal) {
+        this.statsFpsVal.textContent = `${this.currentFps} FPS`;
+        if (this.currentFps >= 50) this.statsFpsVal.style.color = '#00ff9d';
+        else if (this.currentFps >= 30) this.statsFpsVal.style.color = '#ffb800';
+        else this.statsFpsVal.style.color = '#ff2a55';
       }
 
       // Auto-suggest Turbo Smooth Mode in Settings if persistent low FPS detected

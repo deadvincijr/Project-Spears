@@ -18,8 +18,9 @@
    - Spatial partitioning (uniform grid or bounding-box queries) for massive warehouse maps.
    - Strict frustum/viewport culling with safety margins to ensure only visible racks, cables, tiles, and particles draw per frame.
 3. **Off-Screen Directional Alerts**:
-   - Clamped edge-of-screen radar/indicators pointing to out-of-viewport racks undergoing uptime decay or alarms.
+   - Clamped edge-of-screen radar/indicators pointing to out-of-viewport racks undergoing uptime decay or active alarms.
    - Dynamic distance readouts, color-coded urgency (warning vs. critical failure), and rotation pointing directly along the off-screen vector.
+   - **Destroyed Server Arrow Suppression**: Destroyed/exploded server racks (`isDestroyed: true`) are omitted from off-screen radar indicators to keep the HUD clean and prevent visual clutter when multiple servers are dead.
    - Objective Target Beacon: When dragging a patch cable, an emerald beacon points directly to the destination server rack across the warehouse.
 
 4. **Incident & Patch Cable Mechanics**:
@@ -31,7 +32,7 @@
 
 5. **NOC Master Console & Auth Lockout Minigame**:
    - Random Chance Error `AUTH_LOCKOUT`: Racks trigger an authorization lockout with a randomized 4-digit PIN.
-   - Master Station Desk: Positioned at the bottom (South) of the warehouse with multiple terminal displays and its own solid hitbox.
+   - Master Station Desk: Positioned at the bottom (South) of the warehouse with multiple terminal displays and its own solid hitbox (`x: Center - 120`, `y: 3030`), flanked with generous 300px drift channels by the Facility Supplies Closet (`x: Center - 600`) to the west and IT Supply Depot (`x: Center + 420`) to the east.
    - On-Foot PIN Retrieval: The player must physically slide to the failing rack and press `[E]` to read and copy the 4-digit PIN into their HUD clipboard buffer before they can solve it.
    - Terminal Minigame: Walking up to the South NOC Desk and pressing `[E]` opens the interactive cyber override terminal with keypad (supporting mouse clicks and physical keyboard input `0-9`, `Backspace`, `Enter`, `Escape`).
    - Live Emergency Countdowns in Keypad: Overheat timers across the warehouse—including the target node's 30s critical countdown—continue ticking live while inside the keypad modal, featuring a real-time countdown readout and depleting danger bar to maintain high-stakes tension.
@@ -54,7 +55,7 @@
 
 9. **IT Supply Depot & Powerup Economy**:
    - Data Credits (`⚡`): Earned by restoring cable links (+60⚡), authenticating PIN overrides (+75⚡), and high uptime dividends (+10⚡).
-   - Supply Kiosk: Physical station positioned at the South wall (`x: Center + 120`, `y: 3030`) with solid hitboxes, or toggled on-demand via `[B]` key.
+   - Supply Kiosk: Physical station positioned at the South wall (`x: Center + 420`, `y: 3030`) with solid hitboxes, or toggled on-demand via `[K]` key.
    - Powerup Catalog:
      - **High-Voltage Energy Drink** (Base: 150⚡, +50⚡ per purchase): Permanently boosts player maximum speed limit by +35 px/s per drink (with responsive acceleration scaling).
      - **Neodymium Floor Magnet** (Base: 150⚡, +50⚡ per purchase): Permanently increases ground friction and floor traction (reduces slip factor by -0.004 per purchase, clamped at 0.920) for sharper turning and faster braking on slippery tiles.
@@ -62,11 +63,11 @@
      - **Enterprise Server Node** (1000⚡ fixed price): Hot-swap chassis to replace and rebuild an exploded server node back to 100% operational uptime.
    - Removed Legacy Items: Overclock Thrusters, Mag-Grip Stabilizers, Auto-Patch Nanobots, and Thermal Coolant Flush have been removed.
 
-10. **Critical Overheat, 30s Explosion & Enterprise Replacement Chassis**:
+10. **Critical Overheat, 45s Explosion & Enterprise Replacement Chassis**:
     - **No Teleporting / Recentering**: All quick reset/teleport buttons and keybinds have been completely removed.
-    - **30-Second Critical Countdown**: When a server suffers a fault (Cable Disconnect or Auth Lockout), an internal 30-second timer begins ticking. Its on-rack countdown bar depletes and warning sparks emit.
-    - **Catastrophic Explosion**: If 30 seconds elapse without the player solving the fault, the server explodes violently with 55 multi-hue fire particles, WebAudio bass boom, and heavy camera screen shake.
-    - **Permanent Uptime Drag**: Exploded racks become charred ruins (`isDestroyed: true`) emitting periodic smoke. Their uptime is permanently locked to 0%, dragging down global warehouse uptime integrity and preventing high uptime dividends.
+    - **45-Second Critical Countdown**: When a server suffers a fault (Cable Disconnect, Auth Lockout, or Hard Reboot), an internal 45-second timer begins ticking (multi-rack chain wires have 90s, and server bugs have 30s). Its on-rack countdown bar depletes and warning sparks emit.
+    - **Catastrophic Explosion**: If 45 seconds elapse without the player solving the fault (or 90s for chain wires, 30s for server bugs), the server explodes violently with 55 multi-hue fire particles, WebAudio bass boom, and heavy camera screen shake.
+    - **Permanent Uptime Drag**: Exploded racks become charred ruins (`isDestroyed: true`) emitting periodic smoke. Their uptime is permanently locked to 0%, dragging down global warehouse uptime integrity and preventing high uptime dividends. Off-screen radar arrows pointing to destroyed servers are suppressed to prevent HUD clutter.
     - **Expensive Replacement**: An exploded server cannot be healed by normal means. It must be replaced by deploying an **Enterprise Server Node Chassis** (cost: 1000 ⚡, configurable via `CONFIG.ERRORS.REPLACEMENT_COST`), either by on-foot inspection with `[E]` or through the IT Supply Depot Shop.
 
 11. **Progressive Difficulty & DEFCON Escalation**:
@@ -141,9 +142,10 @@
       - Player has an active System Integrity health meter (100 HP) in the HUD with damage vignette screen flashes and 1.2s invulnerability frames.
       - Boss possesses an AI combat state machine: Stalking crawl, telegraphing Lunge Dash (25 damage), Static EMP Ring Discharges (15 damage), and Melee Chassis Contact (20 damage).
       - Defibrillator Fallback: If player HP drops to 0, an emergency defibrillator reboots the cart at the South NOC Master Console with 75 HP.
-    - **Incident Suspension & Post-Boss Fault Purge**:
+    - **Incident Suspension & Post-Boss Fault Purge / Crash Overload**:
       - Existing errors continue their 30s thermal timers during the boss fight, but no new faults spawn.
-      - Defeating the boss triggers a massive explosion, awards `+500 ⚡`, and automatically purges and restores all active errors on living server nodes to 100% uptime (destroyed chassis remain charred ruins).
+      - Defeating the boss triggers a massive explosion, awards `+500 ⚡`, immediately reels in and frees the player's hands from any active restraint tether (`dropActiveCable(true)`), unlocks the Quantum Teleporter Kit, and overloads 2-3 crash-damaged servers (`triggerRackCrashFault`).
+      - Fail-safe interaction handling automatically releases obsolete restraint tethers so the player can immediately pick up network patch cables with `[E]` and restore overheated crash nodes.
 
 18. **Post-Boss Rogue Bug Infestation & Server Destruction Rampage**:
     - **Post-Boss Incident Type (`BUG_INFESTATION`)**:

@@ -27,12 +27,6 @@
     <!-- Heads-Up Display (HUD) -->
     <header class="hud-layer" id="hud-overlay">
       <div class="hud-top-bar">
-        <div class="hud-brand">
-          <h1 class="hud-title">CABLED IN</h1>
-          <div class="brand-tags">
-            <span class="hud-badge" id="system-status">SYS.ACTV // SECTOR 07</span>
-            <span class="hud-badge threat-badge" id="threat-level-badge">DEFCON 5 // STABLE</span>
-          </div>
         <!-- Corrupted Bug Boss Active Encounter Banner (Compact Top Bar Integration) -->
         <div id="boss-hud-banner" class="boss-hud-banner hidden" role="region" aria-label="Boss Threat">
           <div class="boss-banner-header">
@@ -60,50 +54,28 @@
         </div>
 
         <div class="hud-metrics">
-          <div class="metric-card" id="health-card">
-            <span class="metric-label">SYSTEM INTEGRITY</span>
-            <div class="meter-bar">
-              <div class="meter-fill hp-fill" id="hp-fill" style="width: 100%;"></div>
-            </div>
-            <span class="metric-value" id="hp-val">100 HP</span>
-          </div>
-
-          <div class="metric-card">
-            <span class="metric-label">UPTIME INTEGRITY</span>
-            <div class="meter-bar">
-              <div class="meter-fill" id="uptime-fill" style="width: 98%;"></div>
-            </div>
-            <span class="metric-value" id="uptime-val">98.4%</span>
-          </div>
-
-          <div class="metric-card">
+          <div class="metric-card metric-card-compact" id="alert-card">
             <span class="metric-label">ACTIVE ALERTS</span>
-            <span class="metric-value alert-text" id="alert-count">0 CRITICAL</span>
+            <span class="metric-value alert-text" id="alert-count">0 FAULTS</span>
           </div>
 
-          <div class="metric-card">
-            <span class="metric-label">VELOCITY</span>
-            <span class="metric-value" id="speed-readout">0.0 m/s</span>
-          </div>
-
-          <div class="metric-card" id="memo-card">
+          <div class="metric-card metric-card-compact" id="memo-card">
             <span class="metric-label">COMS LOG / CODE</span>
-            <span class="metric-value" id="memo-code-val" style="color: #ffb800; font-size: 0.95rem;">--</span>
+            <span class="metric-value" id="memo-code-val" style="color: #ffb800; font-size: 0.88rem;">--</span>
           </div>
 
-          <div class="metric-card" id="credits-card">
-            <span class="metric-label">DATA CREDITS</span>
-            <span class="metric-value" id="credits-val" style="color: #00ff9d; font-size: 1.05rem;">100 ⚡</span>
-          </div>
-
-          <div class="metric-card" id="fps-card" title="Press [O] to toggle Turbo Smooth Mode">
-            <span class="metric-label">PERF / FPS</span>
-            <span class="metric-value" id="fps-val" style="color: #00ff9d; font-size: 0.95rem;">60 FPS</span>
-          </div>
+          <button type="button" id="btn-open-stats-top" class="metric-btn-stats" aria-label="Open Telemetry Stats Menu">
+            <span class="stats-btn-icon">📊</span>
+            <span class="stats-btn-text">STATS [TAB]</span>
+          </button>
         </div>
       </div>
 
-
+      <!-- In-game Notification Toast (Top Placement) -->
+      <div id="notification-toast" class="notification-toast hidden" role="status" aria-live="polite">
+        <span id="notification-toast-icon" class="toast-icon">⚡</span>
+        <span id="notification-toast-text" class="toast-text"></span>
+      </div>
 
       <!-- Active Powerups Buff Badges -->
       <div id="active-buffs-container" class="active-buffs-container"></div>
@@ -147,20 +119,32 @@
               </div>
             </div>
 
-            <!-- Virtual Keypad -->
-            <div class="terminal-keypad">
-              <button type="button" class="numpad-btn" data-key="1">1</button>
-              <button type="button" class="numpad-btn" data-key="2">2</button>
-              <button type="button" class="numpad-btn" data-key="3">3</button>
-              <button type="button" class="numpad-btn" data-key="4">4</button>
-              <button type="button" class="numpad-btn" data-key="5">5</button>
-              <button type="button" class="numpad-btn" data-key="6">6</button>
-              <button type="button" class="numpad-btn" data-key="7">7</button>
-              <button type="button" class="numpad-btn" data-key="8">8</button>
-              <button type="button" class="numpad-btn" data-key="9">9</button>
-              <button type="button" class="numpad-btn action-clear" id="numpad-clear">CLR</button>
-              <button type="button" class="numpad-btn" data-key="0">0</button>
-              <button type="button" class="numpad-btn action-enter" id="numpad-enter">ENTER</button>
+              <!-- Virtual Keypad for PIN Auth -->
+              <div class="terminal-keypad" id="terminal-keypad">
+                <button type="button" class="numpad-btn" data-key="1">1</button>
+                <button type="button" class="numpad-btn" data-key="2">2</button>
+                <button type="button" class="numpad-btn" data-key="3">3</button>
+                <button type="button" class="numpad-btn" data-key="4">4</button>
+                <button type="button" class="numpad-btn" data-key="5">5</button>
+                <button type="button" class="numpad-btn" data-key="6">6</button>
+                <button type="button" class="numpad-btn" data-key="7">7</button>
+                <button type="button" class="numpad-btn" data-key="8">8</button>
+                <button type="button" class="numpad-btn" data-key="9">9</button>
+                <button type="button" class="numpad-btn action-clear" id="numpad-clear">CLR</button>
+                <button type="button" class="numpad-btn" data-key="0">0</button>
+                <button type="button" class="numpad-btn action-enter" id="numpad-enter">ENTER</button>
+              </div>
+
+              <!-- Remote Shutdown Panel (for Restart Required, Bug, Overheat, Small Virus) -->
+              <div id="terminal-shutdown-panel" class="terminal-shutdown-panel hidden">
+                <button type="button" id="btn-terminal-shutdown" class="terminal-shutdown-btn">
+                  <span class="shutdown-btn-icon">🛑</span>
+                  <span class="shutdown-btn-text">EMERGENCY REMOTE SHUTDOWN</span>
+                </button>
+                <div id="terminal-shutdown-info" class="terminal-shutdown-info">
+                  Cuts breaker power immediately. Halts explosion countdown and isolates node fault.
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -390,15 +374,8 @@
 
       <!-- Bottom Status & Controls Bar -->
       <footer class="hud-bottom-bar">
-
-
-        <!-- In-game Notification Toast (Between Drop Cable and Shop Area) -->
-        <div id="notification-toast" class="notification-toast hidden" role="status" aria-live="polite">
-          <span id="notification-toast-icon" class="toast-icon">⚡</span>
-          <span id="notification-toast-text" class="toast-text"></span>
-        </div>
-
         <div class="hud-actions">
+          <button type="button" id="btn-open-stats" class="hud-btn" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);" aria-label="Open Telemetry Stats">STATS [TAB]</button>
           <button type="button" id="btn-open-settings" class="hud-btn" style="color: #00ff9d; border-color: rgba(0, 255, 157, 0.4);" aria-label="Open System Settings">SETTINGS ⚙️</button>
           <button type="button" id="btn-open-tutorial" class="hud-btn" style="color: #00f3ff; border-color: rgba(0, 243, 255, 0.4);" aria-label="Open Operations Manual">MANUAL [H]</button>
           <button type="button" id="btn-open-shop" class="hud-btn" style="color: #ffb800; border-color: rgba(255, 184, 0, 0.4);" aria-label="Open Hardware Shop">SHOP [K]</button>
@@ -406,6 +383,135 @@
         </div>
       </footer>
     </header>
+
+    <!-- Facility & Operator Telemetry Stats Modal -->
+    <div id="stats-modal" class="stats-modal hidden" role="dialog" aria-modal="true" aria-labelledby="stats-title">
+      <div class="stats-window">
+        <div class="stats-header">
+          <div class="stats-status-dot"></div>
+          <span id="stats-title" class="stats-title">FACILITY &amp; OPERATOR TELEMETRY // STATS</span>
+          <button type="button" id="btn-close-stats" class="stats-close-btn" aria-label="Close Stats">[ESC / TAB] EXIT</button>
+        </div>
+
+        <div class="stats-body">
+          <!-- Threat Level Row -->
+          <div class="stats-threat-row">
+            <span class="stats-row-label">FACILITY THREAT RATING</span>
+            <span class="hud-badge threat-badge threat-defcon-5" id="threat-level-badge">DEFCON 5 // STABLE</span>
+          </div>
+
+          <!-- Direct Operator Health Bar -->
+          <div class="stats-card-section">
+            <div class="stats-section-head">
+              <div class="stats-head-left">
+                <span class="stats-sec-icon">❤️</span>
+                <span class="stats-sec-title">OPERATOR HEALTH</span>
+              </div>
+              <span class="stats-sec-val" id="stats-hp-val">100 / 100 HP</span>
+            </div>
+            <div class="stats-bar-track">
+              <div class="stats-bar-fill stats-hp-fill" id="stats-hp-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <!-- Direct Warehouse Uptime Integrity Bar -->
+          <div class="stats-card-section">
+            <div class="stats-section-head">
+              <div class="stats-head-left">
+                <span class="stats-sec-icon">🌐</span>
+                <span class="stats-sec-title">WAREHOUSE UPTIME INTEGRITY</span>
+              </div>
+              <span class="stats-sec-val" id="stats-uptime-val">100.0%</span>
+            </div>
+            <div class="stats-bar-track">
+              <div class="stats-bar-fill stats-uptime-fill" id="stats-uptime-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <!-- Telemetry Grid: Data Credits, FPS, Velocity, Faults -->
+          <div class="stats-grid">
+            <div class="stats-metric-tile">
+              <span class="stats-tile-icon">⚡</span>
+              <div class="stats-tile-content">
+                <span class="stats-tile-label">DATA CREDITS</span>
+                <span class="stats-tile-value text-credits" id="stats-credits-val">100 ⚡</span>
+              </div>
+            </div>
+
+            <div class="stats-metric-tile">
+              <span class="stats-tile-icon">🖥️</span>
+              <div class="stats-tile-content">
+                <span class="stats-tile-label">PERF / FPS</span>
+                <span class="stats-tile-value text-fps" id="stats-fps-val">60 FPS</span>
+              </div>
+            </div>
+
+            <div class="stats-metric-tile">
+              <span class="stats-tile-icon">🏎️</span>
+              <div class="stats-tile-content">
+                <span class="stats-tile-label">VELOCITY</span>
+                <span class="stats-tile-value" id="stats-speed-val">0.0 m/s</span>
+              </div>
+            </div>
+
+            <div class="stats-metric-tile">
+              <span class="stats-tile-icon">⚠️</span>
+              <div class="stats-tile-content">
+                <span class="stats-tile-label">ACTIVE FAULTS</span>
+                <span class="stats-tile-value text-faults" id="stats-faults-val">0 FAULTS</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Character Powerups & Physics Stats Section -->
+          <div class="stats-card-section" style="margin-top: 14px;">
+            <div class="stats-section-head">
+              <div class="stats-head-left">
+                <span class="stats-sec-icon">⚙️</span>
+                <span class="stats-sec-title">OPERATOR CHARACTER ATTRIBUTES &amp; POWERUPS</span>
+              </div>
+            </div>
+            <div class="stats-grid" style="margin-top: 8px;">
+              <div class="stats-metric-tile">
+                <span class="stats-tile-icon">🏎️</span>
+                <div class="stats-tile-content">
+                  <span class="stats-tile-label">TOP SPEED LIMIT</span>
+                  <span class="stats-tile-value" id="char-stat-speed" style="color: #00f3ff;">650 px/s</span>
+                </div>
+              </div>
+              <div class="stats-metric-tile">
+                <span class="stats-tile-icon">🧲</span>
+                <div class="stats-tile-content">
+                  <span class="stats-tile-label">GROUND TRACTION / FRICTION</span>
+                  <span class="stats-tile-value" id="char-stat-friction" style="color: #00ff9d;">0.982</span>
+                </div>
+              </div>
+              <div class="stats-metric-tile">
+                <span class="stats-tile-icon">🎯</span>
+                <div class="stats-tile-content">
+                  <span class="stats-tile-label">CANNON CHARGES</span>
+                  <span class="stats-tile-value" id="char-stat-cannon" style="color: #ff2a55;">1 Charge</span>
+                </div>
+              </div>
+              <div class="stats-metric-tile">
+                <span class="stats-tile-icon">🌀</span>
+                <div class="stats-tile-content">
+                  <span class="stats-tile-label">TELEPORTER LINK</span>
+                  <span class="stats-tile-value" id="char-stat-teleport" style="color: #e024c3;">NOT READY</span>
+                </div>
+              </div>
+            </div>
+            <div id="char-upgrades-summary" style="margin-top: 8px; font-family: var(--font-mono); font-size: 0.74rem; color: #94a3b8;">
+              Purchased Powerups: None
+            </div>
+          </div>
+
+          <div class="stats-tip-banner">
+            <span>💡 Toggle this telemetry stats menu anytime with <kbd>TAB</kbd> or <kbd>C</kbd>.</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Settings Menu Modal -->
     <div id="settings-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
@@ -488,10 +594,18 @@
         <div class="pause-body">
           <p class="pause-desc">All warehouse clocks, thermal countdowns, and cart physics halted.</p>
           <div class="pause-actions">
-            <button type="button" id="btn-pause-resume" class="menu-btn menu-btn-primary">RESUME SHIFT [ESC]</button>
-            <button type="button" id="btn-pause-settings" class="menu-btn menu-btn-secondary" style="border-color: rgba(0, 255, 157, 0.6); color: #00ff9d;">⚙️ SYSTEM SETTINGS</button>
-            <button type="button" id="btn-pause-tutorial" class="menu-btn menu-btn-secondary">OPERATIONS MANUAL [H]</button>
-            <button type="button" id="btn-pause-menu" class="menu-btn menu-btn-danger">RETURN TO MAIN MENU</button>
+            <button type="button" id="btn-pause-resume" class="menu-btn menu-btn-primary">▶ RESUME SHIFT [ESC]</button>
+            <button type="button" id="btn-pause-new-game" class="menu-btn menu-btn-new-game">🔄 RESTART / NEW GAME</button>
+            <div class="pause-actions-grid">
+              <button type="button" id="btn-pause-quicksave" class="menu-btn menu-btn-secondary" style="border-color: rgba(255, 184, 0, 0.6); color: #ffb800;">💾 QUICK SAVE</button>
+              <button type="button" id="btn-pause-save" class="menu-btn menu-btn-secondary" style="border-color: rgba(255, 184, 0, 0.4); color: #ffb800;">📥 EXPORT .JSON</button>
+              <button type="button" id="btn-pause-load" class="menu-btn menu-btn-secondary" style="border-color: rgba(0, 243, 255, 0.6); color: #00f3ff;">📂 LOAD FILE</button>
+              <button type="button" id="btn-pause-leaderboard" class="menu-btn menu-btn-secondary" style="border-color: rgba(168, 85, 247, 0.6); color: #a855f7;">🏆 RECORDS</button>
+              <button type="button" id="btn-pause-stats" class="menu-btn menu-btn-secondary" style="border-color: rgba(56, 189, 248, 0.6); color: #38bdf8;">📊 STATS [TAB]</button>
+              <button type="button" id="btn-pause-settings" class="menu-btn menu-btn-secondary" style="border-color: rgba(0, 255, 157, 0.6); color: #00ff9d;">⚙️ SETTINGS</button>
+              <button type="button" id="btn-pause-tutorial" class="menu-btn menu-btn-secondary">📖 MANUAL [H]</button>
+              <button type="button" id="btn-pause-menu" class="menu-btn menu-btn-danger">🚨 MAIN MENU</button>
+            </div>
           </div>
         </div>
       </div>
@@ -507,15 +621,30 @@
         </div>
 
         <div class="menu-actions">
-          <button type="button" id="btn-menu-play" class="menu-btn menu-btn-primary">
-            <span class="btn-text">▶ START SHIFT [PLAY]</span>
-          </button>
-          <button type="button" id="btn-menu-settings" class="menu-btn menu-btn-secondary" style="border-color: rgba(0, 255, 157, 0.6); color: #00ff9d;">
-            <span class="btn-text">⚙️ SYSTEM SETTINGS</span>
-          </button>
-          <button type="button" id="btn-menu-tutorial" class="menu-btn menu-btn-secondary">
-            <span class="btn-text">📖 OPERATIONS MANUAL [TUTORIAL]</span>
-          </button>
+          <div class="menu-primary-row">
+            <button type="button" id="btn-menu-continue" class="menu-btn menu-btn-continue hidden">
+              <span class="btn-text">⚡ CONTINUE SAVED RUN</span>
+            </button>
+            <button type="button" id="btn-menu-new-game" class="menu-btn menu-btn-primary">
+              <span class="btn-text">▶ NEW GAME [START SHIFT]</span>
+            </button>
+            <button type="button" id="btn-menu-play" style="display: none;"></button>
+          </div>
+
+          <div class="menu-secondary-grid">
+            <button type="button" id="btn-menu-load" class="menu-btn menu-btn-secondary" style="border-color: rgba(0, 243, 255, 0.6); color: #00f3ff;">
+              <span class="btn-text">📂 LOAD SAVE FILE</span>
+            </button>
+            <button type="button" id="btn-menu-leaderboard" class="menu-btn menu-btn-secondary" style="border-color: rgba(168, 85, 247, 0.6); color: #a855f7;">
+              <span class="btn-text">🏆 LEADERBOARD</span>
+            </button>
+            <button type="button" id="btn-menu-settings" class="menu-btn menu-btn-secondary" style="border-color: rgba(0, 255, 157, 0.6); color: #00ff9d;">
+              <span class="btn-text">⚙️ SYSTEM SETTINGS</span>
+            </button>
+            <button type="button" id="btn-menu-tutorial" class="menu-btn menu-btn-secondary">
+              <span class="btn-text">📖 OPERATIONS MANUAL</span>
+            </button>
+          </div>
         </div>
 
         <div class="menu-feature-grid">
@@ -529,8 +658,8 @@
           <div class="feature-card">
             <span class="feature-icon">🚨</span>
             <div class="feature-text">
-              <span class="feature-title">30s Critical Overheat</span>
-              <span class="feature-desc">Failing servers explode in 30s! Repair quickly to protect warehouse uptime</span>
+              <span class="feature-title">45s Critical Overheat</span>
+              <span class="feature-desc">Failing servers explode in 45s! Repair quickly to protect warehouse uptime</span>
             </div>
           </div>
           <div class="feature-card">
@@ -584,7 +713,7 @@
           <button type="button" class="tut-tab" data-step="3">4. ERROR 1: WIRE</button>
           <button type="button" class="tut-tab" data-step="4">5. ERROR 2: CODE</button>
           <button type="button" class="tut-tab" data-step="5">6. ERROR 3: REBOOT</button>
-          <button type="button" class="tut-tab" data-step="6">7. 30s OVERHEAT</button>
+          <button type="button" class="tut-tab" data-step="6">7. 45s OVERHEAT</button>
           <button type="button" class="tut-tab" data-step="7">8. QUANTUM TELEPORTER</button>
         </div>
 
@@ -746,16 +875,16 @@
           <!-- Step 6: 30s Overheat Explosion Warning -->
           <div class="tut-slide" data-step="6">
             <div class="tut-hero-badge" style="color: var(--accent-crimson); border-color: rgba(255, 42, 85, 0.4);">💥 CRITICAL HAZARD // SYSTEM CASCADE</div>
-            <h2 class="tut-slide-title">30-SECOND COUNTDOWN &amp; EXPLOSIONS</h2>
+            <h2 class="tut-slide-title">45-SECOND COUNTDOWN &amp; EXPLOSIONS</h2>
             <div class="tut-key-row">
-              <span class="indicator-tag red">30s TIMEOUT BEFORE DETONATION 💥</span>
+              <span class="indicator-tag red">45s TIMEOUT BEFORE DETONATION 💥</span>
               <span class="key-pill">1000 ⚡</span> : Enterprise Replacement Chassis
             </div>
             <div class="tut-card-grid">
               <div class="tut-card">
                 <span class="card-lead-icon">💣</span>
                 <h4>Catastrophic Explosion</h4>
-                <p>When ANY rack experiences a fault, an internal <strong>30-second thermal countdown</strong> starts. If 30s elapse without resolution, the server explodes in fire and smoke!</p>
+                <p>When ANY rack experiences a fault, an internal <strong>45-second thermal countdown</strong> starts. If 45s elapse without resolution, the server explodes in fire and smoke!</p>
               </div>
               <div class="tut-card">
                 <span class="card-lead-icon">📉</span>
@@ -797,8 +926,156 @@
         </div>
       </div>
     </div>
+
+    <!-- Hidden Save File Input for Uploading Saves -->
+    <input type="file" id="save-file-input" accept=".json" style="display: none;">
+
+    <!-- Run Details Preview Modal (For Loading Saves) -->
+    <div id="run-preview-modal" class="run-preview-modal hidden" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+      <div class="preview-window">
+        <div class="preview-header">
+          <div class="preview-status-dot"></div>
+          <span id="preview-title" class="preview-title">RUN ARCHIVE DETAILS // SAVE FILE DETECTED</span>
+          <button type="button" id="btn-close-preview" class="preview-close-btn" aria-label="Close Preview">[ESC] CANCEL</button>
+        </div>
+        <div class="preview-body">
+          <div class="preview-stats-grid">
+            <div class="preview-tile">
+              <span class="tile-icon">⏱️</span>
+              <div class="tile-info">
+                <span class="tile-lbl">SHIFT DURATION</span>
+                <span id="preview-shift-time" class="tile-val">00m 00s</span>
+              </div>
+            </div>
+            <div class="preview-tile">
+              <span class="tile-icon">🌐</span>
+              <div class="tile-info">
+                <span class="tile-lbl">WAREHOUSE INTEGRITY</span>
+                <span id="preview-racks-health" class="tile-val">100% Online</span>
+              </div>
+            </div>
+            <div class="preview-tile">
+              <span class="tile-icon">⚠️</span>
+              <div class="tile-info">
+                <span class="tile-lbl">ACTIVE FAULTS</span>
+                <span id="preview-active-faults" class="tile-val">0 Faults</span>
+              </div>
+            </div>
+            <div class="preview-tile">
+              <span class="tile-icon">⚡</span>
+              <div class="tile-info">
+                <span class="tile-lbl">DATA CREDITS</span>
+                <span id="preview-credits" class="tile-val">0 ⚡</span>
+              </div>
+            </div>
+            <div class="preview-tile">
+              <span class="tile-icon">👾</span>
+              <div class="tile-info">
+                <span class="tile-lbl">BOSS DEFCON WAVE</span>
+                <span id="preview-boss-wave" class="tile-val">Wave 1</span>
+              </div>
+            </div>
+            <div class="preview-tile">
+              <span class="tile-icon">📅</span>
+              <div class="tile-info">
+                <span class="tile-lbl">SAVED DATE</span>
+                <span id="preview-save-date" class="tile-val">--</span>
+              </div>
+            </div>
+          </div>
+          <div class="preview-hardware-section">
+            <span class="preview-hardware-lbl">PURCHASED POWERUPS &amp; HARDWARE:</span>
+            <div id="preview-powerups-list" class="preview-powerups-chips">None</div>
+          </div>
+          <div class="preview-actions">
+            <button type="button" id="btn-confirm-load-run" class="menu-btn menu-btn-primary">▶ LOAD RUN (RESUME EXACT POSITION)</button>
+            <button type="button" id="btn-cancel-load-run" class="menu-btn menu-btn-secondary">CANCEL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3-Second Resume Countdown Overlay -->
+    <div id="resume-countdown-overlay" class="resume-countdown-overlay hidden" aria-hidden="true">
+      <div class="countdown-card">
+        <div class="countdown-badge">RUN STATE RESTORED</div>
+        <div id="countdown-number" class="countdown-number">3</div>
+        <div class="countdown-subtext">HOLDING MOMENTUM // PREPARE OPERATOR</div>
+      </div>
+    </div>
+
+    <!-- Game Over Modal (All Racks Destroyed) -->
+    <div id="game-over-modal" class="game-over-modal hidden" role="dialog" aria-modal="true" aria-labelledby="go-title">
+      <div class="game-over-window">
+        <div class="game-over-header">
+          <div class="game-over-alarm-dot"></div>
+          <span id="go-title" class="game-over-title">CASCADE TERMINATION // DATA CENTER OFFLINE</span>
+        </div>
+        <div class="game-over-body">
+          <div class="game-over-headline">💥 ALL SERVER RACKS IN WAREHOUSE HAVE EXPLODED</div>
+          <p class="game-over-desc">The data center has collapsed into irreversible catastrophic cascade failure. All servers offline.</p>
+          <div class="game-over-stats-grid">
+            <div class="game-over-stat">
+              <span class="go-lbl">FINAL SHIFT DURATION</span>
+              <span id="go-duration" class="go-val text-cyan">0m 00s</span>
+            </div>
+            <div class="game-over-stat">
+              <span class="go-lbl">BOSS WAVES CLEARED</span>
+              <span id="go-bosses" class="go-val text-amber">0</span>
+            </div>
+            <div class="game-over-stat">
+              <span class="go-lbl">TOTAL DATA CREDITS</span>
+              <span id="go-credits" class="go-val text-green">0 ⚡</span>
+            </div>
+            <div class="game-over-stat">
+              <span class="go-lbl">LEADERBOARD RECORD</span>
+              <span id="go-record" class="go-val text-purple">RECORD SAVED!</span>
+            </div>
+          </div>
+          <div class="game-over-actions">
+            <button type="button" id="btn-go-retry" class="menu-btn menu-btn-primary">▶ RETRY SHIFT</button>
+            <button type="button" id="btn-go-load" class="menu-btn menu-btn-secondary" style="color: #00f3ff; border-color: rgba(0, 243, 255, 0.5);">📂 LOAD SAVED RUN</button>
+            <button type="button" id="btn-go-leaderboard" class="menu-btn menu-btn-secondary" style="color: #a855f7; border-color: rgba(168, 85, 247, 0.5);">🏆 LEADERBOARD</button>
+            <button type="button" id="btn-go-menu" class="menu-btn menu-btn-danger">RETURN TO MAIN MENU</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Longest Data Center Uptime Leaderboard Modal -->
+    <div id="leaderboard-modal" class="leaderboard-modal hidden" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title">
+      <div class="leaderboard-window">
+        <div class="leaderboard-header">
+          <div class="leaderboard-dot"></div>
+          <span id="leaderboard-title" class="leaderboard-title">DATA CENTER HALL OF FAME // ENDLESS LEADERBOARD</span>
+          <button type="button" id="btn-close-leaderboard" class="leaderboard-close-btn" aria-label="Close Leaderboard">[ESC] EXIT</button>
+        </div>
+        <div class="leaderboard-body">
+          <p class="leaderboard-desc">Records for the longest data center uptime maintained before total cascade failure.</p>
+          <div class="leaderboard-table-wrap">
+            <table class="leaderboard-table">
+              <thead>
+                <tr>
+                  <th>RANK</th>
+                  <th>SHIFT DURATION</th>
+                  <th>BOSSES CLEARED</th>
+                  <th>DATA CREDITS</th>
+                  <th>DATE RECORDED</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-tbody">
+                <!-- Dynamically injected -->
+              </tbody>
+            </table>
+          </div>
+          <div class="leaderboard-footer">
+            <button type="button" id="btn-clear-leaderboard" class="btn-clear-scores">RESET LOCAL RECORDS</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <script src="main.js?v=20260912_closet_only_compact"></script>
+  <script src="main.js?v=20260913_design_brief_update"></script>
 </body>
 </html>
