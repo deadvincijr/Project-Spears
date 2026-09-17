@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Agent Franks // Tactical Fugitive Radar</title>
+  <meta name="description" content="Tactical location tracking and seeker radar for the night game Fugitive in West Kaysville, Utah.">
+  <meta name="theme-color" content="#04060a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app-container">
+    <!-- Map Container -->
+    <div id="tactical-map"></div>
+    <div class="crosshair-overlay">
+      <svg viewBox="0 0 44 44" fill="none" stroke="#00e5ff" stroke-width="1.5">
+        <circle cx="22" cy="22" r="18" stroke-dasharray="3, 3"/>
+        <line x1="22" y1="2" x2="22" y2="12"/>
+        <line x1="22" y1="32" x2="22" y2="42"/>
+        <line x1="2" y1="22" x2="12" y2="22"/>
+        <line x1="32" y1="22" x2="42" y2="22"/>
+        <circle cx="22" cy="22" r="2.5" fill="#00e5ff"/>
+      </svg>
+    </div>
+
+    <!-- Fade-to-Black Vignette -->
+    <div class="viewport-vignette"></div>
+
+    <!-- Top Tactical HUD Bar -->
+    <header class="top-hud-bar">
+      <div class="hud-left">
+        <div class="hud-brand">
+          <span class="brand-title"><i class="fas fa-radar"></i> AGENT FRANKS</span>
+          <span class="brand-subtitle">W. Kaysville Sector</span>
+        </div>
+        <button class="hud-btn" id="user-codename-btn" data-open-modal="user-profile-modal" title="Change Codename">
+          <i class="fas fa-user-secret"></i>
+          <span id="user-codename-badge">Ghost-1</span>
+        </button>
+      </div>
+
+      <div class="hud-center">
+        <div class="hud-pill">
+          <i class="fas fa-stopwatch" style="color: var(--accent-amber);"></i>
+          <span class="match-clock" id="hud-match-clock">00:00:00</span>
+        </div>
+        <div class="hud-pill seeker-count-pill">
+          <span class="live-dot"></span>
+          <span id="hud-seeker-count">0 ACTIVE</span>
+        </div>
+      </div>
+
+      <div class="hud-right">
+        <button class="hud-btn" id="hud-comms-btn" data-open-modal="fugitive-chat-modal" title="Fugitive Comms Chat">
+          <i class="fas fa-comments"></i>
+          <span class="hud-chat-badge hidden" id="hud-chat-unread-badge">0</span>
+        </button>
+        <button class="hud-btn" id="hud-reset-view-btn" title="Fit Game Zone">
+          <i class="fas fa-compress-arrows-alt"></i>
+        </button>
+        <button class="hud-btn" id="hud-mute-btn" title="Toggle Sound">
+          <i class="fas fa-volume-up"></i>
+        </button>
+        <button class="hud-btn" data-open-modal="rules-modal" title="Sector Rules & Safety">
+          <i class="fas fa-shield-alt"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Private Property Safety Banner -->
+    <div class="safety-warning-bar" data-open-modal="rules-modal">
+      <i class="fas fa-exclamation-triangle"></i>
+      <span>STAY OFF PRIVATE PROPERTY &bull; PUBLIC ROADS &amp; PARKS ONLY</span>
+    </div>
+
+    <!-- Boundary Drawing Mode Interactive Toolstrip -->
+    <div id="boundary-draw-toolbar">
+      <div class="boundary-toolbar-status">
+        <i class="fas fa-pencil-ruler"></i>
+        <span>DRAW BOUNDARY (<span id="boundary-point-count">0</span> PTS)</span>
+      </div>
+      <button type="button" id="boundary-undo-point-btn" class="hud-btn" style="padding: 4px 8px; font-size: 0.72rem;" title="Undo last point">
+        <i class="fas fa-undo"></i> Undo
+      </button>
+      <button type="button" id="boundary-finish-btn" class="btn-tactical" style="padding: 5px 12px; font-size: 0.75rem;" title="Close and seal boundary">
+        <i class="fas fa-check-circle"></i> Finish Loop
+      </button>
+      <button type="button" id="boundary-cancel-btn" class="hud-btn" style="color: #ff5252; padding: 4px 8px; font-size: 0.72rem;" title="Cancel drawing">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Tactical Orientation HUD (visible during right-click rotation) -->
+    <div id="orientation-hud" class="orientation-hud hidden">
+      <div class="hud-reticle">
+        <svg viewBox="0 0 24 24" width="18" height="18">
+          <polygon id="hud-compass-needle" points="12,2 16,12 12,9 8,12" fill="#ff1744"/>
+          <polygon points="12,22 16,12 12,15 8,12" fill="#00e5ff"/>
+        </svg>
+      </div>
+      <div class="hud-info">
+        <div class="hud-title">ORIENTATION</div>
+        <div class="hud-vals">
+          <span id="hud-bearing-val">000°</span>
+          <span class="hud-dot">•</span>
+          <span id="hud-cardinal-val">N</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Action Buttons (Right Column) -->
+    <div class="fab-column-right">
+      <button class="fab-btn compass-fab" id="fab-compass" title="Reorient to North (Right-Click Drag to Rotate)">
+        <svg id="compass-indicator" viewBox="0 0 24 24" width="22" height="22">
+          <polygon points="12,2 16,12 12,9 8,12" fill="#ff1744"/>
+          <polygon points="12,22 16,12 12,15 8,12" fill="#e2e8f0"/>
+        </svg>
+      </button>
+      <button class="fab-btn" id="fab-layers" title="Toggle Map Layer (Satellite / Dark / Streets)">
+        <i class="fas fa-layer-group"></i>
+      </button>
+      <button class="fab-btn" id="fab-gps" title="Center on GPS">
+        <i class="fas fa-crosshairs"></i>
+      </button>
+      <button class="fab-btn" id="fab-gps-share" title="Share GPS with Team">
+        <i class="fas fa-broadcast-tower"></i>
+      </button>
+    </div>
+
+    <!-- Bottom Quick Action Bar -->
+    <nav class="bottom-quick-bar">
+      <button class="quick-ping-fab" id="quick-ping-fab">
+        <i class="fas fa-plus-circle"></i>
+        <span>REPORT SEEKER</span>
+      </button>
+      <div class="bottom-nav-btns">
+        <button class="quick-action-btn comms-quick-btn" id="open-comms-btn" data-open-modal="fugitive-chat-modal" title="Fugitive Comms Chat">
+          <i class="fas fa-comments" style="color: var(--accent-cyan);"></i>
+          <span>COMMS</span>
+          <span class="chat-badge hidden" id="chat-unread-badge">0</span>
+        </button>
+        <button class="quick-action-btn" data-open-modal="alias-directory-modal" title="Player & Alias Directory">
+          <i class="fas fa-address-book" style="color: var(--accent-cyan);"></i>
+          <span>ALIASES</span>
+        </button>
+        <button class="quick-action-btn" data-open-modal="admin-modal" title="Admin Overwatch">
+          <i class="fas fa-sliders-h" style="color: var(--accent-amber);"></i>
+          <span>ADMIN</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Toast Notification Overlay -->
+    <div id="toast-container"></div>
+
+    <!-- ====================================================================
+         PIN INSPECTOR BOTTOM SHEET
+         ==================================================================== -->
+    <div id="pin-inspector-sheet" class="pin-inspector-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title-group">
+          <span id="sheet-status-badge" class="sheet-badge status-hot">
+            <i class="fas fa-satellite-dish"></i> ACTIVE PULSE: HOT
+          </span>
+          <h3 id="sheet-seeker-name">Patrol Cruiser</h3>
+        </div>
+        <button id="sheet-close-btn" class="modal-close-btn">&times;</button>
+      </div>
+
+      <div class="sheet-details-grid">
+        <div class="sheet-stat">
+          <span class="sheet-stat-label">Sighted Ago</span>
+          <span class="sheet-stat-val" id="sheet-relative-time">Just now</span>
+        </div>
+        <div class="sheet-stat">
+          <span class="sheet-stat-label">Exact Time</span>
+          <span class="sheet-stat-val" id="sheet-exact-time">--:--:--</span>
+        </div>
+        <div class="sheet-stat">
+          <span class="sheet-stat-label">Reported By</span>
+          <span class="sheet-stat-val" id="sheet-reporter">Agent</span>
+        </div>
+        <div class="sheet-stat">
+          <span class="sheet-stat-label">Proximity</span>
+          <span class="sheet-stat-val" id="sheet-location">Sector Center</span>
+        </div>
+      </div>
+
+      <div id="sheet-notes" class="sheet-notes-box"></div>
+
+      <div class="sheet-actions">
+        <button id="sheet-delete-pin-btn" class="btn-tactical btn-danger is-admin-locked" style="flex: 1;">
+          <i class="fas fa-lock"></i> REMOVE SIGHTING (ADMIN ONLY)
+        </button>
+      </div>
+    </div>
+
+    <!-- Destination Pin Floating Control Bar (Appears on map click) -->
+    <div id="destination-control-dock">
+      <div class="dest-dock-info">
+        <div class="dest-dock-icon">
+          <i class="fas fa-crosshairs"></i>
+        </div>
+        <div class="dest-dock-details">
+          <span class="dest-dock-title">TARGET LOCATION SELECTED</span>
+          <span id="dest-dock-coords" class="dest-dock-sub">Click anywhere to reposition</span>
+        </div>
+      </div>
+      <div class="dest-dock-actions">
+        <button type="button" id="dest-dock-cancel-btn" class="hud-btn" style="color: #ff5252; padding: 6px 14px; font-size: 0.8rem;">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button type="button" id="dest-dock-pin-btn" class="btn-tactical" style="padding: 6px 18px; font-size: 0.82rem;">
+          <i class="fas fa-map-pin"></i> Pin Seeker
+        </button>
+      </div>
+    </div>
+
+
+
+    <!-- ====================================================================
+         MODAL: REPORT SEEKER SIGHTING
+         ==================================================================== -->
+    <div id="report-sighting-modal" class="modal-backdrop">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h2 class="modal-title"><i class="fas fa-crosshairs"></i> REPORT SEEKER SIGHTING</h2>
+          <button class="modal-close-btn" data-close-modal>&times;</button>
+        </div>
+        <form id="report-sighting-form">
+          <div class="modal-body">
+            <div class="form-group">
+              <span class="form-label">Pinned Location</span>
+              <div id="report-coords-text" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-cyan);">
+                Center of Map
+              </div>
+            </div>
+
+            <div class="form-group">
+              <span class="form-label">Select Seeker Vehicle Cosmetic</span>
+              <input type="hidden" id="report-cosmetic-select" value="cruiser">
+              <div class="cosmetics-grid" id="cosmetics-selector-grid"></div>
+            </div>
+
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <label class="form-label" style="margin-bottom: 0;">Vehicle Travel Direction (Joystick)</label>
+                <button type="button" id="joystick-center-btn" class="hud-btn" style="font-size: 0.68rem; padding: 2px 8px;">
+                  <i class="fas fa-dot-circle"></i> Center (No Rod)
+                </button>
+              </div>
+              <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px;">
+                Click-hold &amp; drag joystick in the direction of travel. Car stays upright while direction rod points out on the map.
+              </p>
+              
+              <div class="joystick-wrapper">
+                <div id="seeker-joystick-track" class="joystick-track">
+                  <span class="joystick-label label-n">N</span>
+                  <span class="joystick-label label-e">E</span>
+                  <span class="joystick-label label-s">S</span>
+                  <span class="joystick-label label-w">W</span>
+                  <div class="joystick-crosshair-h"></div>
+                  <div class="joystick-crosshair-v"></div>
+                  <div class="joystick-center-deadzone"></div>
+                  <div id="seeker-joystick-knob" class="joystick-knob">
+                    <div class="knob-core"></div>
+                  </div>
+                </div>
+                <div class="joystick-readout">
+                  <span id="joystick-heading-val" class="readout-angle">CENTERED (STATIONARY)</span>
+                  <span id="joystick-heading-hint" class="readout-hint">No directional rod</span>
+                </div>
+              </div>
+              <input type="hidden" id="report-heading-val" value="">
+            </div>
+
+            <div class="form-group">
+              <label for="report-notes-input" class="form-label">Tactical Intel Notes</label>
+              <input type="text" id="report-notes-input" class="form-input" placeholder="e.g. Headlights off, turning onto Flint St...">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-tactical btn-secondary" data-close-modal>CANCEL</button>
+            <button type="submit" class="btn-tactical">DROP SEEKER PING</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL: USER PROFILE & CODENAME
+         ==================================================================== -->
+    <div id="user-profile-modal" class="modal-backdrop">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h2 class="modal-title"><i class="fas fa-id-badge"></i> AGENT PROFILE</h2>
+          <button class="modal-close-btn" data-close-modal>&times;</button>
+        </div>
+        <form id="user-profile-form">
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="profile-codename-input" class="form-label">Codename / Radio Callsign</label>
+              <input type="text" id="profile-codename-input" class="form-input" placeholder="e.g. Ghost-1, Viper, NightFox" required>
+            </div>
+
+            <div class="form-group">
+              <label for="profile-realname-input" class="form-label">Your Real Name (For Display Name resolution)</label>
+              <input type="text" id="profile-realname-input" class="form-input" placeholder="e.g. Dean">
+            </div>
+
+            <div class="form-group">
+              <label for="profile-role-select" class="form-label">Game Role</label>
+              <select id="profile-role-select" class="form-select">
+                <option value="fugitive">Fugitive (Sneaking Point A -> B)</option>
+                <option value="seeker">Seeker (Patrolling Vehicle)</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn-tactical">SAVE IDENTITY</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL: CODENAME ALIAS DIRECTORY
+         ==================================================================== -->
+    <div id="alias-directory-modal" class="modal-backdrop">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h2 class="modal-title"><i class="fas fa-address-book"></i> CODENAME ALIAS DIRECTORY</h2>
+          <button class="modal-close-btn" data-close-modal>&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 0.75rem; color: var(--text-muted);">
+            Map each friend's secret codename to their real name so you always know who reported every pin!
+          </p>
+          <div id="alias-list-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
+
+          <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 8px 0;">
+
+          <form id="alias-add-form" style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="alias-codename-input" class="form-input" placeholder="Codename (e.g. Viper)" style="flex: 1;" required>
+              <input type="text" id="alias-realname-input" class="form-input" placeholder="Real Name (e.g. Sam)" style="flex: 1;" required>
+            </div>
+            <button type="submit" class="btn-tactical btn-secondary">
+              <i class="fas fa-plus"></i> ADD / UPDATE ALIAS
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL: ADMIN COMMAND CENTER
+         ==================================================================== -->
+    <div id="admin-modal" class="modal-backdrop">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h2 class="modal-title"><i class="fas fa-sliders-h"></i> COMMAND OVERWATCH</h2>
+          <button class="modal-close-btn" data-close-modal>&times;</button>
+        </div>
+        <div class="modal-body">
+          <!-- PIN Lock View -->
+          <div id="admin-lock-view" style="display: flex; flex-direction: column; gap: 12px;">
+            <p style="font-size: 0.8rem; color: var(--text-muted);">
+              Enter Command PIN to unlock admin operations (Default: <code>1234</code>):
+            </p>
+            <form id="admin-unlock-form" style="display: flex; gap: 8px;">
+              <input type="password" id="admin-pin-input" class="form-input" placeholder="Enter PIN" style="flex: 1;" required>
+              <button type="submit" class="btn-tactical">UNLOCK</button>
+            </form>
+          </div>
+
+          <!-- Unlocked Panel View -->
+          <div id="admin-panel-view" style="display: none; flex-direction: column; gap: 16px;">
+            <!-- Game Match Timer -->
+            <div class="form-group">
+              <span class="form-label">Fugitive Match Timer</span>
+              <div style="display: flex; gap: 8px;">
+                <input type="number" id="admin-timer-input" class="form-input" value="60" min="5" max="180" style="width: 80px;">
+                <button type="button" id="admin-start-timer-btn" class="btn-tactical" style="flex: 1;">START TIMER</button>
+                <button type="button" id="admin-reset-timer-btn" class="btn-tactical btn-secondary">RESET</button>
+              </div>
+            </div>
+
+            <!-- Patrol Simulation -->
+            <div class="form-group">
+              <span class="form-label">Automated Patrol Simulator (Test Mode)</span>
+              <p style="font-size: 0.72rem; color: var(--text-muted);">
+                Simulates real seeker vehicles patrolling Kaysville streets (Flint St, 200 N, Snow Horse) for testing without cars outside.
+              </p>
+              <button type="button" id="admin-toggle-sim-btn" class="btn-tactical btn-secondary">
+                START SIMULATED PATROL
+              </button>
+            </div>
+
+            <!-- Wipe Map Pins -->
+            <div class="form-group">
+              <span class="form-label">Map Maintenance</span>
+              <button type="button" id="admin-reset-pins-btn" class="btn-tactical btn-danger">
+                <i class="fas fa-trash-alt"></i> WIPE ALL SIGHTINGS &amp; TRAILS
+              </button>
+            </div>
+
+            <!-- Vehicle Cosmetics & Seeker Customizer -->
+            <div class="form-group" style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="form-label" style="color: var(--accent-cyan); font-weight: 700;">
+                  <i class="fas fa-palette"></i> Vehicle Cosmetics &amp; Descriptions
+                </span>
+                <button type="button" id="admin-reset-cosmetics-btn" class="hud-btn" style="font-size: 0.68rem; padding: 2px 8px;">
+                  RESET TO DEFAULTS
+                </button>
+              </div>
+              <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 10px;">
+                Customize seeker names, callsigns, colors, and descriptions. Changes reflect live across radar pins and report menus.
+              </p>
+              
+              <!-- Vehicle List Container -->
+              <div id="admin-cosmetics-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 260px; overflow-y: auto; padding-right: 4px;"></div>
+
+              <!-- Add New Seeker Form (Vehicle or Human) -->
+              <div style="margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.4); border: 1px dashed rgba(0, 229, 255, 0.4); border-radius: 8px;">
+                <span class="form-label" style="font-size: 0.7rem; margin-bottom: 6px; display: block;">+ Add Custom Seeker (Vehicle or Human)</span>
+                <div style="display: grid; grid-template-columns: 1.2fr 1fr 90px 42px; gap: 6px; margin-bottom: 6px;">
+                  <input type="text" id="admin-new-vehicle-name" class="form-input" placeholder="Name (e.g. Ground Scout)" style="font-size: 0.8rem; padding: 6px 8px;">
+                  <input type="text" id="admin-new-vehicle-callsign" class="form-input" placeholder="Callsign (e.g. Scout-1)" style="font-size: 0.8rem; padding: 6px 8px;">
+                  <select id="admin-new-vehicle-type" class="form-input" style="font-size: 0.75rem; padding: 4px 6px;">
+                    <option value="cruiser">🚗 Vehicle</option>
+                    <option value="human">🏃 Human</option>
+                  </select>
+                  <input type="color" id="admin-new-vehicle-color" value="#ffea00" style="width: 100%; height: 34px; border: 1px solid rgba(255,255,255,0.2); background: transparent; cursor: pointer; border-radius: 4px;">
+                </div>
+                <input type="text" id="admin-new-vehicle-desc" class="form-input" placeholder="Description (e.g. On foot searching sidewalks, flashlight)" style="font-size: 0.8rem; padding: 6px 8px; width: 100%; margin-bottom: 6px;">
+                <button type="button" id="admin-add-vehicle-btn" class="btn-tactical btn-secondary" style="width: 100%; padding: 6px; font-size: 0.75rem;">
+                  <i class="fas fa-plus"></i> ADD TO RADAR LIST
+                </button>
+              </div>
+            </div>
+
+            <!-- Sector Boundary Customizer -->
+            <div class="form-group" style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span class="form-label" style="color: var(--accent-green); font-weight: 700;">
+                  <i class="fas fa-draw-polygon"></i> Sector Boundary &amp; Play Zone
+                </span>
+                <span id="admin-boundary-status-badge" class="hud-pill" style="font-size: 0.65rem; padding: 2px 8px; color: var(--accent-cyan);">
+                  Default Kaysville
+                </span>
+              </div>
+              <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 8px;">
+                Draw a custom game boundary loop by clicking points on the map. The outer fade-to-black mask will reshape and sync to everyone!
+              </p>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" id="admin-start-draw-boundary-btn" class="btn-tactical" style="flex: 1.3; font-size: 0.75rem; padding: 8px 10px;">
+                  <i class="fas fa-pencil-alt"></i> DRAW NEW BOUNDARY
+                </button>
+                <button type="button" id="admin-reset-boundary-btn" class="btn-tactical btn-secondary" style="flex: 0.7; font-size: 0.72rem; padding: 8px 8px;">
+                  <i class="fas fa-undo"></i> RESET DEFAULT
+                </button>
+              </div>
+            </div>
+
+            <!-- Tactical Custom Location & Landmark Pins -->
+            <div class="form-group" style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span class="form-label" style="color: var(--accent-cyan); font-weight: 700;">
+                  <i class="fas fa-map-marker-alt"></i> Tactical Location &amp; Landmark Pins
+                </span>
+                <span id="admin-landmark-count-badge" class="hud-pill" style="font-size: 0.65rem; padding: 2px 8px; color: var(--accent-green);">
+                  0 Placed
+                </span>
+              </div>
+              <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 8px;">
+                Pin objectives, safe zones, schools, and parks manually on the map with custom descriptions and sync for everyone.
+              </p>
+
+              <!-- Placed Landmarks List -->
+              <div id="admin-landmarks-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; margin-bottom: 10px; padding-right: 4px;"></div>
+
+              <!-- Pin New Location Form -->
+              <div style="padding: 10px; background: rgba(0,0,0,0.4); border: 1px dashed rgba(0, 229, 255, 0.4); border-radius: 8px; display: flex; flex-direction: column; gap: 8px;">
+                <span class="form-label" style="font-size: 0.7rem; color: #fff;">+ Pin New Location on Map</span>
+                <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 6px;">
+                  <input type="text" id="admin-landmark-name" class="form-input" placeholder="Name (e.g. Snow Horse)" style="font-size: 0.8rem; padding: 6px 8px;">
+                  <select id="admin-landmark-type" class="form-input" style="font-size: 0.75rem; padding: 6px 8px;">
+                    <option value="objective">OBJECTIVE (Finish Zone)</option>
+                    <option value="start">START (Staging Area)</option>
+                    <option value="school">SCHOOL (Campus)</option>
+                    <option value="park">PARK (Public Grounds)</option>
+                    <option value="poi">LANDMARK (POI)</option>
+                    <option value="hazard">HAZARD (Seeker Zone)</option>
+                  </select>
+                </div>
+                <input type="text" id="admin-landmark-desc" class="form-input" placeholder="Location Info (e.g. Smith Lane bus loop, stay on sidewalk)" style="font-size: 0.78rem; padding: 6px 8px;">
+                <button type="button" id="admin-place-landmark-btn" class="btn-tactical btn-secondary" style="font-size: 0.75rem; padding: 8px;">
+                  <i class="fas fa-crosshairs"></i> CLICK TO PLACE PIN ON MAP
+                </button>
+              </div>
+            </div>
+
+            <!-- Admin Security & PIN Settings -->
+            <div class="form-group" style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+              <span class="form-label" style="color: var(--accent-amber); font-weight: 700;">
+                <i class="fas fa-key"></i> Admin Unlock PIN Settings
+              </span>
+              <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 8px;">
+                Change the access PIN required to unlock this Command Center.
+              </p>
+              <div style="display: flex; gap: 8px;">
+                <input type="password" id="admin-change-pin-input" class="form-input" placeholder="New PIN (min 4 characters)" style="flex: 1; font-size: 0.85rem;">
+                <button type="button" id="admin-save-pin-btn" class="btn-tactical" style="font-size: 0.75rem; padding: 8px 12px;">
+                  UPDATE PIN
+                </button>
+              </div>
+            </div>
+
+            <!-- Firebase Setup -->
+            <div class="form-group" style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+              <span class="form-label">Cloud Sync Integration</span>
+              <button type="button" class="btn-tactical btn-secondary" data-open-modal="firebase-modal">
+                <i class="fas fa-cloud"></i> CONFIGURE FIREBASE SERVER
+              </button>
+            </div>
+
+            <!-- Export / Backup -->
+            <div class="form-group">
+              <span class="form-label">Export Match Records</span>
+              <button type="button" id="admin-export-btn" class="btn-tactical btn-secondary">
+                <i class="fas fa-download"></i> EXPORT MATCH JSON
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL: FIREBASE CONFIG
+         ==================================================================== -->
+    <div id="firebase-modal" class="modal-backdrop">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h2 class="modal-title"><i class="fas fa-cloud"></i> FIREBASE SERVER CONFIG</h2>
+          <button class="modal-close-btn" data-close-modal>&times;</button>
+        </div>
+        <form id="firebase-settings-form">
+          <div class="modal-body">
+            <p style="font-size: 0.75rem; color: var(--text-muted);">
+              Paste your Firebase project credentials object below to enable multi-device live cloud sync across all phones! (If omitted, app automatically operates in local/broadcast mode).
+            </p>
+            <div class="form-group">
+              <label for="firebase-config-json" class="form-label">Firebase Config JSON</label>
+              <textarea id="firebase-config-json" class="form-textarea" rows="7" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "your-app.firebaseapp.com",
+  "projectId": "your-app",
+  "storageBucket": "your-app.appspot.com",
+  "messagingSenderId": "...",
+  "appId": "..."
+}'></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-tactical btn-secondary" data-close-modal>CANCEL</button>
+            <button type="submit" class="btn-tactical">CONNECT FIREBASE</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL: SECTOR RULES & SAFETY
+         ==================================================================== -->
+    <div id="rules-modal" class="modal-backdrop">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h2 class="modal-title"><i class="fas fa-shield-alt"></i> SECTOR PROTOCOL &amp; RULES</h2>
+          <button class="modal-close-btn" data-close-modal>&times;</button>
+        </div>
+        <div class="modal-body" style="font-size: 0.82rem; line-height: 1.5; color: #d1d5db;">
+          <h4 style="color: var(--accent-crimson); margin-bottom: 6px;">
+            <i class="fas fa-exclamation-triangle"></i> STRICT RULE: NO TRESPASSING
+          </h4>
+          <p style="margin-bottom: 12px;">
+            <strong>Under no circumstances may players enter private property or backyards.</strong> All movement must remain on public streets, sidewalks, public parks, paved nature trails, and public school grounds.
+          </p>
+
+          <h4 style="color: var(--accent-cyan); margin-bottom: 6px;">
+            <i class="fas fa-map-marked-alt"></i> PLAY ZONE BOUNDARIES
+          </h4>
+          <ul style="padding-left: 20px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px;">
+            <li><strong>North End:</strong> Barnes Park (200 North)</li>
+            <li><strong>South End:</strong> Jefferson Academy (Angel Street)</li>
+            <li><strong>West Boundary:</strong> Davis Corridor (Highway SR-177)</li>
+            <li><strong>East Boundary:</strong> Interstate 15 (I-15)</li>
+          </ul>
+
+          <h4 style="color: var(--accent-amber); margin-bottom: 6px;">
+            <i class="fas fa-info-circle"></i> FADE TO BLACK MASK
+          </h4>
+          <p>
+            The tactical radar shrowds all areas outside the approved play zone in darkness. Map panning is bounded strictly within this operational corridor.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-tactical" data-close-modal>ACKNOWLEDGED</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL: FUGITIVE COMMS & CHAT
+         ==================================================================== -->
+    <div id="fugitive-chat-modal" class="modal-backdrop">
+      <div class="modal-window chat-modal-window">
+        <div class="modal-header chat-modal-header">
+          <div class="chat-header-info">
+            <div class="chat-channel-status">
+              <span class="live-dot comms-dot"></span>
+              <span class="chat-channel-title">SECURE FUGITIVE COMMS</span>
+            </div>
+            <span class="chat-channel-sub">ENCRYPTED TACTICAL SQUAD CHANNEL</span>
+          </div>
+          <div class="chat-header-actions">
+            <button type="button" class="hud-btn chat-clear-btn" id="chat-clear-btn" title="Clear Chat History">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+            <button class="modal-close-btn" data-close-modal>&times;</button>
+          </div>
+        </div>
+
+        <div class="chat-quick-presets">
+          <span class="presets-label"><i class="fas fa-bolt"></i> QUICK TRANSMIT:</span>
+          <div class="presets-scroll">
+            <button type="button" class="chat-preset-chip" data-preset="🚨 Seeker spotted nearby!">🚨 Seeker Nearby</button>
+            <button type="button" class="chat-preset-chip" data-preset="🏃 Crossing road now!">🏃 Crossing Road</button>
+            <button type="button" class="chat-preset-chip" data-preset="🌲 In tree line / concealment.">🌲 Tree Line</button>
+            <button type="button" class="chat-preset-chip" data-preset="✅ Coast is clear to move.">✅ Coast Clear</button>
+            <button type="button" class="chat-preset-chip" data-preset="📍 Meeting at rendezvous point.">📍 Rendezvous</button>
+            <button type="button" class="chat-preset-chip" data-preset="🆘 Need distraction, cornered!">🆘 Cornered!</button>
+          </div>
+        </div>
+
+        <div class="chat-messages-container" id="chat-messages-stream">
+          <div class="chat-empty-hint" id="chat-empty-state">
+            <i class="fas fa-satellite-dish"></i>
+            <span>No transmissions yet. Broadcast intel to fugitive squad.</span>
+          </div>
+        </div>
+
+        <form id="fugitive-chat-form" class="chat-input-footer">
+          <div class="chat-input-wrapper">
+            <input type="text" id="chat-message-input" class="chat-input-field" placeholder="Transmit encrypted intel..." maxlength="280" autocomplete="off">
+            <button type="submit" id="chat-send-btn" class="chat-send-btn" title="Send message">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Compat Scripts (from CDN) for zero-setup cloud sync -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Application Modules -->
+  <script src="audio-effects.js"></script>
+  <script src="firebase-sync.js"></script>
+  <script src="seekers.js"></script>
+  <script src="gps-tracker.js"></script>
+  <script src="admin-engine.js"></script>
+  <script src="map-engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

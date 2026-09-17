@@ -1,0 +1,32 @@
+
+    <!DOCTYPE html>
+    <html>
+    <body>
+      <script>
+        
+      localStorage.setItem('agentFranks_codename', 'Ghost-1');
+      localStorage.setItem('agentFranks_realName', 'Dean');
+      setTimeout(() => {
+        const tb = document.getElementById('boundary-draw-toolbar');
+        if (tb) tb.classList.add('is-active');
+        const count = document.getElementById('boundary-point-count');
+        if (count) count.textContent = '4';
+        if (window.mapEngine && window.mapEngine.map) {
+          const pts = [
+            [41.0410, -111.9605],
+            [41.0345, -111.9360],
+            [41.0224, -111.9588],
+            [41.0165, -111.9547]
+          ];
+          L.polyline(pts, { color: '#00e5ff', weight: 3, dashArray: '5, 5' }).addTo(window.mapEngine.map);
+          pts.forEach((p, i) => {
+            L.circleMarker(p, { radius: i === 0 ? 9 : 6, color: i === 0 ? '#00e676' : '#00e5ff', fillColor: i === 0 ? '#00e676' : '#00e5ff', fillOpacity: 0.9 }).addTo(window.mapEngine.map);
+          });
+        }
+      }, 800);
+    
+        window.location.href = 'http://localhost:8085';
+      </script>
+    </body>
+    </html>
+  
