@@ -58,10 +58,15 @@
    - Supply Kiosk: Physical station positioned at the South wall (`x: Center + 420`, `y: 3030`) with solid hitboxes, or toggled on-demand via `[K]` key.
    - Powerup Catalog:
      - **High-Voltage Energy Drink** (Base: 150⚡, +50⚡ per purchase): Permanently boosts player maximum speed limit by +35 px/s per drink (with responsive acceleration scaling).
-     - **Neodymium Floor Magnet** (Base: 150⚡, +50⚡ per purchase): Permanently increases ground friction and floor traction (reduces slip factor by -0.004 per purchase, clamped at 0.920) for sharper turning and faster braking on slippery tiles.
+     - **Neodymium Floor Magnet** (Base: 150⚡, +50⚡ per purchase): Permanently increases floor traction and lateral cornering grip (reduces slip factor by -0.004 per purchase, clamped at 0.920) for sharper turning and faster braking on slippery tiles. Cruising thrust dynamically scales to counteract ground drag so magnets **never decrease top cruising speed**, ensuring energy drinks remain fully effective.
      - **Kinetic Cannon Charge** (150⚡ set fixed price): Bullet-time time freeze with Angry Birds style dotted trajectory aiming; slingshots player at 2150 px/s with frictionless air hockey puck physics and 0.92 elastic bank shot ricochets. (HUD indicator above head removed; charge count tracked and displayed in shop/toasts).
      - **Enterprise Server Node** (1000⚡ fixed price): Hot-swap chassis to replace and rebuild an exploded server node back to 100% operational uptime.
    - Removed Legacy Items: Overclock Thrusters, Mag-Grip Stabilizers, Auto-Patch Nanobots, and Thermal Coolant Flush have been removed.
+
+9b. **Machine Error / Display Jam (`MACHINE_ERROR`)**:
+   - **Hardware Display Glitch**: The server rack's diagnostic display is jammed; the PIN cannot be read from the overhead label or regular scanning.
+   - **Spam [E] (10-15x)**: The player must slide up to the rack and rapidly spam `[E]` between 10 and 15 times to unjam the machine mechanism.
+   - **PIN Recovery & Authorization**: Once unjammed, the PIN is revealed on the rack and copied to the HUD clipboard memo; entering it at the South NOC Master Desk restores the rack and awards `+85 ⚡`.
 
 10. **Critical Overheat, 45s Explosion & Enterprise Replacement Chassis**:
     - **No Teleporting / Recentering**: All quick reset/teleport buttons and keybinds have been completely removed.
