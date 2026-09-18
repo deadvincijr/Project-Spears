@@ -166,6 +166,7 @@
             <button type="button" class="shop-tab tab-drift" data-category="drift">🏎️ DRIFT VELOCITY</button>
             <button type="button" class="shop-tab tab-combat" data-category="combat">🛡️ COMBAT ENFORCER</button>
             <button type="button" class="shop-tab tab-netops" data-category="netops">⚡ NETOPS ARCHITECT</button>
+            <button type="button" class="shop-tab tab-coop" data-category="coop" style="border-color: #f43f5e; color: #fb7185;">👥 CO-OP PROTOCOLS</button>
           </div>
 
           <div class="shop-body">
@@ -317,6 +318,47 @@
                   <div class="card-desc">Rebuilds an exploded, destroyed server rack back to 100% operational condition</div>
                 </div>
                 <button type="button" class="btn-buy" id="btn-buy-replacement_chassis" data-item="replacement_chassis" data-cost="1000">1000 ⚡ BUY</button>
+              </div>
+
+              <!-- === CO-OP UNIQUE PROTOCOLS === -->
+              <!-- Co-Op Item 1: Quantum Synergy Tether -->
+              <div class="shop-card cat-coop" data-category="coop" data-item="synergy_tether">
+                <div class="card-icon">⚡</div>
+                <div class="card-info">
+                  <div class="card-name">Quantum Synergy Tether <span style="font-size: 0.68rem; color: #fb7185;">[CO-OP]</span></div>
+                  <div class="card-desc">Links both carts within 450px: +25% speed, +50% acceleration, and zaps bugs crossing the line</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-synergy_tether" data-item="synergy_tether" data-cost="300">300 ⚡ BUY</button>
+              </div>
+
+              <!-- Co-Op Item 2: Remote Coms Relay -->
+              <div class="shop-card cat-coop" data-category="coop" data-item="coms_relay">
+                <div class="card-icon">📡</div>
+                <div class="card-info">
+                  <div class="card-name">Remote Coms Relay Transceiver <span style="font-size: 0.68rem; color: #fb7185;">[CO-OP]</span></div>
+                  <div class="card-desc">Scanned/unjammed rack PINs automatically upload directly to the South NOC Desk over quantum link</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-coms_relay" data-item="coms_relay" data-cost="350">350 ⚡ BUY</button>
+              </div>
+
+              <!-- Co-Op Item 3: Defibrillator Revive Beacon -->
+              <div class="shop-card cat-coop" data-category="coop" data-item="revive_beacon">
+                <div class="card-icon">🩹</div>
+                <div class="card-info">
+                  <div class="card-name">Defibrillator Revive Beacon <span style="font-size: 0.68rem; color: #fb7185;">[CO-OP]</span></div>
+                  <div class="card-desc">Downed teammates enter reboot standby instead of game over. Slide close and hold [E] for 2s to revive!</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-revive_beacon" data-item="revive_beacon" data-cost="250">250 ⚡ BUY</button>
+              </div>
+
+              <!-- Co-Op Item 4: Cooperative Profit Share Protocol -->
+              <div class="shop-card cat-coop" data-category="coop" data-item="profit_sharing">
+                <div class="card-icon">💰</div>
+                <div class="card-info">
+                  <div class="card-name">Cooperative Profit Sharing Protocol <span style="font-size: 0.68rem; color: #fb7185;">[CO-OP]</span></div>
+                  <div class="card-desc">Teamwork dividend: every solved error, unjammed PIN, or plugged wire awards +25 ⚡ to BOTH techs</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-profit_sharing" data-item="profit_sharing" data-cost="200">200 ⚡ BUY</button>
               </div>
             </div>
           </div>
@@ -570,6 +612,20 @@
                 </button>
               </div>
             </div>
+
+            <!-- Quality Mode (P2P Remote Cable Simulation) -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Quality Mode (Simulate Remote Player Cables)</div>
+                <div class="setting-desc">Simulates full multi-node spring/catenary physics and dynamic sway on other players' cables. When disabled (default), remote player cables appear as direct straight lines from anchor to cart for maximum performance.</div>
+              </div>
+              <div class="setting-control">
+                <button type="button" id="setting-toggle-quality-mode" class="cyber-switch" aria-label="Toggle Quality Mode Cable Simulation">
+                  <span class="switch-knob"></span>
+                  <span class="switch-label">OFF</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="settings-status-bar">
@@ -579,6 +635,62 @@
 
           <div class="settings-actions">
             <button type="button" id="btn-save-settings" class="menu-btn menu-btn-primary">APPLY &amp; RETURN [ESC]</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- P2P Online Multiplayer Lobby Modal -->
+    <div id="p2p-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="p2p-title">
+      <div class="settings-window" style="max-width: 560px;">
+        <div class="settings-header">
+          <div class="settings-status-dot" id="p2p-status-dot"></div>
+          <span id="p2p-title" class="settings-title">QUANTUM P2P MESH // ONLINE CO-OP</span>
+          <button type="button" id="btn-close-p2p" class="settings-close-btn" aria-label="Close P2P Lobby">[ESC] EXIT</button>
+        </div>
+
+        <div class="settings-body" style="padding: 22px;">
+          <!-- Status Banner -->
+          <div id="p2p-status-banner" style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 6px; padding: 12px; margin-bottom: 18px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #e9d5ff;">
+            🌐 <strong>DIRECT PEER-TO-PEER DATACHANNEL:</strong> Zero dedicated server required. Both browsers connect directly via encrypted WebRTC.
+          </div>
+
+          <!-- Tab Selection: Host vs Join -->
+          <div style="display: flex; gap: 10px; margin-bottom: 18px;">
+            <button type="button" id="btn-p2p-tab-host" class="shop-tab active" style="flex: 1; text-align: center; padding: 10px; font-family: 'JetBrains Mono', monospace;">👑 HOST ROOM</button>
+            <button type="button" id="btn-p2p-tab-join" class="shop-tab" style="flex: 1; text-align: center; padding: 10px; font-family: 'JetBrains Mono', monospace;">🚀 JOIN ROOM</button>
+          </div>
+
+          <!-- Host Room Panel -->
+          <div id="p2p-panel-host">
+            <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace;">YOUR ROOM CODE (SHARE WITH TEAMMATE):</div>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+              <input type="text" id="p2p-host-room-code" readonly value="READY TO GENERATE" style="flex: 1; background: #06080e; border: 1.5px solid #00f3ff; color: #00f3ff; font-family: 'Orbitron', sans-serif; font-size: 1.15rem; font-weight: bold; text-align: center; padding: 8px; border-radius: 4px; letter-spacing: 2px;">
+              <button type="button" id="btn-p2p-copy-code" class="menu-btn" style="padding: 8px 16px; border-color: #00f3ff; color: #00f3ff; font-size: 0.8rem;">📋 COPY</button>
+            </div>
+            <div id="p2p-host-status" style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #ffb800; margin-bottom: 16px;">
+              ⏳ Click below to host an encrypted WebRTC room.
+            </div>
+            <button type="button" id="btn-p2p-init-host" class="menu-btn menu-btn-primary" style="width: 100%; margin-bottom: 10px;">
+              <span class="btn-text">⚡ GENERATE HOST ROOM CODE</span>
+            </button>
+            <button type="button" id="btn-p2p-start-host" class="menu-btn menu-btn-primary" style="width: 100%; display: none;">
+              <span class="btn-text">▶ LAUNCH MISSION WITH CONNECTED PEER</span>
+            </button>
+          </div>
+
+          <!-- Join Room Panel -->
+          <div id="p2p-panel-join" class="hidden">
+            <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace;">ENTER HOST ROOM CODE:</div>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+              <input type="text" id="p2p-join-input-code" placeholder="e.g. CABLE-9482" style="flex: 1; background: #06080e; border: 1.5px solid #a855f7; color: #ffffff; font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: bold; text-align: center; padding: 8px; border-radius: 4px; text-transform: uppercase;">
+            </div>
+            <div id="p2p-join-status" style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #94a3b8; margin-bottom: 16px;">
+              Enter the host's 6-character room code to establish peer data link.
+            </div>
+            <button type="button" id="btn-p2p-connect-peer" class="menu-btn menu-btn-primary" style="width: 100%; border-color: #a855f7; background: linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(0, 243, 255, 0.3));">
+              <span class="btn-text">⚡ CONNECT TO HOST</span>
+            </button>
           </div>
         </div>
       </div>
@@ -626,7 +738,10 @@
               <span class="btn-text">⚡ CONTINUE SAVED RUN</span>
             </button>
             <button type="button" id="btn-menu-new-game" class="menu-btn menu-btn-primary">
-              <span class="btn-text">▶ NEW GAME [START SHIFT]</span>
+              <span class="btn-text">▶ 1P SOLO SHIFT</span>
+            </button>
+            <button type="button" id="btn-menu-p2p" class="menu-btn menu-btn-primary" style="background: linear-gradient(135deg, rgba(0, 243, 255, 0.25), rgba(168, 85, 247, 0.35)); border: 1.5px solid #a855f7; color: #ffffff; box-shadow: 0 0 15px rgba(168, 85, 247, 0.25);">
+              <span class="btn-text">🌐 PEER-TO-PEER CO-OP (P2P ONLINE)</span>
             </button>
             <button type="button" id="btn-menu-play" style="display: none;"></button>
           </div>
@@ -1076,6 +1191,7 @@
     </div>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="main.js?v=20260913_design_brief_update"></script>
 </body>
 </html>

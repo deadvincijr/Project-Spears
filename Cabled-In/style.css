@@ -1135,6 +1135,13 @@ html, body {
   box-shadow: 0 0 10px rgba(0, 255, 157, 0.25);
 }
 
+.shop-tab.tab-coop.active {
+  background: rgba(244, 63, 94, 0.18);
+  border-color: #f43f5e;
+  color: #fb7185;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.25);
+}
+
 .shop-synergy-banner {
   margin-bottom: 12px;
   padding: 8px 14px;

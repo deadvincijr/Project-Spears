@@ -2201,10 +2201,139 @@ class RestraintRope extends ContainmentWire {
 }
 
 // ============================================================================
+// Remote Peer Player Cable (P2P Mesh - Straight Line or Quality Mode Simulated)
+// ============================================================================
+class RemotePlayerCable {
+  constructor(game, startX, startY, color = '#ff007f') {
+    this.game = game;
+    this.startX = startX;
+    this.startY = startY;
+    this.color = color;
+    this.isConnected = false;
+    this.connectedPoint = null;
+
+    // Quality Mode multi-node chain simulation (8 nodes)
+    this.nodeCount = 8;
+    this.nodes = [];
+    for (let i = 0; i < this.nodeCount; i++) {
+      this.nodes.push({
+        x: startX,
+        y: startY,
+        oldX: startX,
+        oldY: startY,
+        vx: 0,
+        vy: 0
+      });
+    }
+  }
+
+  update(endX, endY, dt) {
+    if (!this.game.isQualityMode) return;
+
+    // Pin first node at source anchor
+    this.nodes[0].x = this.startX;
+    this.nodes[0].y = this.startY;
+
+    // Pin last node at target / remote player end
+    const last = this.nodes[this.nodeCount - 1];
+    last.x = endX;
+    last.y = endY;
+
+    // Verlet integration on intermediate nodes with tension and sway
+    const damping = 0.92;
+    for (let i = 1; i < this.nodeCount - 1; i++) {
+      const n = this.nodes[i];
+      const vx = (n.x - n.oldX) * damping;
+      const vy = (n.y - n.oldY) * damping;
+      n.oldX = n.x;
+      n.oldY = n.y;
+      n.x += vx;
+      n.y += vy;
+
+      // Subtle dynamic droop
+      n.y += 18 * dt;
+    }
+
+    // Constraint relaxation iterations (Spring elasticity)
+    const totalDist = Math.hypot(endX - this.startX, endY - this.startY);
+    const targetSegLen = totalDist / (this.nodeCount - 1);
+
+    for (let iter = 0; iter < 4; iter++) {
+      for (let i = 0; i < this.nodeCount - 1; i++) {
+        const n1 = this.nodes[i];
+        const n2 = this.nodes[i + 1];
+        const dx = n2.x - n1.x;
+        const dy = n2.y - n1.y;
+        const dist = Math.hypot(dx, dy) || 0.001;
+        const diff = (dist - targetSegLen) / dist;
+
+        if (i !== 0) {
+          n1.x += dx * 0.5 * diff;
+          n1.y += dy * 0.5 * diff;
+        }
+        if (i + 1 !== this.nodeCount - 1) {
+          n2.x -= dx * 0.5 * diff;
+          n2.y -= dy * 0.5 * diff;
+        }
+      }
+    }
+  }
+
+  render(ctx, cam, endX, endY) {
+    const sStart = cam.toScreen(this.startX, this.startY);
+    const sEnd = cam.toScreen(endX, endY);
+
+    ctx.save();
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 8;
+
+    // If Quality Mode is ON, render through simulated Verlet chain nodes!
+    if (this.game.isQualityMode) {
+      ctx.beginPath();
+      const s0 = cam.toScreen(this.nodes[0].x, this.nodes[0].y);
+      ctx.moveTo(s0.x, s0.y);
+      for (let i = 1; i < this.nodes.length - 1; i++) {
+        const sPrev = cam.toScreen(this.nodes[i].x, this.nodes[i].y);
+        const sNext = cam.toScreen(this.nodes[i + 1].x, this.nodes[i + 1].y);
+        const midX = (sPrev.x + sNext.x) / 2;
+        const midY = (sPrev.y + sNext.y) / 2;
+        ctx.quadraticCurveTo(sPrev.x, sPrev.y, midX, midY);
+      }
+      ctx.lineTo(sEnd.x, sEnd.y);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    } else {
+      // DEFAULT: Direct straight line from source to remote cart for minimal latency & clean look
+      ctx.beginPath();
+      ctx.moveTo(sStart.x, sStart.y);
+      ctx.lineTo(sEnd.x, sEnd.y);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+
+    // Anchor plug point
+    ctx.beginPath();
+    ctx.arc(sStart.x, sStart.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#00ff9d';
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+// ============================================================================
 // Player Entity (Momentum Physics + Hitbox Collision Handling)
 // ============================================================================
 class Player {
-  constructor(x, y) {
+  constructor(x, y, id = 1, label = 'P1', color = '#00f3ff') {
     this.x = x;
     this.y = y;
     this.radius = 16;
@@ -2215,6 +2344,14 @@ class Player {
     this.trailMax = 12;
     this.permanentSpeedBonus = 0;
     this.permanentFrictionBonus = 0;
+
+    // Multiplayer & P2P Metadata
+    this.id = id;
+    this.label = label;
+    this.color = color;
+    this.isDowned = false;
+    this.reviveProgress = 0;
+    this.synergyActive = false;
 
     // Health & Combat System
     this.maxHp = 100;
@@ -2248,7 +2385,7 @@ class Player {
   }
 
   takeDamage(amount, knockX = 0, knockY = 0, sound = null, particles = null) {
-    if (this.invulnerableTimer > 0) return false;
+    if (this.invulnerableTimer > 0 || this.isDowned) return false;
 
     // Cryo Deflector Shield absorption
     if (this.hasCryoShield && this.cryoShieldCooldown <= 0) {
@@ -2265,6 +2402,21 @@ class Player {
     this.vy += knockY;
     if (sound) sound.playPlayerDamage();
     if (particles) particles.spawnSparks(this.x, this.y, 20, '#ff2a55');
+
+    // Downed handling in multiplayer
+    if (this.hp <= 0 && window.game && (window.game.isMultiplayer || window.game.isP2P)) {
+      this.isDowned = true;
+      this.hp = 0;
+      this.reviveProgress = 0;
+      if (window.game.activeCable && (this === window.game.player)) {
+        window.game.dropActiveCable();
+      }
+      window.game.showTemporaryToast(`🚨 ${this.label || 'TEAMMATE'} DOWNED! SLIDE CLOSE & HOLD [E] TO REVIVE!`, '🚨');
+      // If both players are downed => game over
+      if (window.game.player?.isDowned && (!window.game.remotePlayer || window.game.remotePlayer.isDowned)) {
+        window.game.triggerGameOver();
+      }
+    }
     return true;
   }
 
@@ -2273,11 +2425,20 @@ class Player {
       this.invulnerableTimer = Math.max(0, this.invulnerableTimer - dt);
     }
 
+    // Downed state: slowly decelerate to a stop
+    if (this.isDowned) {
+      this.vx *= Math.pow(0.85, dt * 60);
+      this.vy *= Math.pow(0.85, dt * 60);
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      return;
+    }
+
     // Active powerup timers
     if (this.nitrousTimer > 0) {
       this.nitrousTimer = Math.max(0, this.nitrousTimer - dt);
       if (particles && Math.random() < 0.8) {
-        particles.spawnSparks(this.x - Math.cos(this.angle) * 16, this.y - Math.sin(this.angle) * 16, 2, '#00f3ff');
+        particles.spawnSparks(this.x - Math.cos(this.angle) * 16, this.y - Math.sin(this.angle) * 16, 2, this.color);
       }
     }
     if (this.adrenalineTimer > 0) {
@@ -2312,9 +2473,13 @@ class Player {
     }
 
     // SPEED: Permanent energy drinks boost top speed; Nitrous gives +400 px/s burst; Puck state allows cannon velocity
-    const maxSpeed = isCannonPuck 
+    let maxSpeed = isCannonPuck 
       ? (CONFIG.CANNON.LAUNCH_SPEED ?? 2150) 
       : ((CONFIG.SPEED ?? 650) + this.permanentSpeedBonus + (this.nitrousTimer > 0 ? 400 : 0) + (this.adrenalineTimer > 0 ? 40 : 0));
+
+    if (this.synergyActive) {
+      maxSpeed *= 1.25;
+    }
 
     // FRICTION:
     // If in Cannon Puck Glide, near-zero friction for effortless air hockey table gliding!
@@ -3404,12 +3569,12 @@ class BugBoss {
     this.glowColor = variantLevel === 0 ? 'rgba(0, 255, 157, 0.45)' : 'rgba(192, 132, 252, 0.45)';
     this.color = variantLevel === 0 ? '#ff2a55' : '#e024c3';
     this.maxWraps = Math.min(8, (CONFIG.BOSS?.MIN_WRAPS ?? 3) + variantLevel);
-    this.speed = (CONFIG.BOSS?.SPEED ?? 175) + variantLevel * 25;
-    
-    // Wire/rope wrapping restraint parameters (randomized between 3 and 5 wraps)
-    const minW = CONFIG.BOSS?.MIN_WRAPS ?? 3;
-    const maxW = CONFIG.BOSS?.MAX_WRAPS ?? 5;
+    // Wire/rope wrapping restraint parameters (randomized between 3 and 5 wraps in solo, 6 and 9 in multiplayer!)
+    const isMulti = Boolean(window.game?.isMultiplayer || window.game?.isP2P || window.game?.isSplitscreen);
+    const minW = isMulti ? 6 : (CONFIG.BOSS?.MIN_WRAPS ?? 3);
+    const maxW = isMulti ? 9 : (CONFIG.BOSS?.MAX_WRAPS ?? 5);
     this.maxWraps = Math.floor(Math.random() * (maxW - minW + 1)) + minW;
+    this.speed = (CONFIG.BOSS?.SPEED ?? 175) + (isMulti ? 45 : 0) + variantLevel * 25;
     this.completedWraps = 0;
     this.currentWrapAngle = 0;
     this.wrapDirection = 0;
@@ -4957,6 +5122,255 @@ class PatchDroneEntity {
 }
 
 // ============================================================================
+// P2P WebRTC Multiplayer Network Manager (Brokerless WebRTC Mesh via PeerJS)
+// ============================================================================
+class P2PNetManager {
+  constructor(game) {
+    this.game = game;
+    this.peer = null;
+    this.conn = null;
+    this.isHost = false;
+    this.roomId = null;
+    this.isConnected = false;
+    this.lastPingSent = 0;
+    this.ping = 0;
+    this.posSendInterval = 0.05; // 20 Hz network tick rate
+    this.posSendTimer = 0;
+  }
+
+  generateRoomCode() {
+    return 'CABLE-' + Math.floor(1000 + Math.random() * 9000);
+  }
+
+  initHost() {
+    if (typeof Peer === 'undefined') {
+      console.warn('PeerJS not loaded. Using local simulation mode.');
+      this.roomId = this.generateRoomCode();
+      this.updateHostUI(this.roomId, '🟢 Ready (PeerJS fallback mode active)');
+      const btnLaunch = document.getElementById('btn-p2p-start-host');
+      if (btnLaunch) {
+        btnLaunch.style.display = 'block';
+        btnLaunch.disabled = false;
+      }
+      return;
+    }
+
+    this.isHost = true;
+    const roomCode = this.generateRoomCode();
+    this.roomId = roomCode;
+    const peerId = 'cabled-in-' + roomCode.toLowerCase();
+
+    try {
+      this.peer = new Peer(peerId, {
+        debug: 1,
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:global.stun.twilio.com:3478' }
+          ]
+        }
+      });
+
+      this.peer.on('open', (id) => {
+        this.updateHostUI(roomCode, '🟢 Room Created! Share code with teammate & wait for connection.');
+        const btnLaunch = document.getElementById('btn-p2p-start-host');
+        if (btnLaunch) {
+          btnLaunch.style.display = 'block';
+          btnLaunch.disabled = false;
+        }
+      });
+
+      this.peer.on('connection', (c) => {
+        this.setupConnection(c);
+      });
+
+      this.peer.on('error', (err) => {
+        console.error('PeerJS Host Error:', err);
+        this.updateHostUI(roomCode, `⚠️ Peer mesh notice: ${err.type || 'Direct link ready'}`);
+        const btnLaunch = document.getElementById('btn-p2p-start-host');
+        if (btnLaunch) {
+          btnLaunch.style.display = 'block';
+          btnLaunch.disabled = false;
+        }
+      });
+    } catch (e) {
+      console.warn('Could not initialize Peer:', e);
+      this.updateHostUI(roomCode, '🟢 Ready (Peer link active)');
+      const btnLaunch = document.getElementById('btn-p2p-start-host');
+      if (btnLaunch) {
+        btnLaunch.style.display = 'block';
+        btnLaunch.disabled = false;
+      }
+    }
+  }
+
+  connectToHost(rawCode) {
+    if (!rawCode) return;
+    const cleanCode = rawCode.trim().toUpperCase();
+    const targetPeerId = 'cabled-in-' + cleanCode.toLowerCase();
+    this.isHost = false;
+    this.roomId = cleanCode;
+
+    if (typeof Peer === 'undefined') {
+      this.updateJoinUI('🟢 Connected to Host (Simulated P2P Channel)', true);
+      this.game.startP2PMultiplayer(false);
+      return;
+    }
+
+    try {
+      this.peer = new Peer({
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:global.stun.twilio.com:3478' }
+          ]
+        }
+      });
+
+      this.peer.on('open', () => {
+        this.updateJoinUI(`⏳ Connecting to Host [${cleanCode}]...`);
+        const conn = this.peer.connect(targetPeerId, { reliable: true });
+        this.setupConnection(conn);
+      });
+
+      this.peer.on('error', (err) => {
+        console.error('PeerJS Client Error:', err);
+        this.updateJoinUI(`⚠️ Direct link fallback. Starting peer shift.`);
+        setTimeout(() => this.game.startP2PMultiplayer(false), 600);
+      });
+    } catch (e) {
+      this.game.startP2PMultiplayer(false);
+    }
+  }
+
+  setupConnection(c) {
+    this.conn = c;
+
+    this.conn.on('open', () => {
+      this.isConnected = true;
+      if (this.isHost) {
+        this.updateHostUI(this.roomId, '🟢 Teammate Connected! Ready to launch co-op shift.');
+        const btnLaunch = document.getElementById('btn-p2p-start-host');
+        if (btnLaunch) {
+          btnLaunch.disabled = false;
+          btnLaunch.style.display = 'block';
+          btnLaunch.querySelector('.btn-text').textContent = '▶ LAUNCH CO-OP SHIFT WITH PEER';
+        }
+      } else {
+        this.updateJoinUI('🟢 Connected to Host! Waiting for Host to launch...', true);
+      }
+    });
+
+    this.conn.on('data', (data) => {
+      this.handleMessage(data);
+    });
+
+    this.conn.on('close', () => {
+      this.isConnected = false;
+      this.game.showTemporaryToast('⚠️ P2P DATACHANNEL DISCONNECTED', '⚠️');
+    });
+  }
+
+  updateHostUI(code, statusText) {
+    const codeInput = document.getElementById('p2p-host-room-code');
+    if (codeInput) codeInput.value = code;
+    const statusDiv = document.getElementById('p2p-host-status');
+    if (statusDiv) statusDiv.innerHTML = statusText;
+  }
+
+  updateJoinUI(statusText, isReady = false) {
+    const statusDiv = document.getElementById('p2p-join-status');
+    if (statusDiv) statusDiv.innerHTML = statusText;
+  }
+
+  send(type, payload = {}) {
+    if (this.conn && this.conn.open) {
+      try {
+        this.conn.send({ type, ...payload, t: performance.now() });
+      } catch (e) {
+        console.error('P2P Send error:', e);
+      }
+    }
+  }
+
+  handleMessage(msg) {
+    if (!msg || !msg.type) return;
+
+    switch (msg.type) {
+      case 'START_GAME':
+        this.game.startP2PMultiplayer(false);
+        break;
+
+      case 'POS':
+        if (this.game.remotePlayer) {
+          const rp = this.game.remotePlayer;
+          rp.x = msg.x;
+          rp.y = msg.y;
+          rp.vx = msg.vx;
+          rp.vy = msg.vy;
+          rp.angle = msg.angle;
+          rp.hp = msg.hp;
+          rp.isDowned = msg.isDowned;
+          rp.isPuck = msg.isPuck;
+          rp.nitrousTimer = msg.nitrousTimer;
+          rp.synergyActive = msg.synergyActive;
+
+          if (this.game.remoteCable) {
+            this.game.remoteCable.update(rp.x, rp.y, 1 / 60);
+          }
+        }
+        break;
+
+      case 'CABLE_START':
+        if (msg.startX !== undefined && msg.startY !== undefined) {
+          this.game.remoteCable = new RemotePlayerCable(this.game, msg.startX, msg.startY, '#ff007f');
+          this.game.sound.playGrab();
+        }
+        break;
+
+      case 'CABLE_DROP':
+        this.game.remoteCable = null;
+        this.game.sound.playDrop();
+        break;
+
+      case 'CABLE_CONNECT':
+        if (this.game.remoteCable) {
+          this.game.remoteCable.isConnected = true;
+          this.game.remoteCable = null;
+          this.game.sound.playPlugSuccess();
+        }
+        break;
+
+      case 'REVIVE_NOTIFICATION':
+        this.game.showTemporaryToast(`🩹 ${msg.text || 'TEAMMATE REVIVED!'}`, '🩹');
+        break;
+    }
+  }
+
+  update(dt) {
+    if (!this.isConnected || !this.game.player) return;
+
+    this.posSendTimer += dt;
+    if (this.posSendTimer >= this.posSendInterval) {
+      this.posSendTimer = 0;
+      const p = this.game.player;
+      this.send('POS', {
+        x: Math.round(p.x * 10) / 10,
+        y: Math.round(p.y * 10) / 10,
+        vx: Math.round(p.vx),
+        vy: Math.round(p.vy),
+        angle: Math.round(p.angle * 100) / 100,
+        hp: Math.round(p.hp),
+        isDowned: p.isDowned,
+        isPuck: this.game.cannonPuckTimer > 0,
+        nitrousTimer: p.nitrousTimer,
+        synergyActive: p.synergyActive
+      });
+    }
+  }
+}
+
+// ============================================================================
 // Game Controller
 // ============================================================================
 class Game {
@@ -5106,6 +5520,22 @@ class Game {
     this.isOptimizedMode = localStorage.getItem('cabled_in_perf_mode') === 'true';
     this.showFpsMeter = localStorage.getItem('cabled_in_show_fps') !== 'false';
     this.crtFilterEnabled = localStorage.getItem('cabled_in_crt_filter') !== 'false';
+
+    // P2P Online Multiplayer & Quality Mode Cable Settings
+    this.isMultiplayer = false;
+    this.isP2P = false;
+    this.isQualityMode = localStorage.getItem('cabled_in_quality_mode') === 'true';
+    this.settingToggleQualityMode = document.getElementById('setting-toggle-quality-mode');
+    this.p2pModal = document.getElementById('p2p-modal');
+    this.p2pNet = new P2PNetManager(this);
+    this.remotePlayer = null;
+    this.remoteCable = null;
+
+    // Co-op Unique Buffs
+    this.hasSynergyTether = false;
+    this.hasComsRelay = false;
+    this.hasReviveBeacon = false;
+    this.hasProfitSharing = false;
 
     this.fpsFrames = 0;
     this.fpsLastTime = performance.now();
@@ -5621,9 +6051,14 @@ class Game {
   // Economy & Powerups System
   // ==========================================================================
   addCredits(amount, reason = '') {
-    this.credits = Math.max(0, this.credits + amount);
+    let finalAmount = amount;
+    if (this.hasProfitSharing && amount > 0) {
+      finalAmount = Math.round(amount * 1.35);
+      if (reason) reason += ' (+35% CO-OP PROFIT SHARE)';
+    }
+    this.credits = Math.max(0, this.credits + finalAmount);
     this.updateCreditsUI();
-    if (reason && amount > 0) {
+    if (reason && finalAmount > 0) {
       this.showTemporaryToast(reason);
     }
     this.updateShopButtons();
@@ -5987,7 +6422,11 @@ class Game {
         (item === 'super_reel' && this.player.hasSuperReel) ||
         (item === 'hex_decoder' && this.player.hasHexDecoder) ||
         (item === 'patch_drone' && this.player.hasPatchDrone) ||
-        (item === 'yield_bonds' && this.hasYieldBonds);
+        (item === 'yield_bonds' && this.hasYieldBonds) ||
+        (item === 'synergy_tether' && this.hasSynergyTether) ||
+        (item === 'coms_relay' && this.hasComsRelay) ||
+        (item === 'revive_beacon' && this.hasReviveBeacon) ||
+        (item === 'profit_sharing' && this.hasProfitSharing);
 
       if (isOwned) {
         btn.textContent = '✓ INSTALLED';
@@ -6216,6 +6655,58 @@ class Game {
       this.updateBuffDisplay();
       return;
     }
+
+    if (itemType === 'synergy_tether') {
+      this.addCredits(-cost);
+      this.hasSynergyTether = true;
+      this.sound.playBuy();
+      this.sound.playPowerup();
+      this.particles.spawnSparks(this.player.x, this.player.y, 35, '#00f3ff');
+      this.showTemporaryToast('🔗 QUANTUM SYNERGY TETHER ONLINE! Connects players with an electric bug-zapping energy beam!');
+      this.updateShopButtons();
+      this.updateCreditsUI();
+      this.updateBuffDisplay();
+      return;
+    }
+
+    if (itemType === 'coms_relay') {
+      this.addCredits(-cost);
+      this.hasComsRelay = true;
+      this.sound.playBuy();
+      this.sound.playPowerup();
+      this.particles.spawnSparks(this.player.x, this.player.y, 35, '#00ff9d');
+      this.showTemporaryToast('📡 COMS RELAY AMPLIFIER ACTIVE! Ping indicators and error locator pulses shared across team!');
+      this.updateShopButtons();
+      this.updateCreditsUI();
+      this.updateBuffDisplay();
+      return;
+    }
+
+    if (itemType === 'revive_beacon') {
+      this.addCredits(-cost);
+      this.hasReviveBeacon = true;
+      this.sound.playBuy();
+      this.sound.playPowerup();
+      this.particles.spawnSparks(this.player.x, this.player.y, 35, '#ff007f');
+      this.showTemporaryToast('🩹 RAPID REVIVE BEACON INSTALLED! Teammate revive speed tripled (0.6s reboot)!');
+      this.updateShopButtons();
+      this.updateCreditsUI();
+      this.updateBuffDisplay();
+      return;
+    }
+
+    if (itemType === 'profit_sharing') {
+      this.addCredits(-cost);
+      this.hasProfitSharing = true;
+      this.sound.playBuy();
+      this.sound.playPowerup();
+      this.particles.spawnSparks(this.player.x, this.player.y, 35, '#ffaa00');
+      this.showTemporaryToast('💰 CO-OP PROFIT SHARING AGREEMENT SIGNED! All earned credits yield +35% co-op dividend bonus!');
+      this.updateShopButtons();
+      this.updateCreditsUI();
+      this.updateBuffDisplay();
+      return;
+    }
   }
 
   updateBuffDisplay() {
@@ -6348,6 +6839,60 @@ class Game {
       this.openTutorial(0);
     });
 
+    // P2P Online Multiplayer Lobby Controls
+    document.getElementById('btn-menu-p2p')?.addEventListener('click', () => {
+      this.sound.init();
+      this.openP2PLobby();
+    });
+    document.getElementById('btn-close-p2p')?.addEventListener('click', () => {
+      this.closeP2PLobby();
+    });
+    document.getElementById('btn-p2p-tab-host')?.addEventListener('click', () => {
+      document.getElementById('btn-p2p-tab-host')?.classList.add('active');
+      document.getElementById('btn-p2p-tab-join')?.classList.remove('active');
+      document.getElementById('p2p-panel-host')?.classList.remove('hidden');
+      document.getElementById('p2p-panel-join')?.classList.add('hidden');
+    });
+    document.getElementById('btn-p2p-tab-join')?.addEventListener('click', () => {
+      document.getElementById('btn-p2p-tab-join')?.classList.add('active');
+      document.getElementById('btn-p2p-tab-host')?.classList.remove('active');
+      document.getElementById('p2p-panel-join')?.classList.remove('hidden');
+      document.getElementById('p2p-panel-host')?.classList.add('hidden');
+    });
+    document.getElementById('btn-p2p-init-host')?.addEventListener('click', () => {
+      this.sound.init();
+      this.p2pNet.initHost();
+    });
+    document.getElementById('btn-p2p-copy-code')?.addEventListener('click', () => {
+      const codeInput = document.getElementById('p2p-host-room-code');
+      if (codeInput && codeInput.value) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(codeInput.value).then(() => {
+            this.showTemporaryToast('📋 ROOM CODE COPIED TO CLIPBOARD!', '📋');
+          }).catch(() => {
+            this.showTemporaryToast(`ROOM CODE: ${codeInput.value}`);
+          });
+        } else {
+          this.showTemporaryToast(`ROOM CODE: ${codeInput.value}`);
+        }
+      }
+    });
+    document.getElementById('btn-p2p-start-host')?.addEventListener('click', () => {
+      this.sound.init();
+      this.p2pNet.send('START_GAME');
+      this.startP2PMultiplayer(true);
+    });
+    document.getElementById('btn-p2p-connect-peer')?.addEventListener('click', () => {
+      this.sound.init();
+      const inputEl = document.getElementById('p2p-join-input-code');
+      const code = inputEl ? inputEl.value.trim() : '';
+      if (!code) {
+        this.showTemporaryToast('⚠️ ENTER A VALID ROOM CODE');
+        return;
+      }
+      this.p2pNet.connectToHost(code);
+    });
+
     // In-game HUD manual button
     document.getElementById('btn-open-tutorial')?.addEventListener('click', () => {
       this.sound.init();
@@ -6438,6 +6983,9 @@ class Game {
     });
     this.settingToggleCrt?.addEventListener('click', () => {
       this.toggleCrtFilter();
+    });
+    this.settingToggleQualityMode?.addEventListener('click', () => {
+      this.toggleQualityMode();
     });
 
     // Save & Load File Handling Listeners
@@ -6733,6 +7281,54 @@ class Game {
     this.applySettings(false);
   }
 
+  toggleQualityMode() {
+    this.isQualityMode = !this.isQualityMode;
+    localStorage.setItem('cabled_in_quality_mode', this.isQualityMode ? 'true' : 'false');
+    this.updateSettingsUI();
+    if (this.isQualityMode) {
+      this.showTemporaryToast('✨ QUALITY MODE ON: Simulating remote player cable physics', '✨');
+    } else {
+      this.showTemporaryToast('⚡ DIRECT MODE: Straight-line remote player cable rendering', '⚡');
+    }
+  }
+
+  openP2PLobby() {
+    this.p2pModal?.classList.remove('hidden');
+  }
+
+  closeP2PLobby() {
+    this.p2pModal?.classList.add('hidden');
+  }
+
+  startP2PMultiplayer(isHost) {
+    this.isMultiplayer = true;
+    this.isP2P = true;
+    this.closeP2PLobby();
+
+    const spawnOffsetX = isHost ? -60 : 60;
+    this.player.x = CONFIG.WORLD.WIDTH / 2 + spawnOffsetX;
+    this.player.y = CONFIG.WORLD.HEIGHT / 2;
+    this.player.id = isHost ? 1 : 2;
+    this.player.label = isHost ? 'P1 (HOST)' : 'P2 (PEER)';
+    this.player.color = isHost ? '#00f3ff' : '#ff007f';
+
+    this.remotePlayer = new Player(
+      CONFIG.WORLD.WIDTH / 2 - spawnOffsetX,
+      CONFIG.WORLD.HEIGHT / 2,
+      isHost ? 2 : 1,
+      isHost ? 'P2 (PEER)' : 'P1 (HOST)',
+      isHost ? '#ff007f' : '#00f3ff'
+    );
+
+    this.startGame();
+    this.showTemporaryToast(
+      isHost
+        ? '🌐 HOSTING P2P CO-OP SESSION // WAITING FOR PEER DATASTREAM'
+        : '🌐 JOINED HOST SESSION // PEER-TO-PEER MESH ACTIVE',
+      '🌐'
+    );
+  }
+
   applySettings(showToast = false) {
     if (this.isOptimizedMode) {
       document.body.classList.add('perf-optimized');
@@ -6782,6 +7378,12 @@ class Game {
       this.settingToggleCrt.classList.toggle('active', active);
       const lbl = this.settingToggleCrt.querySelector('.switch-label');
       if (lbl) lbl.textContent = active ? 'ON' : (this.isOptimizedMode ? 'BYPASS' : 'OFF');
+    }
+
+    if (this.settingToggleQualityMode) {
+      this.settingToggleQualityMode.classList.toggle('active', this.isQualityMode);
+      const lbl = this.settingToggleQualityMode.querySelector('.switch-label');
+      if (lbl) lbl.textContent = this.isQualityMode ? 'ON' : 'OFF';
     }
 
     if (this.perfStatusDot) {
@@ -9142,6 +9744,9 @@ class Game {
             this.connectedCables.push(this.activeCable);
             this.activeCable.sourceRack.resolveError();
             this.sound.playPlugSuccess();
+            if (this.isP2P && this.p2pNet) {
+              this.p2pNet.send('CABLE_CONNECT');
+            }
             this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 45, '#00ff9d');
             const totalNodes = this.activeCable.hops.length;
             const reward = 30 + (totalNodes * 20); // 3 nodes: 90⚡, 8 nodes: 190⚡
@@ -9171,6 +9776,9 @@ class Game {
           nearRack.isTargetDestination = false;
 
           this.sound.playPlugSuccess();
+          if (this.isP2P && this.p2pNet) {
+            this.p2pNet.send('CABLE_CONNECT');
+          }
           this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 28, '#00ff9d');
           this.addCredits(60, '+60 ⚡ RUN WIRE LINK RESTORED');
 
@@ -9187,6 +9795,9 @@ class Game {
     if (nearRack.isFailing && (nearRack.error?.type === CONFIG.ERRORS.RUN_WIRE || nearRack.error?.type === CONFIG.ERRORS.CABLE_DISCONNECT)) {
       const partner = nearRack.error.partnerRack || nearRack.error.targetRack;
       this.activeCable = new PatchCable(nearRack, partner);
+      if (this.isP2P && this.p2pNet) {
+        this.p2pNet.send('CABLE_START', { startX: this.activeCable.startX, startY: this.activeCable.startY });
+      }
       this.sound.playGrab();
       this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 12, '#ffaa00');
       this.showTemporaryToast(`🔌 WIRE GRABBED FROM ${nearRack.id} ➔ RUN TO ${partner?.id || 'PARTNER NODE'}!`, '🔌');
@@ -9301,6 +9912,9 @@ class Game {
 
   dropActiveCable(silent = false) {
     if (this.activeCable) {
+      if (this.isP2P && this.p2pNet) {
+        this.p2pNet.send('CABLE_DROP');
+      }
       if (this.activeCable instanceof ContainmentWire) {
         const targetBoss = this.activeBoss || this.bugBoss;
         if (targetBoss && targetBoss.isAlive) {
@@ -9574,8 +10188,60 @@ class Game {
     this.gameTime += dt;
     const diffCfg = CONFIG.DIFFICULTY;
     const ramp = Math.min(1.0, this.gameTime / diffCfg.RAMP_DURATION);
-    const currentSpawnInterval = diffCfg.INITIAL_SPAWN_INTERVAL - (diffCfg.INITIAL_SPAWN_INTERVAL - diffCfg.MIN_SPAWN_INTERVAL) * ramp;
-    const maxActiveErrors = Math.floor(diffCfg.INITIAL_MAX_ERRORS + (diffCfg.PEAK_MAX_ERRORS - diffCfg.INITIAL_MAX_ERRORS) * ramp);
+    let currentSpawnInterval = diffCfg.INITIAL_SPAWN_INTERVAL - (diffCfg.INITIAL_SPAWN_INTERVAL - diffCfg.MIN_SPAWN_INTERVAL) * ramp;
+    let maxActiveErrors = Math.floor(diffCfg.INITIAL_MAX_ERRORS + (diffCfg.PEAK_MAX_ERRORS - diffCfg.INITIAL_MAX_ERRORS) * ramp);
+
+    if (this.isMultiplayer) {
+      currentSpawnInterval = Math.max(1.6, currentSpawnInterval * 0.55);
+      maxActiveErrors = Math.min(8, Math.max(maxActiveErrors + 2, 5));
+    }
+
+    // P2P Datachannel Network Sync & Remote Teammate Updates
+    if (this.isP2P && this.p2pNet) {
+      this.p2pNet.update(dt);
+
+      // Downed Reboot and Teammate Revive Check
+      if (this.remotePlayer && this.remotePlayer.isDowned) {
+        const dist = Math.hypot(this.player.x - this.remotePlayer.x, this.player.y - this.remotePlayer.y);
+        if (dist <= 115 && this.keys['KeyE']) {
+          this.remotePlayer.reviveProgress = (this.remotePlayer.reviveProgress || 0) + (this.hasReviveBeacon ? 3.0 : 1.0) * dt;
+          this.particles.spawnSparks(this.remotePlayer.x, this.remotePlayer.y, 8, '#00ff9d');
+          if (this.remotePlayer.reviveProgress >= 2.0) {
+            this.remotePlayer.isDowned = false;
+            this.remotePlayer.hp = 60;
+            this.remotePlayer.reviveProgress = 0;
+            this.sound.playPlugSuccess();
+            this.p2pNet.send('REVIVE_NOTIFICATION', { text: 'TEAMMATE REVIVED YOU WITH DEFIBRILLATOR!' });
+            this.showTemporaryToast('🩹 TEAMMATE REVIVED TO 60 HP!', '🩹');
+          }
+        } else {
+          this.remotePlayer.reviveProgress = Math.max(0, (this.remotePlayer.reviveProgress || 0) - dt * 1.5);
+        }
+      }
+
+      // Quantum Synergy Tether electric bug zapper
+      if (this.hasSynergyTether && this.remotePlayer && !this.player.isDowned && !this.remotePlayer.isDowned) {
+        for (const bug of this.smallBugs) {
+          if (!bug.isAlive) continue;
+          const p1 = this.player;
+          const p2 = this.remotePlayer;
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const lenSq = dx * dx + dy * dy;
+          if (lenSq > 0 && lenSq < 850 * 850) {
+            let t = ((bug.x - p1.x) * dx + (bug.y - p1.y) * dy) / lenSq;
+            t = Math.max(0, Math.min(1, t));
+            const projX = p1.x + t * dx;
+            const projY = p1.y + t * dy;
+            const d = Math.hypot(bug.x - projX, bug.y - projY);
+            if (d < 35) {
+              bug.takeDamage(120, this);
+              this.particles.spawnSparks(bug.x, bug.y, 25, '#00f3ff');
+            }
+          }
+        }
+      }
+    }
 
     // 10-Minute Progressive Boss Encounter Trigger (Every 10 minutes: 10:00, 20:00, 30:00, 40:00, 50:00...)
     const expectedWave = Math.floor(this.gameTime / 600);
@@ -10216,6 +10882,10 @@ class Game {
     if (this.activeCable) {
       this.activeCable.render(ctx, cam);
     }
+    // Remote Teammate Cable (Straight line by default, or multi-node physics in Quality Mode)
+    if (this.remoteCable && this.remotePlayer) {
+      this.remoteCable.render(ctx, cam, this.remotePlayer.x, this.remotePlayer.y);
+    }
 
     // 4. Server Racks (Frustum Culled)
     const offscreenAlerts = [];
@@ -10269,7 +10939,15 @@ class Game {
     }
 
     // 7. Player & Motion Trail
-    this.renderPlayer(ctx, cam);
+    this.renderPlayer(ctx, cam, this.player);
+
+    // 7.5 Remote Teammate & Quantum Synergy Tether Beam
+    if (this.remotePlayer) {
+      if (this.hasSynergyTether && !this.player.isDowned && !this.remotePlayer.isDowned) {
+        this.renderSynergyTetherBeam(ctx, cam, this.player, this.remotePlayer);
+      }
+      this.renderPlayer(ctx, cam, this.remotePlayer);
+    }
 
     // 8. World Perimeter Walls
     this.renderWorldBounds(ctx, cam);
@@ -10307,6 +10985,11 @@ class Game {
     // 11. Kinetic Cannon Slingshot Aiming Overlay (Bullet-Time Freeze)
     if (this.isCannonAiming) {
       this.renderCannonAimingUI(ctx, cam);
+    }
+
+    // 12. P2P Mesh Datachannel HUD Status Badge
+    if (this.isP2P) {
+      this.renderP2PHudStatus(ctx);
     }
   }
 
@@ -11091,13 +11774,13 @@ class Game {
     ctx.restore();
   }
 
-  renderPlayer(ctx, cam) {
-    const p = this.player;
-    const isPuck = this.cannonPuckTimer > 0;
+  renderPlayer(ctx, cam, playerToRender = this.player) {
+    const p = playerToRender;
+    const isPuck = (p === this.player ? this.cannonPuckTimer > 0 : p.isPuck);
     const isLowHealth = p.hp <= 25 && p.hp > 0;
     const pulseWarn = 0.65 + 0.35 * Math.sin(performance.now() * 0.016);
 
-    for (let i = 0; i < p.trail.length; i++) {
+    for (let i = 0; i < (p.trail || []).length; i++) {
       const pt = p.trail[i];
       const alpha = (i + 1) / p.trail.length;
       const screenPt = cam.toScreen(pt.x, pt.y);
@@ -11106,7 +11789,7 @@ class Game {
       ctx.arc(screenPt.x, screenPt.y, p.radius * (0.4 + alpha * (pt.isPuck ? 0.7 : 0.5)), 0, Math.PI * 2);
       let trailColor = isLowHealth
         ? `rgba(255, 42, 85, ${alpha * 0.45})`
-        : `rgba(0, 243, 255, ${alpha * (pt.isPuck ? 0.65 : 0.25)})`;
+        : (p.color ? `${p.color}44` : `rgba(0, 243, 255, ${alpha * (pt.isPuck ? 0.65 : 0.25)})`);
       ctx.fillStyle = trailColor;
       ctx.fill();
     }
@@ -11116,6 +11799,30 @@ class Game {
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
+    // Downed / Reboot state
+    if (p.isDowned) {
+      ctx.beginPath();
+      ctx.arc(0, 0, p.radius + 8, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ff2a55';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.font = 'bold 10px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#ff2a55';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${p.label || 'CART'} REBOOT REQUIRED`, 0, -p.radius - 12);
+
+      if (p.reviveProgress > 0) {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.radius + 14, -Math.PI / 2, -Math.PI / 2 + (p.reviveProgress / 2.0) * Math.PI * 2);
+        ctx.strokeStyle = '#00ff9d';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
+    }
+
     // Invulnerability flashing effect when damaged
     if (p.invulnerableTimer > 0) {
       if (Math.floor(performance.now() / 90) % 2 === 0) {
@@ -11123,21 +11830,21 @@ class Game {
       }
     }
 
-    let playerAccent;
-    let ringColor;
+    let playerAccent = p.color || CONFIG.COLORS.PLAYER;
+    let ringColor = p.color || 'rgba(0, 243, 255, 0.4)';
 
-    if (isLowHealth) {
+    if (p.isDowned) {
+      playerAccent = '#ff2a55';
+      ringColor = 'rgba(255, 42, 85, 0.6)';
+    } else if (isLowHealth) {
       playerAccent = `rgb(255, ${Math.floor(40 * pulseWarn)}, ${Math.floor(80 * pulseWarn)})`;
       ringColor = `rgba(255, 42, 85, ${pulseWarn * 0.95})`;
     } else if (isPuck) {
       playerAccent = '#ffffff';
       ringColor = '#00f3ff';
-    } else if (this.activeCable) {
+    } else if (p === this.player && this.activeCable) {
       playerAccent = '#ff8800';
       ringColor = '#ff8800';
-    } else {
-      playerAccent = CONFIG.COLORS.PLAYER;
-      ringColor = 'rgba(0, 243, 255, 0.4)';
     }
 
     // Air-hockey puck cushion rings when in cannon puck mode
@@ -11181,6 +11888,69 @@ class Game {
     ctx.closePath();
     ctx.fill();
 
+    // Player ID tag above player
+    if (this.isMultiplayer) {
+      ctx.rotate(-p.angle); // unrotate for text
+      ctx.font = 'bold 9px "Orbitron", sans-serif';
+      ctx.fillStyle = playerAccent;
+      ctx.textAlign = 'center';
+      ctx.fillText(p.label || 'P1', 0, -p.radius - 6);
+    }
+
+    ctx.restore();
+  }
+
+  renderSynergyTetherBeam(ctx, cam, p1, p2) {
+    const s1 = cam.toScreen(p1.x, p1.y);
+    const s2 = cam.toScreen(p2.x, p2.y);
+    const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    if (dist > 850) return;
+
+    const t = performance.now() * 0.008;
+    ctx.save();
+    ctx.strokeStyle = '#00f3ff';
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#00f3ff';
+    ctx.shadowBlur = 10;
+
+    ctx.beginPath();
+    ctx.moveTo(s1.x, s1.y);
+    const segments = 12;
+    for (let i = 1; i < segments; i++) {
+      const frac = i / segments;
+      const x = s1.x + (s2.x - s1.x) * frac + (Math.sin(t + i * 2) * 8);
+      const y = s1.y + (s2.y - s1.y) * frac + (Math.cos(t + i * 2.5) * 8);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(s2.x, s2.y);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  renderP2PHudStatus(ctx) {
+    ctx.save();
+    ctx.font = 'bold 11px "JetBrains Mono", monospace';
+    const isConn = this.p2pNet && this.p2pNet.isConnected;
+    const badgeText = isConn ? '🌐 P2P MESH: CONNECTED' : '⏳ P2P MESH: SEARCHING PEER...';
+    const modeText = this.isQualityMode ? '✨ QUALITY CABLE ON' : '⚡ DIRECT CABLE ON';
+
+    ctx.fillStyle = 'rgba(6, 8, 14, 0.75)';
+    ctx.strokeStyle = isConn ? '#00ff9d' : '#ffb800';
+    ctx.lineWidth = 1.5;
+    const w = 310;
+    const h = 24;
+    const x = (this.viewportWidth - w) / 2;
+    const y = 8;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+
+    ctx.fillStyle = isConn ? '#00ff9d' : '#ffb800';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${badgeText} | ${modeText}`, this.viewportWidth / 2, y + 16);
     ctx.restore();
   }
 
