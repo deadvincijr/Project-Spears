@@ -1103,7 +1103,6 @@ const CONFIG = {
     CABLE_DISCONNECT: 'RUN_WIRE', // Backward compatibility alias
     ACCESS_DENIED: 'ACCESS_DENIED',
     AUTH_LOCKOUT: 'ACCESS_DENIED', // Backward compatibility alias
-    MACHINE_ERROR: 'MACHINE_ERROR', // Display jammed: spam [E] (10-15x) to recover PIN
     RESTART_REQUIRED: 'RESTART_REQUIRED',
     HARD_REBOOT: 'RESTART_REQUIRED', // Backward compatibility alias
     CHAIN_WIRES: 'CHAIN_WIRES',
@@ -2311,10 +2310,12 @@ class Player {
       this.angle = Math.atan2(moveY, moveX);
     }
 
-    // SPEED: Permanent energy drinks boost top speed; Nitrous gives +400 px/s burst; Puck state allows cannon velocity
-    const maxSpeed = isCannonPuck 
-      ? (CONFIG.CANNON.LAUNCH_SPEED ?? 2150) 
-      : ((CONFIG.SPEED ?? 650) + this.permanentSpeedBonus + (this.nitrousTimer > 0 ? 400 : 0) + (this.adrenalineTimer > 0 ? 40 : 0));
+    // ACCELERATION: scales responsive push with permanent speed upgrades & nitrous
+    let accelBase = (CONFIG.ACCELERATION ?? 1150) + (this.permanentSpeedBonus * 1.2);
+    if (this.nitrousTimer > 0) accelBase += 850;
+    if (this.adrenalineTimer > 0) accelBase += 550;
+    this.vx += moveX * accelBase * dt;
+    this.vy += moveY * accelBase * dt;
 
     // FRICTION:
     // If in Cannon Puck Glide, near-zero friction for effortless air hockey table gliding!
@@ -2332,37 +2333,13 @@ class Player {
       if (this.adrenalineTimer > 0) friction = Math.max(0.905, friction - 0.012);
     }
 
-    // ACCELERATION: scales responsive push with permanent speed upgrades & nitrous
-    let accelBase = (CONFIG.ACCELERATION ?? 1150) + (this.permanentSpeedBonus * 1.2);
-    if (this.nitrousTimer > 0) accelBase += 850;
-    if (this.adrenalineTimer > 0) accelBase += 550;
-
-    // MAGNET COMPENSATION:
-    // Increased floor friction from magnets previously choked terminal velocity below max speed.
-    // Motor thrust actively scales to counteract ground friction so magnets NEVER lower cruising speed below maxSpeed!
-    if (inputLen > 0 && !isCannonPuck) {
-      const frictionLossComp = maxSpeed * (1 - friction) * 65;
-      accelBase += frictionLossComp;
-    }
-
-    this.vx += moveX * accelBase * dt;
-    this.vy += moveY * accelBase * dt;
-
-    // MAGNET LATERAL TRACTION & CONTROL:
-    // Magnets provide active floor grip, dampening sideways skidding when turning to make the cart easier to control!
-    if (inputLen > 0 && this.permanentFrictionBonus > 0 && !isCannonPuck) {
-      const fwdDot = this.vx * moveX + this.vy * moveY;
-      let latX = this.vx - fwdDot * moveX;
-      let latY = this.vy - fwdDot * moveY;
-      const lateralGrip = Math.pow(Math.max(0.70, 0.96 - this.permanentFrictionBonus * 6), dt * 60);
-      latX *= lateralGrip;
-      latY *= lateralGrip;
-      this.vx = fwdDot * moveX + latX;
-      this.vy = fwdDot * moveY + latY;
-    }
-
     this.vx *= Math.pow(friction, dt * 60);
     this.vy *= Math.pow(friction, dt * 60);
+
+    // SPEED: Permanent energy drinks boost top speed; Nitrous gives +400 px/s burst; Puck state allows cannon velocity
+    let maxSpeed = isCannonPuck 
+      ? (CONFIG.CANNON.LAUNCH_SPEED ?? 2150) 
+      : ((CONFIG.SPEED ?? 650) + this.permanentSpeedBonus + (this.nitrousTimer > 0 ? 400 : 0) + (this.adrenalineTimer > 0 ? 40 : 0));
 
     const currentSpeed = Math.hypot(this.vx, this.vy);
     if (currentSpeed > maxSpeed) {
@@ -2554,22 +2531,6 @@ class ServerRack {
       code: this.code,
       hasBeenInspected: false,
       description: 'ACCESS DENIED ➔ RETRIEVE PIN AT RACK & ENTER AT NOC DESK',
-    };
-  }
-
-  triggerMachineError() {
-    if (this.isDestroyed) return;
-    this.isFailing = true;
-    this.failDuration = 0;
-    const requiredTaps = Math.floor(Math.random() * 6) + 10; // 10 to 15 taps
-    this.error = {
-      type: CONFIG.ERRORS.MACHINE_ERROR,
-      code: this.code,
-      tapsRequired: requiredTaps,
-      currentTaps: 0,
-      pinRevealed: false,
-      hasBeenInspected: false,
-      description: 'MACHINE ERROR ➔ HARDWARE JAMMED! SPAM [E] (10-15x) TO RETRIEVE PIN',
     };
   }
 
@@ -6993,9 +6954,6 @@ class Game {
           hopIds: r.error.hops ? r.error.hops.map(h => h.id) : null,
           code: r.error.code || null,
           hasBeenInspected: Boolean(r.error.hasBeenInspected),
-          tapsRequired: r.error.tapsRequired ?? null,
-          currentTaps: r.error.currentTaps ?? null,
-          pinRevealed: Boolean(r.error.pinRevealed),
           description: r.error.description || ''
         };
       }
@@ -7310,11 +7268,6 @@ class Game {
             hasBeenInspected: Boolean(e.hasBeenInspected),
             description: e.description || ''
           };
-          if (e.type === CONFIG.ERRORS.MACHINE_ERROR) {
-            rack.error.tapsRequired = e.tapsRequired ?? 12;
-            rack.error.currentTaps = e.currentTaps ?? 0;
-            rack.error.pinRevealed = Boolean(e.pinRevealed);
-          }
           if (e.partnerId) {
             const partner = this.racks.find(r => r.id === e.partnerId);
             if (partner) {
@@ -7953,29 +7906,15 @@ class Game {
     }
 
     const errorRoll = Math.random();
-    if (errorRoll < 0.22) {
+    if (errorRoll < 0.28) {
       this.triggerCableError();
-    } else if (errorRoll < 0.44) {
+    } else if (errorRoll < 0.56) {
       this.triggerAuthLockoutError();
-    } else if (errorRoll < 0.64) {
-      this.triggerMachineErrorIncident();
-    } else if (errorRoll < 0.82) {
+    } else if (errorRoll < 0.78) {
       this.triggerMultiChainError();
     } else {
       this.triggerHardRebootError();
     }
-  }
-
-  triggerMachineErrorIncident(isDevShortcut = false) {
-    const available = this.racks.filter(r => !r.isFailing && !r.isDestroyed && !r.isTargetDestination);
-    if (available.length === 0) return;
-
-    const rack = available[Math.floor(Math.random() * available.length)];
-    rack.triggerMachineError();
-    rack.uptime = 90;
-    this.sound.playError();
-    const prefix = isDevShortcut ? '🛠️ [DEV] ' : '⚠️ ';
-    this.showTemporaryToast(`${prefix}MACHINE ERROR AT ${rack.id}! DISPLAY JAMMED ➔ SPAM [E] (10-15x) TO FORCE PIN RECOVERY!`, '⚙️');
   }
 
   triggerServerBugIncident(isDevShortcut = false) {
@@ -8253,14 +8192,6 @@ class Game {
         return;
       }
 
-      // Dev Shortcut: Trigger Machine Error [0]
-      if (e.code === 'Digit0') {
-        if (!e.shiftKey && !e.altKey && !e.ctrlKey) {
-          this.triggerMachineErrorIncident(true);
-          return;
-        }
-      }
-
       // Hardware Shop Modal Toggle [K]
       if (e.code === 'KeyK') {
         if (this.isCannonAiming) this.cancelCannonAim();
@@ -8424,35 +8355,6 @@ class Game {
             this.wormRack = nearRack;
             this.wormHoldTime = 0;
           }
-        } else if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.MACHINE_ERROR) {
-          if (e.repeat) return;
-          const err = nearRack.error;
-          if (!err.pinRevealed) {
-            err.currentTaps = (err.currentTaps || 0) + 1;
-            this.sound.playKey();
-            this.camera.shake(3, 0.08);
-            this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 8, '#ffaa00');
-
-            if (err.currentTaps >= err.tapsRequired) {
-              err.pinRevealed = true;
-              err.hasBeenInspected = true;
-              this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
-              if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
-              this.sound.playPowerup();
-              this.camera.shake(8, 0.2);
-              this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 40, '#00ff9d');
-              this.showTemporaryToast(`🔓 MACHINE UNJAMMED! PIN: [${nearRack.code}] RECOVERED ➔ ENTER AT NOC DESK!`, '🔓');
-              this.updateObjectiveUI();
-            } else {
-              const remaining = err.tapsRequired - err.currentTaps;
-              this.showTemporaryToast(`⚙️ UNJAMMING ${nearRack.id}... [${err.currentTaps}/${err.tapsRequired}] (SPAM [E] ${remaining} MORE TIME${remaining === 1 ? '' : 'S'}!)`, '⚙️');
-            }
-          } else {
-            this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
-            if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
-            this.sound.playKey();
-            this.showTemporaryToast(`PIN [${nearRack.code}] COPIED ➔ ENTER AT NOC DESK!`, '🔐');
-          }
         } else {
           this.handleInteractKey();
         }
@@ -8612,28 +8514,17 @@ class Game {
         }
       }
     } else {
-      // Keypad PIN entry types (Auth lockout, phantom glitch, machine error)
-      if (errType === CONFIG.ERRORS.MACHINE_ERROR) {
-        if (promptElem) promptElem.textContent = '> ENTER MACHINE OVERRIDE PIN:';
-        if (!rack.error?.pinRevealed) {
-          this.terminalFeedback.textContent = `MACHINE ERROR ➔ VISIT ${rack.id} & SPAM [E] TO UNJAM PIN DISPLAY`;
-          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
-        } else {
-          this.terminalFeedback.textContent = `SAVED PIN: [${rack.code}] ➔ ENTER PIN TO CLEAR MACHINE ERROR`;
-          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
-        }
+      // Keypad PIN entry types (Auth lockout, phantom glitch)
+      if (promptElem) promptElem.textContent = '> ENTER AUTH OVERRIDE PIN:';
+      if (!rack.error?.hasBeenInspected) {
+        this.terminalFeedback.textContent = `PIN UNKNOWN ➔ VISIT ${rack.id} TO RETRIEVE OVERRIDE CODE`;
+        this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
       } else {
-        if (promptElem) promptElem.textContent = '> ENTER AUTH OVERRIDE PIN:';
-        if (!rack.error?.hasBeenInspected) {
-          this.terminalFeedback.textContent = `PIN UNKNOWN ➔ VISIT ${rack.id} TO RETRIEVE OVERRIDE CODE`;
-          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
-        } else {
-          const isGlitch = errType === CONFIG.ERRORS.PHANTOM_GLITCH;
-          this.terminalFeedback.textContent = isGlitch 
-            ? `AUTHENTIC PIN: [${rack.code}] ➔ ENTER PIN TO DISPEL PHANTOM GLITCH`
-            : `SAVED PIN: [${rack.code}] ➔ ENTER PIN TO RESTORE NODE`;
-          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
-        }
+        const isGlitch = errType === CONFIG.ERRORS.PHANTOM_GLITCH;
+        this.terminalFeedback.textContent = isGlitch 
+          ? `AUTHENTIC PIN: [${rack.code}] ➔ ENTER PIN TO DISPEL PHANTOM GLITCH`
+          : `SAVED PIN: [${rack.code}] ➔ ENTER PIN TO RESTORE NODE`;
+        this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
       }
     }
     this.updateKeypadHexHighlight();
@@ -8651,7 +8542,6 @@ class Game {
         r.error?.type === CONFIG.ERRORS.ACCESS_DENIED ||
         r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT ||
         r.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH ||
-        r.error?.type === CONFIG.ERRORS.MACHINE_ERROR ||
         r.error?.type === CONFIG.ERRORS.RESTART_REQUIRED ||
         r.error?.type === CONFIG.ERRORS.SERVER_BUG ||
         r.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT ||
@@ -8677,18 +8567,11 @@ class Game {
           else if (t === CONFIG.ERRORS.SERVER_OVERHEAT) tag = r.isShutdown ? 'OFFLINE // COOLING' : 'FIRE OVERHEAT';
           else if (t === CONFIG.ERRORS.SERVER_SMALL_VIRUS) tag = r.isShutdown ? 'OFFLINE // DISINFECT' : 'VIRUS SLIME';
           else if (t === CONFIG.ERRORS.PHANTOM_GLITCH) tag = 'HOLO-GLITCH';
-          else if (t === CONFIG.ERRORS.MACHINE_ERROR) tag = r.error?.pinRevealed ? 'PIN UNJAMMED' : 'MACHINE ERROR';
 
           if (!r.isShutdown) {
-            if (t === CONFIG.ERRORS.MACHINE_ERROR) {
-              opt.textContent = r.error?.pinRevealed
-                ? `${r.id} // ${tag} [PIN: ${r.code}]`
-                : `${r.id} // ${tag} [PIN STUCK - SPAM E AT RACK]`;
-            } else {
-              opt.textContent = r.error?.hasBeenInspected
-                ? `${r.id} // ${tag} [PIN: ${r.code}]`
-                : `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`;
-            }
+            opt.textContent = r.error?.hasBeenInspected
+              ? `${r.id} // ${tag} [PIN: ${r.code}]`
+              : `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`;
           } else {
             opt.textContent = `${r.id} // ${tag}`;
           }
@@ -8793,8 +8676,7 @@ class Game {
     const isAuthType = (
       targetRack.error?.type === CONFIG.ERRORS.ACCESS_DENIED ||
       targetRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT ||
-      targetRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH ||
-      targetRack.error?.type === CONFIG.ERRORS.MACHINE_ERROR
+      targetRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH
     );
 
     if (!isShutdownType && !isAuthType) {
@@ -8832,18 +8714,17 @@ class Game {
 
       // isAuthType:
       const isGlitch = targetRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH;
-      const isMachine = targetRack.error?.type === CONFIG.ERRORS.MACHINE_ERROR;
       targetRack.resolveError();
       this.sound.playTerminalSuccess();
       this.particles.spawnSparks(this.nocDesk.x + this.nocDesk.width / 2, this.nocDesk.y, 35, '#00ff9d');
       const bonus = (this.activeSynergies.netops >= 1) ? 30 : 0;
-      const amount = (isGlitch ? 90 : (isMachine ? 85 : 75)) + bonus;
-      this.addCredits(amount, `+${amount} ⚡ ${isGlitch ? 'HOLO-PHANTOM GLITCH DISPELLED' : (isMachine ? 'MACHINE ERROR RESOLVED' : 'OVERRIDE AUTHENTICATED')}`);
+      const amount = (isGlitch ? 90 : 75) + bonus;
+      this.addCredits(amount, `+${amount} ⚡ ${isGlitch ? 'HOLO-PHANTOM GLITCH DISPELLED' : 'OVERRIDE AUTHENTICATED'}`);
 
       if (this.terminalFeedback) {
         this.terminalFeedback.textContent = isGlitch
           ? `HOLO-PHANTOM DISPELLED: ${targetRack.id} RESTORED`
-          : (isMachine ? `MACHINE ERROR CLEARED: ${targetRack.id} RESTORED` : `AUTH OVERRIDE ACCEPTED: ${targetRack.id} RESTORED`);
+          : `AUTH OVERRIDE ACCEPTED: ${targetRack.id} RESTORED`;
         this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_GREEN;
       }
 
@@ -9274,13 +9155,8 @@ class Game {
       return;
     }
 
-    // Machine Error protection: cannot simply scan PIN if unjamming is still required!
-    if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.MACHINE_ERROR && !nearRack.error?.pinRevealed) {
-      return;
-    }
-
     // 9. ALL SERVERS: Selecting any server rack scans and copies its PIN!
-    if (nearRack.error?.type === CONFIG.ERRORS.ACCESS_DENIED || nearRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT || nearRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH || nearRack.error?.type === CONFIG.ERRORS.MACHINE_ERROR) {
+    if (nearRack.error?.type === CONFIG.ERRORS.ACCESS_DENIED || nearRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT || nearRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH) {
       nearRack.error.hasBeenInspected = true;
     }
 
@@ -9291,7 +9167,7 @@ class Game {
     this.sound.playKey();
     this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 14, '#00ff9d');
 
-    if (nearRack.isFailing && (nearRack.error?.type === CONFIG.ERRORS.ACCESS_DENIED || nearRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT || nearRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH || nearRack.error?.type === CONFIG.ERRORS.MACHINE_ERROR)) {
+    if (nearRack.isFailing && (nearRack.error?.type === CONFIG.ERRORS.ACCESS_DENIED || nearRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT || nearRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH)) {
       this.showTemporaryToast(`SCANNED AUTHENTIC ${nearRack.id} // PIN: [${nearRack.code}] ➔ ENTER AT NOC DESK!`, '🔐');
       this.updateObjectiveUI();
     } else {
@@ -10950,16 +10826,6 @@ class Game {
             label = `PIN: ${rack.code} ➔ TYPE AT TERMINAL TO SHUT DOWN [${timeLeft}s!]`;
             badgeColor = '#10b981';
           }
-        }
-      } else if (errType === CONFIG.ERRORS.MACHINE_ERROR) {
-        if (!rack.error?.pinRevealed) {
-          const taps = rack.error?.currentTaps || 0;
-          const req = rack.error?.tapsRequired || 12;
-          label = `⚙️ MACHINE ERROR // DISPLAY JAMMED ➔ SPAM [E] (${taps}/${req}) [${timeLeft}s!]`;
-          badgeColor = '#f59e0b';
-        } else {
-          label = `PIN: ${rack.code} ➔ ENTER AT NOC DESK (${timeLeft}s!)`;
-          badgeColor = '#00ff9d';
         }
       } else if (errType === CONFIG.ERRORS.ACCESS_DENIED || errType === CONFIG.ERRORS.AUTH_LOCKOUT || errType === CONFIG.ERRORS.PHANTOM_GLITCH) {
         if (!rack.error?.hasBeenInspected) {
