@@ -58,6 +58,10 @@
           <span class="live-dot"></span>
           <span id="hud-seeker-count">0 ACTIVE</span>
         </div>
+        <div class="hud-pill sync-status-pill" id="hud-sync-pill" title="Firebase Realtime Database Status">
+          <span class="live-dot" id="hud-sync-dot" style="background: var(--accent-amber);"></span>
+          <span id="hud-sync-label">CONNECTING...</span>
+        </div>
       </div>
 
       <div class="hud-right">
@@ -397,6 +401,51 @@
               </div>
             </div>
 
+            <!-- Captured Fugitive Lockout Control Panel -->
+            <div class="form-group" style="border: 1px solid rgba(255, 23, 68, 0.4); background: rgba(255, 23, 68, 0.08); padding: 12px; border-radius: var(--radius-md);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span class="form-label" style="color: var(--accent-crimson); font-weight: 700; margin: 0;">
+                  <i class="fas fa-user-slash"></i> CAPTURED FUGITIVE LOCKOUT
+                </span>
+                <span id="admin-lockout-count-badge" class="hud-pill" style="font-size: 0.65rem; padding: 2px 8px; color: var(--accent-crimson); border-color: rgba(255, 23, 68, 0.4);">
+                  0 LOCKED
+                </span>
+              </div>
+              <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 10px;">
+                Flip a switch on captured players to lock them out of the app. Their screen will be blocked and all location, radar, and chat telemetry will be completely hidden until you restore access!
+              </p>
+
+              <!-- Global Sector Lockdown -->
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 10px;">
+                <div>
+                  <div style="font-size: 0.78rem; font-weight: 700; color: #fff;">SECTOR LOCKDOWN (ALL PLAYERS)</div>
+                  <div style="font-size: 0.67rem; color: var(--text-muted);">Instantly lock all non-admin devices</div>
+                </div>
+                <label class="tactical-switch">
+                  <input type="checkbox" id="admin-global-lockout-toggle">
+                  <span class="tactical-slider"></span>
+                </label>
+              </div>
+
+              <!-- Active Players Roster -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span class="form-label" style="font-size: 0.7rem; color: #fff; margin: 0;">ACTIVE PARTICIPANT ROSTER:</span>
+                <div style="display: flex; gap: 6px;">
+                  <button type="button" id="admin-refresh-roster-btn" class="hud-btn" style="font-size: 0.65rem; padding: 2px 6px;" title="Refresh Player Roster">
+                    <i class="fas fa-sync-alt"></i> REFRESH
+                  </button>
+                  <button type="button" id="admin-purge-all-players-btn" class="hud-btn" style="color: #ff5252; font-size: 0.65rem; padding: 2px 6px;" title="Purge All Participant Data">
+                    <i class="fas fa-trash-alt"></i> PURGE ALL
+                  </button>
+                </div>
+              </div>
+              <div id="admin-player-roster-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; padding-right: 2px;">
+                <div style="font-size: 0.72rem; color: var(--text-muted); text-align: center; padding: 12px;">
+                  No active players connected yet. Players appear here when they open the radar.
+                </div>
+              </div>
+            </div>
+
             <!-- Patrol Simulation -->
             <div class="form-group">
               <span class="form-label">Automated Patrol Simulator (Test Mode)</span>
@@ -561,17 +610,14 @@
         <form id="firebase-settings-form">
           <div class="modal-body">
             <p style="font-size: 0.75rem; color: var(--text-muted);">
-              Paste your Firebase project credentials object below to enable multi-device live cloud sync across all phones! (If omitted, app automatically operates in local/broadcast mode).
+              Agent Franks is pre-configured for Realtime Database at <code>https://agent-franks-default-rtdb.firebaseio.com</code>. Paste your Web API Key or custom config object below to connect!
             </p>
             <div class="form-group">
               <label for="firebase-config-json" class="form-label">Firebase Config JSON</label>
               <textarea id="firebase-config-json" class="form-textarea" rows="7" placeholder='{
-  "apiKey": "AIzaSy...",
-  "authDomain": "your-app.firebaseapp.com",
-  "projectId": "your-app",
-  "storageBucket": "your-app.appspot.com",
-  "messagingSenderId": "...",
-  "appId": "..."
+  "projectId": "agent-franks",
+  "databaseURL": "https://agent-franks-default-rtdb.firebaseio.com",
+  "apiKey": "AIzaSy..."
 }'></textarea>
             </div>
           </div>
@@ -671,6 +717,30 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       OVERLAY: COMPROMISED / CAPTURED FUGITIVE LOCKOUT
+       ==================================================================== -->
+  <div id="compromised-lockout-screen" class="lockout-screen">
+    <div class="lockout-card">
+      <i class="fas fa-skull-crossbones lockout-icon"></i>
+      <h1 class="lockout-title">AGENT COMPROMISED</h1>
+      <div class="lockout-badge">ACCESS REVOKED // YOU HAVE BEEN CAPTURED</div>
+      <p class="lockout-desc">
+        Your tactical clearance has been revoked by Command Overwatch. All radar telemetry, team tracking, landmark coordinates, and squad comms have been terminated.
+      </p>
+      <div class="lockout-meta-box">
+        <div style="display: flex; justify-content: space-between;">
+          <span>STATUS:</span>
+          <span style="color: #ff5252; font-weight: 700;">CAPTURED / DETAINED</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span>CLEARANCE:</span>
+          <span style="color: var(--accent-amber);">ADMIN OVERWATCH RESTORAL REQUIRED</span>
+        </div>
       </div>
     </div>
   </div>

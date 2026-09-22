@@ -38,6 +38,14 @@ class FugitiveApp {
     window.tacticalSync.onBoundaryChanged((boundary) => this.handleBoundaryUpdated(boundary));
     window.tacticalSync.onLandmarksChanged((landmarks) => this.handleLandmarksUpdated(landmarks));
     window.tacticalSync.onMessagesChanged((messages, newMsg) => this.handleMessagesUpdated(messages, newMsg));
+    window.tacticalSync.onSyncStatusChanged((status, details) => this.handleSyncStatusChanged(status, details));
+    window.tacticalSync.onLockoutChanged((lockouts) => this.handleLockoutUpdated(lockouts));
+    window.tacticalSync.onPlayersChanged((players) => {
+      this.handlePlayersUpdated(players);
+      if (window.adminEngine && window.adminEngine.isAdminUnlocked) {
+        this.renderAdminPlayerRoster();
+      }
+    });
 
     // 6. Setup UI Event Listeners
     this.setupUIEvents();
@@ -828,20 +836,67 @@ class FugitiveApp {
       });
     }
 
+    // 4c. Admin Captured Fugitive Lockout Controls
+    const globalLockoutToggle = document.getElementById('admin-global-lockout-toggle');
+    if (globalLockoutToggle) {
+      globalLockoutToggle.addEventListener('change', async (e) => {
+        const isLocked = e.target.checked;
+        await window.tacticalSync.setGlobalLockout(isLocked);
+        this.showToast(
+          isLocked ? 'SECTOR LOCKDOWN: ALL FUGITIVES LOCKED OUT' : 'SECTOR LOCKDOWN LIFTED: ALL RESTORED',
+          isLocked ? 'user-slash' : 'user-check'
+        );
+        this.renderAdminPlayerRoster();
+      });
+    }
+
+    const refreshRosterBtn = document.getElementById('admin-refresh-roster-btn');
+    if (refreshRosterBtn) {
+      refreshRosterBtn.addEventListener('click', () => {
+        this.renderAdminPlayerRoster();
+        this.showToast('PLAYER ROSTER REFRESHED', 'sync-alt');
+      });
+    }
+
+    const purgeAllPlayersBtn = document.getElementById('admin-purge-all-players-btn');
+    if (purgeAllPlayersBtn) {
+      purgeAllPlayersBtn.addEventListener('click', async () => {
+        if (confirm('PURGE ALL PLAYERS:\nAre you sure you want to permanently remove ALL active participant records and delete all player telemetry data from the radar?')) {
+          await window.tacticalSync.clearAllPlayers();
+          this.showToast('ALL PLAYERS PURGED', 'trash-alt');
+          this.renderAdminPlayerRoster();
+        }
+      });
+    }
+
     // 5. Firebase Settings Form
     const fbForm = document.getElementById('firebase-settings-form');
     if (fbForm) {
       fbForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const rawJson = document.getElementById('firebase-config-json').value.trim();
-        try {
-          const cfg = JSON.parse(rawJson);
-          window.tacticalSync.setFirebaseConfig(cfg);
-          this.showToast('FIREBASE CONFIG APPLIED', 'check-circle');
-          this.closeAllModals();
-        } catch (err) {
-          alert('Invalid JSON format. Please paste valid Firebase config object.');
+        const inputVal = document.getElementById('firebase-config-json').value.trim();
+        if (!inputVal) {
+          alert('Please enter a Firebase API Key or config JSON.');
+          return;
         }
+        let cfg;
+        if (inputVal.startsWith('{')) {
+          try {
+            cfg = JSON.parse(inputVal);
+          } catch (err) {
+            alert('Invalid JSON format. Please check syntax.');
+            return;
+          }
+        } else {
+          cfg = {
+            apiKey: inputVal,
+            projectId: 'agent-franks',
+            databaseURL: 'https://agent-franks-default-rtdb.firebaseio.com'
+          };
+        }
+        window.tacticalSync.setFirebaseConfig(cfg);
+        this.showToast('FIREBASE CONFIG APPLIED', 'check-circle');
+        this.closeAllModals();
       });
     }
 
@@ -965,6 +1020,92 @@ class FugitiveApp {
 
     if (cosmetics.length > 0) {
       document.getElementById('report-cosmetic-select').value = cosmetics[0].id;
+    }
+  }
+
+  handleSyncStatusChanged(status, details) {
+    const pill = document.getElementById('hud-sync-pill');
+    const dot = document.getElementById('hud-sync-dot');
+    const label = document.getElementById('hud-sync-label');
+    if (!pill || !dot || !label) return;
+
+    if (status === 'connected') {
+      dot.style.background = '#00ff9d';
+      dot.style.boxShadow = '0 0 8px #00ff9d';
+      label.textContent = 'RTDB ONLINE';
+      pill.style.borderColor = 'rgba(0, 255, 157, 0.4)';
+    } else if (status === 'permission_denied') {
+      dot.style.background = '#ff3366';
+      dot.style.boxShadow = '0 0 8px #ff3366';
+      label.textContent = 'RULES BLOCKED';
+      pill.style.borderColor = 'rgba(255, 51, 102, 0.6)';
+      this.showToast('FIREBASE RULES BLOCKED: Allow read/write in Firebase Console', 'exclamation-triangle');
+    } else {
+      dot.style.background = 'var(--accent-amber)';
+      dot.style.boxShadow = 'none';
+      label.textContent = 'CONNECTING...';
+      pill.style.borderColor = 'var(--border-subtle)';
+    }
+  }
+
+  handleLockoutUpdated(lockouts) {
+    const myPlayerId = localStorage.getItem('agentFranks_playerId');
+    const myCodename = (localStorage.getItem('agentFranks_codename') || '').toLowerCase().trim();
+    const isAdmin = window.adminEngine && window.adminEngine.isAdminUnlocked;
+
+    // Check if global lockdown is active
+    const isGlobalLocked = !!(lockouts && lockouts.global && lockouts.global.locked);
+
+    // Check if this specific player is locked out by ID or codename
+    let isPlayerLocked = false;
+    if (lockouts) {
+      if (myPlayerId && lockouts[myPlayerId] && lockouts[myPlayerId].locked) {
+        isPlayerLocked = true;
+      }
+      for (const key in lockouts) {
+        if (lockouts[key] && lockouts[key].locked) {
+          if (lockouts[key].codename && lockouts[key].codename.toLowerCase().trim() === myCodename) {
+            isPlayerLocked = true;
+            break;
+          }
+        }
+      }
+    }
+
+    const isLockedOut = (isGlobalLocked || isPlayerLocked) && !isAdmin;
+
+    const overlay = document.getElementById('compromised-lockout-screen');
+    if (overlay) {
+      if (isLockedOut) {
+        overlay.classList.add('is-active');
+        this.closeAllModals();
+        if (window.tacticalAudio) window.tacticalAudio.playAlert();
+        // Remove access to all location and other info by wiping map layers
+        if (window.seekerManager && this.map) {
+          window.seekerManager.renderPinsOnMap(this.map, [], () => {});
+        }
+        if (window.mapEngine && window.mapEngine.landmarksLayer) {
+          window.mapEngine.landmarksLayer.clearLayers();
+        }
+        if (window.gpsTracker && this.map) {
+          window.gpsTracker.renderTeammates(this.map, {});
+        }
+      } else {
+        const wasActive = overlay.classList.contains('is-active');
+        overlay.classList.remove('is-active');
+        if (wasActive) {
+          this.showToast('CLEARANCE RESTORED // ACCESS GRANTED', 'check-circle');
+          // Re-render tactical data from live cloud caches
+          this.handlePinsUpdated(window.tacticalSync.pins);
+          this.handlePlayersUpdated(window.tacticalSync.players);
+          this.handleLandmarksUpdated(window.tacticalSync.landmarks);
+          this.handleBoundaryUpdated(window.tacticalSync.boundary);
+        }
+      }
+    }
+
+    if (window.adminEngine && window.adminEngine.isAdminUnlocked) {
+      this.renderAdminPlayerRoster();
     }
   }
 
@@ -1333,11 +1474,108 @@ class FugitiveApp {
     if (window.adminEngine.isAdminUnlocked) {
       if (lockView) lockView.style.display = 'none';
       if (panelView) panelView.style.display = 'flex';
+      this.renderAdminPlayerRoster();
       this.renderAdminCosmeticsList();
       this.renderAdminLandmarksList();
     } else {
       if (lockView) lockView.style.display = 'flex';
       if (panelView) panelView.style.display = 'none';
+    }
+  }
+
+  renderAdminPlayerRoster() {
+    const container = document.getElementById('admin-player-roster-list');
+    const globalToggle = document.getElementById('admin-global-lockout-toggle');
+    const countBadge = document.getElementById('admin-lockout-count-badge');
+    if (!container || !window.tacticalSync) return;
+
+    const lockouts = window.tacticalSync.lockouts || {};
+    const players = window.tacticalSync.players || {};
+
+    if (globalToggle) {
+      globalToggle.checked = !!(lockouts.global && lockouts.global.locked);
+    }
+
+    const playerKeys = Object.keys(players);
+    let lockedCount = (lockouts.global && lockouts.global.locked) ? playerKeys.length : 0;
+
+    container.innerHTML = '';
+
+    if (playerKeys.length === 0) {
+      container.innerHTML = `
+        <div style="font-size: 0.72rem; color: var(--text-muted); text-align: center; padding: 14px 10px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+          <i class="fas fa-users-slash" style="margin-right: 4px;"></i> No active players connected yet. Players appear automatically when they open the radar.
+        </div>
+      `;
+      if (countBadge) {
+        countBadge.textContent = `${lockedCount} LOCKED`;
+        countBadge.style.color = lockedCount > 0 ? '#ff1744' : 'var(--accent-green)';
+      }
+      return;
+    }
+
+    playerKeys.forEach((pId) => {
+      const p = players[pId];
+      const isLocked = !!(lockouts[pId] && lockouts[pId].locked);
+      if (isLocked) lockedCount++;
+      const realName = window.seekerManager ? window.seekerManager.getRealName(p.codename) : '';
+
+      const item = document.createElement('div');
+      item.className = `player-roster-item ${isLocked ? 'is-locked' : ''}`;
+      item.innerHTML = `
+        <div class="player-roster-info">
+          <div class="player-roster-name">
+            <i class="fas ${isLocked ? 'fa-user-slash' : 'fa-user-shield'}" style="color: ${isLocked ? '#ff1744' : '#00e5ff'};"></i>
+            <span>${p.codename || 'Agent'}</span>
+            ${realName ? `<span style="font-size: 0.72rem; color: #8b949e;">(${realName})</span>` : ''}
+          </div>
+          <div class="player-roster-meta">
+            ROLE: <span style="color: #fff; text-transform: uppercase;">${p.role || 'Fugitive'}</span> • 
+            STATUS: <span style="color: ${isLocked ? '#ff1744; font-weight: 700;' : '#00e676;'}">${isLocked ? 'CAPTURED / LOCKED OUT' : 'ACTIVE IN FIELD'}</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label class="tactical-switch" title="Toggle Lockout for ${p.codename || 'Agent'}">
+            <input type="checkbox" class="player-lockout-toggle" data-player-id="${pId}" ${isLocked ? 'checked' : ''}>
+            <span class="tactical-slider"></span>
+          </label>
+          <button type="button" class="hud-btn player-delete-btn" data-player-id="${pId}" title="Purge Player Data" style="color: #ff1744; font-size: 0.75rem; padding: 5px 8px; border-color: rgba(255, 23, 68, 0.4);">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+      `;
+
+      const toggle = item.querySelector('.player-lockout-toggle');
+      if (toggle) {
+        toggle.addEventListener('change', async (e) => {
+          const shouldLock = e.target.checked;
+          await window.tacticalSync.setPlayerLockout(pId, shouldLock, p.codename);
+          this.showToast(
+            shouldLock ? `LOCKED OUT: ${(p.codename || 'Agent').toUpperCase()}` : `ACCESS RESTORED: ${(p.codename || 'Agent').toUpperCase()}`,
+            shouldLock ? 'user-slash' : 'user-check'
+          );
+          this.renderAdminPlayerRoster();
+        });
+      }
+
+      const delBtn = item.querySelector('.player-delete-btn');
+      if (delBtn) {
+        delBtn.addEventListener('click', async () => {
+          const codename = (p.codename || 'Agent').toUpperCase();
+          if (confirm(`PURGE PLAYER DATA:\nAre you sure you want to permanently remove ${codename} from the tactical roster and delete all their telemetry data?`)) {
+            await window.tacticalSync.removePlayer(pId);
+            this.showToast(`PURGED: ${codename}`, 'trash-alt');
+            this.renderAdminPlayerRoster();
+          }
+        });
+      }
+
+      container.appendChild(item);
+    });
+
+    if (countBadge) {
+      countBadge.textContent = `${lockedCount} LOCKED`;
+      countBadge.style.color = lockedCount > 0 ? '#ff1744' : 'var(--accent-green)';
     }
   }
 

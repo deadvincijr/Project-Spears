@@ -187,14 +187,14 @@
                 <button type="button" class="btn-buy" id="btn-buy-energy_drink" data-item="energy_drink" data-cost="150">150 ⚡ BUY</button>
               </div>
 
-              <!-- Item 2: Neodymium Floor Magnet -->
-              <div class="shop-card cat-drift" data-category="drift" data-item="magnet">
-                <div class="card-icon">🧲</div>
+              <!-- Item 2: Phase Dash Module (Prototype) -->
+              <div class="shop-card cat-drift is-prototype-locked" data-category="drift" data-item="phase_dash">
+                <div class="card-icon">⚡</div>
                 <div class="card-info">
-                  <div class="card-name">Neodymium Floor Magnet <span style="font-size: 0.68rem; color: #00f3ff;">[DRIFT]</span></div>
-                  <div class="card-desc" id="shop-desc-magnet">Permanently increases ground friction &amp; traction for tighter turns (Base: 150 ⚡, +50 ⚡ per purchase)</div>
+                  <div class="card-name">Phase Dash Module <span class="shop-badge-prototype">[PROTOTYPE]</span></div>
+                  <div class="card-desc" id="shop-desc-phase_dash">Press [SHIFT] to phase dash through obstacles, racks, &amp; hazards with invulnerability</div>
                 </div>
-                <button type="button" class="btn-buy" id="btn-buy-magnet" data-item="magnet" data-cost="150">150 ⚡ BUY</button>
+                <button type="button" class="btn-buy" id="btn-buy-phase_dash" data-item="phase_dash" data-cost="350">350 ⚡ BUY</button>
               </div>
 
               <!-- Item 3: Nitrous Afterburners -->
@@ -266,6 +266,16 @@
                   <div class="card-desc">When HP reaches 0, auto-defibrillates cart back to 100 HP with 4s invulnerability &amp; electric blast</div>
                 </div>
                 <button type="button" class="btn-buy" id="btn-buy-defibrillator" data-item="defibrillator" data-cost="300">300 ⚡ BUY</button>
+              </div>
+
+              <!-- Item 9b: Cryo Deflector Shield (Prototype) -->
+              <div class="shop-card cat-combat is-prototype-locked" data-category="combat" data-item="cryo_shield">
+                <div class="card-icon">🛡️</div>
+                <div class="card-info">
+                  <div class="card-name">Cryo Deflector Shield <span class="shop-badge-prototype">[PROTOTYPE]</span></div>
+                  <div class="card-desc" id="shop-desc-cryo_shield">Absorbs fatal impacts and triggers an invulnerability freeze field every 45s</div>
+                </div>
+                <button type="button" class="btn-buy" id="btn-buy-cryo_shield" data-item="cryo_shield" data-cost="350">350 ⚡ BUY</button>
               </div>
 
               <!-- === BUILD 3: NETOPS ARCHITECT === -->
@@ -572,6 +582,27 @@
             </div>
           </div>
 
+          <div class="settings-group">
+            <div class="settings-group-header">
+              <span class="settings-group-icon">🛠️</span>
+              <span class="settings-group-title">DEVELOPER &amp; DEBUG CHEATS</span>
+            </div>
+
+            <!-- Developer Mode Toggle -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Developer Cheats Mode</div>
+                <div class="setting-desc">Enables keyboard debug shortcuts during gameplay: [B] spawn/advance Bosses, [1-3, 8, 9, N] spawn manual rack errors &amp; incidents, [Shift+T] instant teleporter unlock. When OFF, all debug keys are locked so numbers and keys never disrupt normal play or terminal typing.</div>
+              </div>
+              <div class="setting-control">
+                <button type="button" id="setting-toggle-dev" class="cyber-switch" aria-label="Toggle Developer Mode">
+                  <span class="switch-knob"></span>
+                  <span class="switch-label">OFF</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div class="settings-status-bar">
             <span class="status-indicator-dot" id="perf-status-dot"></span>
             <span id="perf-status-text">ACTIVE PROFILE: 💎 ULTRA GRAPHICS</span>
@@ -777,10 +808,10 @@
                 </div>
               </div>
               <div class="catalog-item">
-                <span class="catalog-icon">🧲</span>
+                <span class="catalog-icon">💻</span>
                 <div class="catalog-details">
-                  <strong>Neodymium Floor Magnet</strong> (Base: 150 ⚡, +50⚡ per purchase)
-                  <p>Permanently increases ground friction and floor traction for razor-sharp steering and cornering.</p>
+                  <strong>Portable Field NOC Terminal</strong> (Apex Boss Reward)
+                  <p>Press <span class="key-pill">P</span> to deploy a field console anywhere in the warehouse; tap <span class="key-pill">E</span> near it for instant breaker shutdowns and PIN overrides.</p>
                 </div>
               </div>
               <div class="catalog-item">
@@ -1070,6 +1101,50 @@
           </div>
           <div class="leaderboard-footer">
             <button type="button" id="btn-clear-leaderboard" class="btn-clear-scores">RESET LOCAL RECORDS</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Apex Boss Defeat Requisition Choice Modal -->
+    <div id="boss-reward-modal" class="boss-reward-modal hidden" role="dialog" aria-modal="true" aria-labelledby="boss-reward-title">
+      <div class="boss-reward-window">
+        <div class="boss-reward-header">
+          <div class="boss-reward-dot"></div>
+          <span id="boss-reward-title" class="boss-reward-title">DEFCON BOSS NEUTRALIZED // APEX REQUISITION PROTOCOL</span>
+        </div>
+        <div class="boss-reward-body">
+          <p class="boss-reward-subtitle">VICTORY CONFIRMED! SELECT 1 APEX HARDWARE PROTOCOL FOR YOUR CART:</p>
+          <div class="boss-reward-grid">
+            <!-- Choice 1: Quantum Subspace Teleporter -->
+            <div class="boss-reward-card" id="card-reward-teleporter">
+              <div class="boss-reward-pill">TACTICAL MOBILITY</div>
+              <div class="boss-reward-icon">🌀</div>
+              <h3 class="boss-reward-name">Quantum Subspace Teleporter Kit</h3>
+              <p class="boss-reward-desc">Deploy a linked pair of Quantum Pads (Node &alpha; &amp; Node &beta;) anywhere using <span class="key-pill">T</span>. Step on either pad or tap <span class="key-pill">T</span> to instantly warp across the warehouse floor!</p>
+              <div class="boss-reward-status" id="reward-teleporter-status">APEX PROTOCOL: READY</div>
+              <button type="button" class="btn-reward-select" id="btn-select-teleporter">CLAIM TELEPORTER KIT</button>
+            </div>
+
+            <!-- Choice 2: Portable Field Terminal -->
+            <div class="boss-reward-card" id="card-reward-terminal">
+              <div class="boss-reward-pill">REMOTE COMMAND</div>
+              <div class="boss-reward-icon">💻</div>
+              <h3 class="boss-reward-name">Portable Field NOC Terminal</h3>
+              <p class="boss-reward-desc">Deploy a mobile NOC console anywhere with <span class="key-pill">P</span>! Tap <span class="key-pill">E</span> near it to shut down breakers or input PINs on the fly without sprinting back south, and press <span class="key-pill">P</span> to relocate it.</p>
+              <div class="boss-reward-status" id="reward-terminal-status">APEX PROTOCOL: READY</div>
+              <button type="button" class="btn-reward-select" id="btn-select-portable-terminal">CLAIM FIELD TERMINAL</button>
+            </div>
+
+            <!-- Choice 3: Shop Clearance & Limit Expansion -->
+            <div class="boss-reward-card" id="card-reward-shop">
+              <div class="boss-reward-pill">SUPPLY EXPANSION</div>
+              <div class="boss-reward-icon">🔓</div>
+              <h3 class="boss-reward-name">Shop Clearance &amp; Limit Overclock</h3>
+              <p class="boss-reward-desc">Unlocks military prototype powerups in the IT Depot (Cryo Shield, Phase Dash Module), AND increases the purchase cap on all repeatable powerups (Energy Drinks, Cannon Ammo, Defibrillator) by +3!</p>
+              <div class="boss-reward-status" id="reward-shop-status">APEX PROTOCOL: READY</div>
+              <button type="button" class="btn-reward-select" id="btn-select-shop-expansion">CLAIM SHOP CLEARANCE</button>
+            </div>
           </div>
         </div>
       </div>

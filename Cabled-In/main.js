@@ -2920,6 +2920,103 @@ class NOCTerminalStation {
 }
 
 // ============================================================================
+// Portable Field NOC Terminal Station (Deployable Apex Reward)
+// ============================================================================
+class PortableTerminalStation {
+  constructor(x, y, width = 110, height = 58) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.animTime = 0;
+  }
+
+  isNear(px, py, maxDist = 95) {
+    const cx = this.x + this.width / 2;
+    const cy = this.y + this.height / 2;
+    return Math.hypot(px - cx, py - cy) <= maxDist;
+  }
+
+  update(dt) {
+    this.animTime += dt;
+  }
+
+  render(ctx, cam) {
+    const pos = cam.toScreen(this.x, this.y);
+    const pulse = Math.sin(this.animTime * 3) * 0.5 + 0.5;
+
+    // Ground hologram emission ring
+    ctx.save();
+    ctx.strokeStyle = `rgba(0, 255, 157, ${0.3 + pulse * 0.35})`;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.ellipse(pos.x + this.width / 2, pos.y + this.height / 2, 70, 42, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // Drop Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(pos.x + 4, pos.y + 4, this.width, this.height);
+
+    // Main Chassis
+    ctx.fillStyle = '#060b13';
+    ctx.fillRect(pos.x, pos.y, this.width, this.height);
+    ctx.strokeStyle = '#00ff9d';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(pos.x, pos.y, this.width, this.height);
+
+    // Dual Miniature Holographic Monitors
+    const monW = (this.width - 16) / 2;
+    for (let i = 0; i < 2; i++) {
+      const mx = pos.x + 6 + i * (monW + 4);
+      const my = pos.y + 6;
+      ctx.fillStyle = '#02050a';
+      ctx.fillRect(mx, my, monW, 26);
+      ctx.strokeStyle = i === 0 ? '#00f3ff' : '#00ff9d';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(mx, my, monW, 26);
+
+      ctx.fillStyle = i === 0 ? '#00f3ff' : '#00ff9d';
+      for (let l = 0; l < 2; l++) {
+        ctx.fillRect(mx + 4, my + 5 + l * 7, monW - 8 - (l * 6), 2);
+      }
+    }
+
+    // Glowing Antenna Beacon
+    const ax = pos.x + this.width / 2;
+    const ay = pos.y;
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ax, ay - 14);
+    ctx.stroke();
+
+    ctx.fillStyle = pulse > 0.5 ? '#00ff9d' : '#00f3ff';
+    ctx.beginPath();
+    ctx.arc(ax, ay - 14, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Keypad Base Strip
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(pos.x + 10, pos.y + 36, this.width - 20, 14);
+    ctx.fillStyle = '#00ff9d';
+    ctx.fillRect(pos.x + 16, pos.y + 40, 6, 6);
+    ctx.fillStyle = '#ffb800';
+    ctx.fillRect(pos.x + 28, pos.y + 40, 6, 6);
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(pos.x + 40, pos.y + 40, 6, 6);
+
+    // Label
+    ctx.font = 'bold 9px "Orbitron", sans-serif';
+    ctx.fillStyle = '#00ff9d';
+    ctx.textAlign = 'center';
+    ctx.fillText('PORTABLE FIELD NOC', pos.x + this.width / 2, pos.y - 20);
+  }
+}
+
+// ============================================================================
 // IT Supply Depot / Hardware Shop Kiosk Entity (Bottom Right Station)
 // ============================================================================
 class ShopKioskStation {
@@ -5057,6 +5154,7 @@ class Game {
     this.settingTogglePerf = document.getElementById('setting-toggle-perf');
     this.settingToggleFps = document.getElementById('setting-toggle-fps');
     this.settingToggleCrt = document.getElementById('setting-toggle-crt');
+    this.settingToggleDev = document.getElementById('setting-toggle-dev');
     this.perfStatusDot = document.getElementById('perf-status-dot');
     this.perfStatusText = document.getElementById('perf-status-text');
     this.fpsCard = document.getElementById('fps-card');
@@ -5067,6 +5165,7 @@ class Game {
     this.isOptimizedMode = localStorage.getItem('cabled_in_perf_mode') === 'true';
     this.showFpsMeter = localStorage.getItem('cabled_in_show_fps') !== 'false';
     this.crtFilterEnabled = localStorage.getItem('cabled_in_crt_filter') !== 'false';
+    this.isDevMode = localStorage.getItem('cabled_in_dev_mode') === 'true';
 
     this.fpsFrames = 0;
     this.fpsLastTime = performance.now();
@@ -5142,6 +5241,12 @@ class Game {
     this.credits = 100; // Starting credit balance
     this.energyDrinkPurchases = 0;
     this.magnetPurchases = 0;
+    this.powerupMaxLimitBonus = 0;
+    this.shopClearanceLevel = 0;
+    this.hasPortableTerminal = false;
+    this.portableTerminal = null;
+    this.isBossRewardOpen = false;
+    this.bossRewardModal = document.getElementById('boss-reward-modal');
     this.activeBuffs = {
       nitro: 0,
       grip: 0,
@@ -5162,6 +5267,7 @@ class Game {
     this.initTerminalMinigame();
     this.initShopModal();
     this.initSuppliesModal();
+    this.initBossRewardModal();
     this.initMenuAndTutorial();
     this.checkLocalQuickSave();
     this.applySettings(false);
@@ -5526,49 +5632,24 @@ class Game {
     this.bossHudBanner?.classList.add('hidden');
 
     const wave = targetBoss.wave || 1;
-    let rewardCredits = 500;
-    let rewardToast = '';
+    const rewardCredits = 500 * Math.max(1, wave);
 
-    if (wave === 1) {
-      rewardCredits = 500;
-      this.bossDefeatedOnce = true;
-      this.unlockedErrors.add(CONFIG.ERRORS.SERVER_BUG);
-      this.hasTeleporterItem = true;
-      this.sound.playTeleportDeploy(0);
-      rewardToast = '✨ UNIQUE REWARD: QUANTUM TELEPORTER KIT UNLOCKED! Press [T] to place Node Alpha!';
-    } else if (wave === 2) {
-      rewardCredits = 750;
-      this.unlockedErrors.add(CONFIG.ERRORS.SERVER_OVERHEAT);
-      this.player.hasCryoShield = true;
-      this.player.cryoShieldCooldown = 0;
-      this.sound.playIceShatter();
-      rewardToast = '🛡️ UNIQUE REWARD: CRYO DEFLECTOR SHIELD UNLOCKED! Absorbs fatal hits every 45s!';
-    } else if (wave === 3) {
-      rewardCredits = 1000;
-      this.unlockedErrors.add(CONFIG.ERRORS.SERVER_SMALL_VIRUS);
-      this.player.hasPhaseDash = true;
-      this.sound.playGlitchStatic();
-      rewardToast = '⚡ UNIQUE REWARD: PHASE DASH MODULE UNLOCKED! Press [SHIFT] to dash through obstacles!';
+    // Register unlocked errors for incident catalog progression
+    if (targetBoss.unlockedError) {
+      this.unlockedErrors.add(targetBoss.unlockedError);
     } else {
-      // Wave 4+ Endless Scaling
-      rewardCredits = 500 * wave;
-      if (wave % 3 === 0) {
-        this.player.maxHp += 25;
-        this.player.hp = Math.min(this.player.maxHp, this.player.hp + 25);
-        this.updatePlayerHealthUI();
-        rewardToast = `👑 TIER ${wave} BOSS PURGED! (+${rewardCredits} ⚡) — OVERCLOCK: MAX HP BOOSTED TO ${this.player.maxHp} HP!`;
-      } else if (wave % 3 === 1) {
-        this.player.permanentSpeedBonus += 50;
-        rewardToast = `👑 TIER ${wave} BOSS PURGED! (+${rewardCredits} ⚡) — OVERCLOCK: TOP VELOCITY BOOSTED +50 px/s!`;
-      } else {
-        this.cannonCharges += 1;
-        rewardToast = `👑 TIER ${wave} BOSS PURGED! (+${rewardCredits} ⚡) — OVERCLOCK: +1 FREE KINETIC CANNON CHARGE!`;
-      }
+      if (wave === 1) this.unlockedErrors.add(CONFIG.ERRORS.SERVER_BUG);
+      if (wave === 2) this.unlockedErrors.add(CONFIG.ERRORS.SERVER_OVERHEAT);
+      if (wave >= 3) this.unlockedErrors.add(CONFIG.ERRORS.SERVER_SMALL_VIRUS);
     }
 
+    this.bossDefeatedOnce = true;
     this.addCredits(rewardCredits, `+${rewardCredits} ⚡ ${targetBoss.name} PURGED!`);
     this.updateBuffDisplay();
-    this.showTemporaryToast(`🏆 ${targetBoss.name} PURGED! (+${rewardCredits} ⚡) — ${rewardToast}`, targetBoss.icon || '🏆');
+    this.showTemporaryToast(`🏆 ${targetBoss.name} PURGED! (+${rewardCredits} ⚡) — REQUISITION PROTOCOL READY!`, targetBoss.icon || '🏆');
+
+    // Trigger Interactive Apex Boss Reward Choice Modal
+    this.openBossRewardModal(targetBoss);
 
     this.activeBoss = null;
     this.bugBoss = null;
@@ -5576,6 +5657,113 @@ class Game {
 
   defeatBugBoss() {
     this.defeatBoss(this.activeBoss || this.bugBoss);
+  }
+
+  // ==========================================================================
+  // Apex Boss Reward Requisition System (Teleporter / Field Terminal / Shop Clearance)
+  // ==========================================================================
+  initBossRewardModal() {
+    document.getElementById('btn-select-teleporter')?.addEventListener('click', () => {
+      this.grantTeleporterReward();
+    });
+    document.getElementById('btn-select-portable-terminal')?.addEventListener('click', () => {
+      this.grantPortableTerminalReward();
+    });
+    document.getElementById('btn-select-shop-expansion')?.addEventListener('click', () => {
+      this.grantShopClearanceReward();
+    });
+  }
+
+  openBossRewardModal(targetBoss) {
+    if (this.isTerminalOpen) this.closeTerminal();
+    if (this.isShopOpen) this.closeShop();
+    this.isBossRewardOpen = true;
+    this.keys = {};
+
+    // Dynamic state on cards
+    const statusTele = document.getElementById('reward-teleporter-status');
+    const btnTele = document.getElementById('btn-select-teleporter');
+    if (statusTele && btnTele) {
+      if (!this.hasTeleporterItem) {
+        statusTele.textContent = 'PROTOCOL: READY (NEW ITEM)';
+        statusTele.style.color = '#00f3ff';
+        btnTele.textContent = 'CLAIM TELEPORTER KIT';
+      } else {
+        statusTele.textContent = 'OWNED: OVERCLOCK RECHARGE FREQUENCY';
+        statusTele.style.color = '#00ff9d';
+        btnTele.textContent = 'OVERCLOCK TELEPORTER (0.2s COOLDOWN)';
+      }
+    }
+
+    const statusTerm = document.getElementById('reward-terminal-status');
+    const btnTerm = document.getElementById('btn-select-portable-terminal');
+    if (statusTerm && btnTerm) {
+      if (!this.hasPortableTerminal) {
+        statusTerm.textContent = 'PROTOCOL: READY (NEW DEPLOYABLE)';
+        statusTerm.style.color = '#00ff9d';
+        btnTerm.textContent = 'CLAIM FIELD TERMINAL';
+      } else {
+        statusTerm.textContent = 'OWNED: FIELD TRANSMITTER AMPLIFIED';
+        statusTerm.style.color = '#38bdf8';
+        btnTerm.textContent = 'AMPLIFY FIELD TERMINAL';
+      }
+    }
+
+    const statusShop = document.getElementById('reward-shop-status');
+    const btnShop = document.getElementById('btn-select-shop-expansion');
+    if (statusShop && btnShop) {
+      statusShop.textContent = `CLEARANCE LVL ${this.shopClearanceLevel + 1} (+3 POWERUP PURCHASE CAPS)`;
+      statusShop.style.color = '#c084fc';
+      btnShop.textContent = `EXPAND SHOP & CAPS (+3 TO ALL)`;
+    }
+
+    this.bossRewardModal?.classList.remove('hidden');
+    if (this.sound?.playLevelUp) this.sound.playLevelUp();
+  }
+
+  closeBossRewardModal() {
+    this.isBossRewardOpen = false;
+    this.bossRewardModal?.classList.add('hidden');
+    this.keys = {};
+  }
+
+  grantTeleporterReward() {
+    if (!this.hasTeleporterItem) {
+      this.hasTeleporterItem = true;
+      if (this.sound?.playTeleportDeploy) this.sound.playTeleportDeploy(0);
+      this.particles.spawnSparks(this.player.x, this.player.y, 40, '#00f3ff');
+      this.showTemporaryToast('🌀 QUANTUM TELEPORTER KIT UNLOCKED! Press [T] to place Node Alpha!', '✨');
+    } else {
+      CONFIG.TELEPORTER.COOLDOWN = 0.2;
+      this.teleportCooldown = 0;
+      if (this.sound?.playTeleportWarp) this.sound.playTeleportWarp();
+      this.particles.spawnSparks(this.player.x, this.player.y, 50, '#00f3ff');
+      this.showTemporaryToast('⚡ QUANTUM TELEPORTER OVERCLOCKED! WARP COOLDOWN REDUCED TO 0.2s!', '⚡');
+    }
+    this.closeBossRewardModal();
+    this.updateBuffDisplay();
+  }
+
+  grantPortableTerminalReward() {
+    this.hasPortableTerminal = true;
+    if (this.sound?.playCabinetOpen) this.sound.playCabinetOpen();
+    this.particles.spawnSparks(this.player.x, this.player.y, 45, '#00ff9d');
+    this.showTemporaryToast('💻 PORTABLE FIELD TERMINAL ACQUIRED! Press [P] anywhere on the map to deploy/relocate!', '💻');
+    this.closeBossRewardModal();
+    this.updateBuffDisplay();
+    this.calculateSynergies();
+  }
+
+  grantShopClearanceReward() {
+    this.shopClearanceLevel += 1;
+    this.powerupMaxLimitBonus += 3;
+    if (this.sound?.playBuy) this.sound.playBuy();
+    if (this.sound?.playPowerup) this.sound.playPowerup();
+    this.particles.spawnSparks(this.player.x, this.player.y, 55, '#c084fc');
+    this.showTemporaryToast(`🔓 SHOP CLEARANCE LEVEL ${this.shopClearanceLevel} GRANTED! ALL POWERUP CAPS EXPANDED +3!`, '🔓');
+    this.closeBossRewardModal();
+    this.updateShopButtons();
+    this.calculateSynergies();
   }
 
   // ==========================================================================
@@ -5853,17 +6041,20 @@ class Game {
       (this.magnetPurchases > 0 ? 1 : 0) + 
       (this.player.hasNitrous ? 1 : 0) + 
       (this.player.hasSlalomSprings ? 1 : 0) + 
-      (this.player.hasTeflonSkids ? 1 : 0);
+      (this.player.hasTeflonSkids ? 1 : 0) +
+      (this.player.hasPhaseDash ? 1 : 0);
 
     const combatCount = (this.cannonCharges > 1 ? 1 : 0) + 
       (this.player.hasSpikedBumper ? 1 : 0) + 
       (this.player.hasEmpShockwave ? 1 : 0) + 
-      (this.player.defibrillatorCharges > 0 ? 1 : 0);
+      (this.player.defibrillatorCharges > 0 ? 1 : 0) +
+      (this.player.hasCryoShield ? 1 : 0);
 
     const netopsCount = (this.player.hasSuperReel ? 1 : 0) + 
       (this.player.hasHexDecoder ? 1 : 0) + 
       (this.player.hasPatchDrone ? 1 : 0) + 
-      (this.hasYieldBonds ? 1 : 0);
+      (this.hasYieldBonds ? 1 : 0) +
+      (this.hasPortableTerminal ? 1 : 0);
 
     this.activeSynergies.drift = driftCount >= 4 ? 3 : (driftCount >= 3 ? 2 : (driftCount >= 2 ? 1 : 0));
     this.activeSynergies.combat = combatCount >= 4 ? 3 : (combatCount >= 3 ? 2 : (combatCount >= 2 ? 1 : 0));
@@ -5891,6 +6082,10 @@ class Game {
   }
 
   updateShopButtons() {
+    const maxEnergy = 3 + (this.powerupMaxLimitBonus || 0);
+    const maxCannon = 3 + (this.powerupMaxLimitBonus || 0);
+    const maxDefib = 2 + (this.powerupMaxLimitBonus || 0);
+
     const energyCost = 150 + (this.energyDrinkPurchases || 0) * 50;
     const magnetCost = 150 + (this.magnetPurchases || 0) * 50;
     const cannonCost = CONFIG.CANNON.COST ?? 150;
@@ -5899,32 +6094,30 @@ class Game {
     const btnEnergy = document.getElementById('btn-buy-energy_drink');
     if (btnEnergy) {
       btnEnergy.dataset.cost = energyCost;
-      btnEnergy.textContent = `${energyCost} ⚡ BUY`;
-      btnEnergy.disabled = this.credits < energyCost;
+      if ((this.energyDrinkPurchases || 0) >= maxEnergy) {
+        btnEnergy.textContent = `MAXED OUT (${this.energyDrinkPurchases}/${maxEnergy})`;
+        btnEnergy.disabled = true;
+      } else {
+        btnEnergy.textContent = `${energyCost} ⚡ BUY (${this.energyDrinkPurchases || 0}/${maxEnergy})`;
+        btnEnergy.disabled = this.credits < energyCost;
+      }
     }
     const descEnergy = document.getElementById('shop-desc-energy_drink');
     if (descEnergy) {
       const topSpeed = (CONFIG.SPEED ?? 650) + (this.player.permanentSpeedBonus || 0);
-      descEnergy.textContent = `Permanently boosts top sliding speed by +35 px/s (Purchased: ${this.energyDrinkPurchases || 0} | Top Speed: ${topSpeed} px/s)`;
-    }
-
-    const btnMagnet = document.getElementById('btn-buy-magnet');
-    if (btnMagnet) {
-      btnMagnet.dataset.cost = magnetCost;
-      btnMagnet.textContent = `${magnetCost} ⚡ BUY`;
-      btnMagnet.disabled = this.credits < magnetCost;
-    }
-    const descMagnet = document.getElementById('shop-desc-magnet');
-    if (descMagnet) {
-      const curFriction = Math.max(0.920, (CONFIG.FRICTION ?? 0.982) - (this.player.permanentFrictionBonus || 0));
-      descMagnet.textContent = `Permanently increases ground friction & traction (Purchased: ${this.magnetPurchases || 0} | Floor Slip: ${curFriction.toFixed(3)})`;
+      descEnergy.textContent = `Permanently boosts top sliding speed by +35 px/s (Purchased: ${this.energyDrinkPurchases || 0}/${maxEnergy} | Top Speed: ${topSpeed} px/s)`;
     }
 
     const btnCannon = document.getElementById('btn-buy-cannon');
     if (btnCannon) {
       btnCannon.dataset.cost = cannonCost;
-      btnCannon.textContent = `${cannonCost} ⚡ BUY (${this.cannonCharges} ARMED)`;
-      btnCannon.disabled = this.credits < cannonCost;
+      if ((this.cannonCharges || 0) >= maxCannon) {
+        btnCannon.textContent = `MAXED OUT (${this.cannonCharges}/${maxCannon})`;
+        btnCannon.disabled = true;
+      } else {
+        btnCannon.textContent = `${cannonCost} ⚡ BUY (${this.cannonCharges}/${maxCannon} ARMED)`;
+        btnCannon.disabled = this.credits < cannonCost;
+      }
     }
 
     const btnReplacement = document.getElementById('btn-buy-replacement_chassis');
@@ -5940,6 +6133,20 @@ class Game {
       const cost = parseInt(btn.dataset.cost, 10);
       if (item === 'energy_drink' || item === 'magnet' || item === 'cannon' || item === 'replacement_chassis') return;
 
+      const card = btn.closest('.shop-card');
+
+      // Prototype items clearance lock check
+      if (item === 'cryo_shield' || item === 'phase_dash') {
+        if (this.shopClearanceLevel === 0) {
+          if (card) card.classList.add('is-prototype-locked');
+          btn.textContent = '🔒 CLEARANCE REQ';
+          btn.disabled = true;
+          return;
+        } else {
+          if (card) card.classList.remove('is-prototype-locked');
+        }
+      }
+
       const isOwned = (item === 'nitrous' && this.player.hasNitrous) ||
         (item === 'slalom_springs' && this.player.hasSlalomSprings) ||
         (item === 'teflon_skids' && this.player.hasTeflonSkids) ||
@@ -5948,15 +6155,24 @@ class Game {
         (item === 'super_reel' && this.player.hasSuperReel) ||
         (item === 'hex_decoder' && this.player.hasHexDecoder) ||
         (item === 'patch_drone' && this.player.hasPatchDrone) ||
-        (item === 'yield_bonds' && this.hasYieldBonds);
+        (item === 'yield_bonds' && this.hasYieldBonds) ||
+        (item === 'cryo_shield' && this.player.hasCryoShield) ||
+        (item === 'phase_dash' && this.player.hasPhaseDash);
 
       if (isOwned) {
         btn.textContent = '✓ INSTALLED';
         btn.disabled = true;
       } else if (item === 'defibrillator') {
-        btn.textContent = `${cost} ⚡ BUY (${this.player.defibrillatorCharges || 0} CHARGES)`;
-        btn.disabled = this.credits < cost;
+        const curDefib = this.player.defibrillatorCharges || 0;
+        if (curDefib >= maxDefib) {
+          btn.textContent = `MAXED OUT (${curDefib}/${maxDefib})`;
+          btn.disabled = true;
+        } else {
+          btn.textContent = `${cost} ⚡ BUY (${curDefib}/${maxDefib} CHARGES)`;
+          btn.disabled = this.credits < cost;
+        }
       } else {
+        btn.textContent = `${cost} ⚡ BUY`;
         btn.disabled = this.credits < cost;
       }
     });
@@ -5986,6 +6202,12 @@ class Game {
     }
 
     if (itemType === 'energy_drink') {
+      const maxEnergy = 3 + (this.powerupMaxLimitBonus || 0);
+      if ((this.energyDrinkPurchases || 0) >= maxEnergy) {
+        this.sound.playTerminalFail?.();
+        this.showTemporaryToast(`⚠️ ENERGY DRINKS AT MAX CAPACITY (${maxEnergy}/${maxEnergy}) — EXPAND CAP VIA BOSS APEX REWARD!`);
+        return;
+      }
       this.addCredits(-cost);
       this.energyDrinkPurchases = (this.energyDrinkPurchases || 0) + 1;
       this.player.permanentSpeedBonus = (this.player.permanentSpeedBonus || 0) + 35;
@@ -5994,24 +6216,7 @@ class Game {
       this.particles.spawnSparks(this.player.x, this.player.y, 30, '#ffaa00');
       const topSpeed = (CONFIG.SPEED ?? 650) + this.player.permanentSpeedBonus;
       const nextCost = 150 + this.energyDrinkPurchases * 50;
-      this.showTemporaryToast(`🥤 ENERGY DRINK CONSUMED! MAX SPEED +35 px/s (TOP SPEED: ${topSpeed} px/s) [NEXT: ${nextCost} ⚡]`);
-      this.calculateSynergies();
-      this.updateShopButtons();
-      this.updateCreditsUI();
-      this.updateBuffDisplay();
-      return;
-    }
-
-    if (itemType === 'magnet') {
-      this.addCredits(-cost);
-      this.magnetPurchases = (this.magnetPurchases || 0) + 1;
-      this.player.permanentFrictionBonus = (this.player.permanentFrictionBonus || 0) + 0.004;
-      this.sound.playBuy();
-      this.sound.playPowerup();
-      this.particles.spawnSparks(this.player.x, this.player.y, 30, '#00ff9d');
-      const curFriction = Math.max(0.920, (CONFIG.FRICTION ?? 0.982) - this.player.permanentFrictionBonus);
-      const nextCost = 150 + this.magnetPurchases * 50;
-      this.showTemporaryToast(`🧲 FLOOR MAGNET INSTALLED! GROUND TRACTION INCREASED (SLIP: ${curFriction.toFixed(3)}) [NEXT: ${nextCost} ⚡]`);
+      this.showTemporaryToast(`🥤 ENERGY DRINK CONSUMED! (${this.energyDrinkPurchases}/${maxEnergy}) TOP SPEED: ${topSpeed} px/s`);
       this.calculateSynergies();
       this.updateShopButtons();
       this.updateCreditsUI();
@@ -6020,12 +6225,65 @@ class Game {
     }
 
     if (itemType === 'cannon') {
+      const maxCannon = 3 + (this.powerupMaxLimitBonus || 0);
+      if ((this.cannonCharges || 0) >= maxCannon) {
+        this.sound.playTerminalFail?.();
+        this.showTemporaryToast(`⚠️ KINETIC CANNON AT MAX CAPACITY (${maxCannon}/${maxCannon}) — EXPAND CAP VIA BOSS APEX REWARD!`);
+        return;
+      }
       this.addCredits(-cost);
       this.cannonCharges = (this.cannonCharges || 0) + 1;
       this.sound.playBuy();
       this.sound.playPowerup();
       this.particles.spawnSparks(this.player.x, this.player.y, 30, '#00f3ff');
-      this.showTemporaryToast(`🎯 KINETIC CANNON CHARGE ACQUIRED! (TOTAL: ${this.cannonCharges}) // PRESS [F] TO ARM`);
+      this.showTemporaryToast(`🎯 KINETIC CANNON CHARGE ACQUIRED! (${this.cannonCharges}/${maxCannon}) // PRESS [F] TO ARM`);
+      this.calculateSynergies();
+      this.updateShopButtons();
+      this.updateCreditsUI();
+      this.updateBuffDisplay();
+      return;
+    }
+
+    if (itemType === 'cryo_shield') {
+      if (this.shopClearanceLevel === 0) {
+        this.sound.playTerminalFail?.();
+        this.showTemporaryToast(`🔒 CRYO DEFLECTOR SHIELD IS LOCKED — DEFEAT A MAIN BOSS & SELECT SHOP CLEARANCE!`);
+        return;
+      }
+      if (this.player.hasCryoShield) {
+        this.showTemporaryToast(`✓ CRYO DEFLECTOR SHIELD IS ALREADY INSTALLED!`);
+        return;
+      }
+      this.addCredits(-cost);
+      this.player.hasCryoShield = true;
+      this.player.cryoShieldCooldown = 0;
+      this.sound.playBuy();
+      this.sound.playPowerup();
+      this.particles.spawnSparks(this.player.x, this.player.y, 35, '#00f3ff');
+      this.showTemporaryToast(`🛡️ CRYO DEFLECTOR SHIELD INSTALLED! ABSORBS 1 FATAL DAMAGE HIT EVERY 45s!`);
+      this.calculateSynergies();
+      this.updateShopButtons();
+      this.updateCreditsUI();
+      this.updateBuffDisplay();
+      return;
+    }
+
+    if (itemType === 'phase_dash') {
+      if (this.shopClearanceLevel === 0) {
+        this.sound.playTerminalFail?.();
+        this.showTemporaryToast(`🔒 PHASE DASH MODULE IS LOCKED — DEFEAT A MAIN BOSS & SELECT SHOP CLEARANCE!`);
+        return;
+      }
+      if (this.player.hasPhaseDash) {
+        this.showTemporaryToast(`✓ PHASE DASH MODULE IS ALREADY INSTALLED!`);
+        return;
+      }
+      this.addCredits(-cost);
+      this.player.hasPhaseDash = true;
+      this.sound.playBuy();
+      this.sound.playPowerup();
+      this.particles.spawnSparks(this.player.x, this.player.y, 35, '#a855f7');
+      this.showTemporaryToast(`⚡ PHASE DASH MODULE INSTALLED! PRESS [SHIFT] TO PHASE DASH THROUGH OBSTACLES!`);
       this.calculateSynergies();
       this.updateShopButtons();
       this.updateCreditsUI();
@@ -6282,6 +6540,16 @@ class Game {
       }
       this.activeBuffsContainer.appendChild(teleBadge);
     }
+
+    // Portable Field NOC Terminal Badge
+    if (this.hasPortableTerminal) {
+      const termBadge = document.createElement('div');
+      termBadge.className = 'buff-badge buff-portable-terminal';
+      termBadge.innerHTML = this.portableTerminal
+        ? `💻 FIELD TERMINAL: DEPLOYED [E: OPEN | P: RELOCATE]`
+        : `💻 FIELD TERMINAL: READY [PRESS P TO DEPLOY]`;
+      this.activeBuffsContainer.appendChild(termBadge);
+    }
   }
 
   // ==========================================================================
@@ -6399,6 +6667,9 @@ class Game {
     });
     this.settingToggleCrt?.addEventListener('click', () => {
       this.toggleCrtFilter();
+    });
+    this.settingToggleDev?.addEventListener('click', () => {
+      this.toggleDevMode();
     });
 
     // Save & Load File Handling Listeners
@@ -6694,6 +6965,19 @@ class Game {
     this.applySettings(false);
   }
 
+  toggleDevMode() {
+    this.isDevMode = !this.isDevMode;
+    localStorage.setItem('cabled_in_dev_mode', this.isDevMode ? 'true' : 'false');
+    this.sound.playUpgrade();
+    this.updateSettingsUI();
+    this.showTemporaryToast(
+      this.isDevMode
+        ? '🛠️ DEV MODE ENABLED // Debug keys unlocked [B: Boss, N: Bug, 1-3: Errors, 8: Fire, 9: Virus]'
+        : '🔒 DEV MODE DISABLED // Debug keys locked',
+      this.isDevMode ? '🛠️' : '🔒'
+    );
+  }
+
   applySettings(showToast = false) {
     if (this.isOptimizedMode) {
       document.body.classList.add('perf-optimized');
@@ -6743,6 +7027,12 @@ class Game {
       this.settingToggleCrt.classList.toggle('active', active);
       const lbl = this.settingToggleCrt.querySelector('.switch-label');
       if (lbl) lbl.textContent = active ? 'ON' : (this.isOptimizedMode ? 'BYPASS' : 'OFF');
+    }
+
+    if (this.settingToggleDev) {
+      this.settingToggleDev.classList.toggle('active', this.isDevMode);
+      const lbl = this.settingToggleDev.querySelector('.switch-label');
+      if (lbl) lbl.textContent = this.isDevMode ? 'ON' : 'OFF';
     }
 
     if (this.perfStatusDot) {
@@ -7012,12 +7302,17 @@ class Game {
         hasHexDecoder: Boolean(this.player.hasHexDecoder),
         hasSuperReel: Boolean(this.player.hasSuperReel),
         hasPhaseDash: Boolean(this.player.hasPhaseDash),
+        hasCryoShield: Boolean(this.player.hasCryoShield),
         defibrillatorCharges: this.player.defibrillatorCharges || 0
       },
       upgrades: {
         energyDrinkPurchases: this.energyDrinkPurchases || 0,
         magnetPurchases: this.magnetPurchases || 0,
         cannonCharges: this.cannonCharges || 0,
+        hasPortableTerminal: Boolean(this.hasPortableTerminal),
+        portableTerminal: this.portableTerminal ? { x: this.portableTerminal.x, y: this.portableTerminal.y } : null,
+        shopClearanceLevel: this.shopClearanceLevel || 0,
+        powerupMaxLimitBonus: this.powerupMaxLimitBonus || 0,
         hasTeleporterItem: Boolean(this.hasTeleporterItem),
         teleporterNodes: this.teleporterNodes.map(n => ({
           id: n.id,
@@ -7134,14 +7429,17 @@ class Game {
       const u = data.upgrades || {};
       const items = [];
       if (u.energyDrinkPurchases) items.push(`🥤 Energy Drinks x${u.energyDrinkPurchases}`);
-      if (u.magnetPurchases) items.push(`🧲 Floor Magnets x${u.magnetPurchases}`);
       if (p.hasNitrous) items.push('🚀 Nitrous Boost');
       if (p.hasSlalomSprings) items.push('🌀 Slalom Springs');
       if (p.hasTeflonSkids) items.push('⛸️ Teflon Skids');
       if (p.hasSpikedBumper) items.push('🛡️ Spiked Bumper');
       if (p.hasEmpShockwave) items.push('⚡ EMP Shockwave');
       if (p.hasHexDecoder) items.push('🔢 Hex Decoder');
+      if (p.hasCryoShield) items.push('🛡️ Cryo Deflector Shield');
+      if (p.hasPhaseDash) items.push('⚡ Phase Dash Module');
       if (u.hasTeleporterItem) items.push('🌌 Quantum Teleporter');
+      if (u.hasPortableTerminal) items.push('💻 Field NOC Terminal');
+      if (u.shopClearanceLevel) items.push(`🔓 Clearance Lv.${u.shopClearanceLevel}`);
       if (u.hasYieldBonds) items.push('📈 High-Yield Bonds');
 
       this.previewPowerupsList.innerHTML = items.length > 0
@@ -7202,15 +7500,24 @@ class Game {
     this.player.hasHexDecoder = Boolean(pData.hasHexDecoder);
     this.player.hasSuperReel = Boolean(pData.hasSuperReel);
     this.player.hasPhaseDash = Boolean(pData.hasPhaseDash);
+    this.player.hasCryoShield = Boolean(pData.hasCryoShield);
     this.player.defibrillatorCharges = pData.defibrillatorCharges ?? 0;
 
     // Restore Upgrades & Synergies
     const uData = data.upgrades || {};
     this.energyDrinkPurchases = uData.energyDrinkPurchases ?? 0;
-    this.magnetPurchases = uData.magnetPurchases ?? 0;
+    this.magnetPurchases = 0; // Magnet powerup deprecated & removed
     this.cannonCharges = uData.cannonCharges ?? 1;
     this.hasTeleporterItem = Boolean(uData.hasTeleporterItem);
     this.hasYieldBonds = Boolean(uData.hasYieldBonds);
+    this.hasPortableTerminal = Boolean(uData.hasPortableTerminal);
+    this.shopClearanceLevel = uData.shopClearanceLevel ?? 0;
+    this.powerupMaxLimitBonus = uData.powerupMaxLimitBonus ?? 0;
+    if (uData.portableTerminal && typeof uData.portableTerminal.x === 'number') {
+      this.portableTerminal = new PortableTerminalStation(uData.portableTerminal.x, uData.portableTerminal.y);
+    } else {
+      this.portableTerminal = null;
+    }
     if (uData.activeSynergies) {
       this.activeSynergies = { ...uData.activeSynergies };
     }
@@ -8153,58 +8460,7 @@ class Game {
         }
       }
 
-      // Dev Tool: Press [B] to skip to 10:00 and spawn the Corrupted Bug Boss immediately!
-      // Dev Tool: Press [B] to cycle / advance to next Boss Wave immediately!
-      if (e.code === 'KeyB') {
-        if (this.gameState === 'PLAYING') {
-          if (this.activeBoss && this.activeBoss.isAlive) {
-            this.defeatBoss(this.activeBoss);
-          } else {
-            const nextWave = (this.currentBossWave || 0) + 1;
-            this.gameTime = Math.max(this.gameTime, nextWave * 600);
-            this.spawnBoss(nextWave, true);
-          }
-        }
-        return;
-      }
-
-      // Dev Tool: Press [N] to spawn a Server Bug incident immediately!
-      if (e.code === 'KeyN') {
-        if (this.gameState === 'PLAYING') {
-          this.triggerServerBugIncident(true);
-        }
-        return;
-      }
-
-      // Dev Tool: Press [8] to spawn a Server Overheat fire incident immediately!
-      if (e.code === 'Digit8') {
-        if (this.gameState === 'PLAYING' && !this.isTerminalOpen) {
-          this.triggerServerOverheatIncident(true);
-        }
-        return;
-      }
-
-      // Dev Tool: Press [9] to spawn a Server Small Virus incident immediately!
-      if (e.code === 'Digit9') {
-        if (this.gameState === 'PLAYING' && !this.isTerminalOpen) {
-          this.triggerServerSmallVirusIncident(true);
-        }
-        return;
-      }
-
-      // Hardware Shop Modal Toggle [K]
-      if (e.code === 'KeyK') {
-        if (this.isCannonAiming) this.cancelCannonAim();
-        if (this.isShopOpen) this.closeShop();
-        else if (this.gameState === 'PLAYING') this.openShop();
-        return;
-      }
-
-      if (this.isShopOpen) {
-        if (e.code === 'Escape') this.closeShop();
-        return;
-      }
-
+      // Terminal Modal Input Handling (HIGHEST PRIORITY! Ensures 0-9, Backspace, Enter, Esc are never intercepted)
       if (this.isTerminalOpen) {
         if (e.key >= '0' && e.key <= '9') {
           this.handleKeypadDigit(e.key);
@@ -8212,10 +8468,86 @@ class Game {
           this.handleKeypadBackspace();
         } else if (e.key === 'Enter') {
           this.submitTerminalCode();
-        } else if (e.key === 'Escape') {
+        } else if (e.code === 'Escape') {
           this.closeTerminal();
         }
         return;
+      }
+
+      // Boss Reward Selection Modal
+      if (this.isBossRewardOpen) {
+        if (e.code === 'Digit1' || e.code === 'Numpad1') {
+          this.claimBossReward('teleporter');
+        } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
+          this.claimBossReward('portable_terminal');
+        } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
+          this.claimBossReward('shop_clearance');
+        }
+        return;
+      }
+
+      // Hardware Shop Modal Handling
+      if (this.isShopOpen) {
+        if (e.code === 'Escape' || e.code === 'KeyK') this.closeShop();
+        return;
+      }
+
+      // Hardware Shop Modal Toggle [K]
+      if (e.code === 'KeyK') {
+        if (this.isCannonAiming) this.cancelCannonAim();
+        if (this.gameState === 'PLAYING') this.openShop();
+        return;
+      }
+
+      // Developer Cheats Mode (ONLY active if isDevMode is enabled in Settings!)
+      if (this.isDevMode && this.gameState === 'PLAYING') {
+        // Dev Tool: Press [B] to skip to next Boss Wave / cycle active boss immediately
+        if (e.code === 'KeyB') {
+          if (this.activeBoss && this.activeBoss.isAlive) {
+            this.defeatBoss(this.activeBoss);
+          } else {
+            const nextWave = (this.currentBossWave || 0) + 1;
+            this.gameTime = Math.max(this.gameTime, nextWave * 600);
+            this.spawnBoss(nextWave, true);
+          }
+          return;
+        }
+
+        // Dev Tool: Press [N] to spawn a Server Bug incident immediately
+        if (e.code === 'KeyN') {
+          this.triggerServerBugIncident(true);
+          return;
+        }
+
+        // Dev Tool: Press [1] to spawn Coolant Leak error immediately
+        if (e.code === 'Digit1') {
+          this.triggerCoolantLeakError(true);
+          return;
+        }
+
+        // Dev Tool: Press [2] to spawn Phantom Glitch error immediately
+        if (e.code === 'Digit2') {
+          this.triggerPhantomGlitchError(true);
+          return;
+        }
+
+        // Dev Tool: Press [3] to spawn Network Worm error immediately
+        if (e.code === 'Digit3') {
+          this.triggerNetworkWormError(true);
+          return;
+        }
+
+        // Dev Tool: Press [8] to spawn a Server Overheat fire incident immediately
+        if (e.code === 'Digit8') {
+          this.triggerServerOverheatIncident(true);
+          return;
+        }
+
+        // Dev Tool: Press [9] to spawn a Server Small Virus incident immediately
+        if (e.code === 'Digit9') {
+          this.triggerServerSmallVirusIncident(true);
+          return;
+        }
       }
 
       // Kinetic Cannon Slingshot Keybind [F]
@@ -8233,7 +8565,8 @@ class Game {
         if (this.isCannonAiming) this.cancelCannonAim();
         if (this.gameState === 'PLAYING' && !this.isShopOpen && !this.isTerminalOpen) {
           if (e.shiftKey) {
-            // Dev shortcut: unlock immediately
+            if (!this.isDevMode) return;
+            // Dev shortcut: unlock immediately if dev mode enabled
             this.hasTeleporterItem = true;
             this.sound.playTeleportDeploy(0);
             this.showTemporaryToast('🌀 DEV: QUANTUM TELEPORTER KIT UNLOCKED! Press [T] to place Node Alpha.', '✨');
@@ -8241,6 +8574,15 @@ class Game {
             return;
           }
           this.handleTeleporterKey();
+        }
+        return;
+      }
+
+      // Portable Field NOC Terminal Keybind [P]
+      if (e.code === 'KeyP') {
+        if (this.isCannonAiming) this.cancelCannonAim();
+        if (this.gameState === 'PLAYING' && !this.isShopOpen && !this.isTerminalOpen && !this.isBossRewardOpen) {
+          this.handlePortableTerminalKey();
         }
         return;
       }
@@ -8311,6 +8653,10 @@ class Game {
             nearRack.error.hasBeenInspected = true;
             this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
             if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+            if (this.terminalSelect) {
+              this.terminalSelect.value = nearRack.id;
+              this.updateTerminalSelectionFeedback();
+            }
             this.showTemporaryToast(`🛑 ${nearRack.id} PIN: [${nearRack.code}] SCANNED! TYPE AT MASTER TERMINAL TO SHUT DOWN FIRST!`, '🛑');
             this.sound.playKey();
           }
@@ -8324,6 +8670,10 @@ class Game {
             nearRack.error.hasBeenInspected = true;
             this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
             if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+            if (this.terminalSelect) {
+              this.terminalSelect.value = nearRack.id;
+              this.updateTerminalSelectionFeedback();
+            }
             this.showTemporaryToast(`🐛 ${nearRack.id} PIN: [${nearRack.code}] SCANNED! TYPE AT MASTER TERMINAL TO SHUT DOWN & TRAP BUG!`, '🐛');
             this.sound.playKey();
           }
@@ -8337,6 +8687,10 @@ class Game {
             nearRack.error.hasBeenInspected = true;
             this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
             if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+            if (this.terminalSelect) {
+              this.terminalSelect.value = nearRack.id;
+              this.updateTerminalSelectionFeedback();
+            }
             this.showTemporaryToast(`🦠 ${nearRack.id} PIN: [${nearRack.code}] SCANNED! TYPE AT MASTER TERMINAL TO SHUT DOWN FIRST!`, '🦠');
             this.sound.playKey();
           }
@@ -8344,16 +8698,6 @@ class Game {
           if (this.rebootingRack !== nearRack) {
             this.rebootingRack = nearRack;
             this.rebootHoldTime = 0;
-          }
-        } else if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.COOLANT_LEAK) {
-          if (this.coolingRack !== nearRack) {
-            this.coolingRack = nearRack;
-            this.coolantHoldTime = 0;
-          }
-        } else if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.NETWORK_WORM) {
-          if (this.wormRack !== nearRack) {
-            this.wormRack = nearRack;
-            this.wormHoldTime = 0;
           }
         } else {
           this.handleInteractKey();
@@ -8503,6 +8847,15 @@ class Game {
         if (promptElem) promptElem.textContent = '> NODE BREAKER IS OFF [ISOLATED]:';
         this.terminalFeedback.textContent = `BREAKER POWER OFF: ${rack.id} SHUT DOWN // COMPLETE ON-FOOT ACTION`;
         this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+      } else if (errType === CONFIG.ERRORS.SERVER_OVERHEAT) {
+        if (promptElem) promptElem.textContent = '> OVERHEAT BREAKER SHUTDOWN PIN:';
+        if (this.player?.hasHexDecoder) {
+          this.terminalFeedback.textContent = `🔥 SENSORS OVERHEATED (NO ON-FOOT SCAN) // USE HEX DECODER GREEN HIGHLIGHTS TO ENTER PIN & SHUT DOWN`;
+          this.terminalFeedback.style.color = '#00ff9d';
+        } else {
+          this.terminalFeedback.textContent = `🔥 SENSORS OVERHEATED (NO ON-FOOT SCAN) // PURCHASE HEX DECODER AT SHOP TO DECODE PIN`;
+          this.terminalFeedback.style.color = '#ff5500';
+        }
       } else {
         if (promptElem) promptElem.textContent = '> ENTER RACK PIN TO SHUT DOWN BREAKER:';
         if (!rack.error?.hasBeenInspected) {
@@ -8569,9 +8922,13 @@ class Game {
           else if (t === CONFIG.ERRORS.PHANTOM_GLITCH) tag = 'HOLO-GLITCH';
 
           if (!r.isShutdown) {
-            opt.textContent = r.error?.hasBeenInspected
-              ? `${r.id} // ${tag} [PIN: ${r.code}]`
-              : `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`;
+            if (t === CONFIG.ERRORS.SERVER_OVERHEAT) {
+              opt.textContent = `${r.id} // ${tag} [ON FIRE - CANNOT SCAN ON-FOOT]`;
+            } else {
+              opt.textContent = r.error?.hasBeenInspected
+                ? `${r.id} // ${tag} [PIN: ${r.code}]`
+                : `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`;
+            }
           } else {
             opt.textContent = `${r.id} // ${tag}`;
           }
@@ -8654,8 +9011,27 @@ class Game {
   }
 
   submitTerminalCode() {
-    const selectedRackId = this.terminalSelect?.value;
-    const targetRack = this.racks.find(r => r.id === selectedRackId);
+    let selectedRackId = this.terminalSelect?.value;
+    let targetRack = this.racks.find(r => r.id === selectedRackId);
+
+    // If entered PIN does not match the currently selected target rack, or no rack was selected:
+    // Auto-search if ANY active failing rack matches the entered PIN!
+    if (!targetRack || !targetRack.isFailing || this.terminalInputBuffer !== targetRack.code) {
+      const anyMatchingRack = this.racks.find(r =>
+        r.isFailing &&
+        !r.isDestroyed &&
+        !r.isShutdown &&
+        r.code === this.terminalInputBuffer
+      );
+      if (anyMatchingRack) {
+        targetRack = anyMatchingRack;
+        selectedRackId = anyMatchingRack.id;
+        if (this.terminalSelect) {
+          this.terminalSelect.value = anyMatchingRack.id;
+        }
+        this.updateTerminalSelectionFeedback();
+      }
+    }
 
     if (!targetRack || !targetRack.isFailing) {
       if (this.terminalFeedback) {
@@ -8765,7 +9141,7 @@ class Game {
   }
 
   togglePause() {
-    if (this.gameState === 'MENU' || this.isTerminalOpen || this.isShopOpen || this.isTutorialOpen || this.isSettingsOpen) return;
+    if (this.gameState === 'MENU' || this.isTerminalOpen || this.isShopOpen || this.isTutorialOpen || this.isSettingsOpen || this.isBossRewardOpen) return;
     this.isPaused = !this.isPaused;
     if (this.isPaused) {
       this.gameState = 'PAUSED';
@@ -8786,6 +9162,9 @@ class Game {
   }
 
   getNearestRack(maxDist = 95) {
+    // If player has Hex Decoder, extend interaction / scan range to 180px
+    const effectiveMaxDist = this.player?.hasHexDecoder ? Math.max(maxDist, 180) : maxDist;
+
     // If boss is active and player is near bossHostRack, prioritize bossHostRack above all others
     const activeBoss = this.activeBoss || this.bugBoss;
     if (this.bossHostRack && activeBoss && activeBoss.isAlive) {
@@ -8795,9 +9174,9 @@ class Game {
     }
 
     let closestFailing = null;
-    let closestFailingDist = maxDist;
+    let closestFailingDist = effectiveMaxDist;
     let closest = null;
-    let closestDist = maxDist;
+    let closestDist = effectiveMaxDist;
 
     for (const rack of this.racks) {
       const d = this.getDistanceToRack(rack);
@@ -8809,6 +9188,10 @@ class Game {
         closestFailing = rack;
         closestFailingDist = d;
       }
+    }
+    // If player is directly adjacent to a rack (within 65px), prioritize that immediate rack
+    if (closest && closestDist < 65) {
+      return closest;
     }
     return closestFailing || closest;
   }
@@ -8868,13 +9251,29 @@ class Game {
       }
     }
 
+    const nearRack = this.getNearestRack();
+    const distToRack = nearRack ? this.getDistanceToRack(nearRack) : Infinity;
+
+    // 0.5. Portable Field NOC Terminal Proximity ([E])
+    // Only open terminal if player isn't right on top of a server rack (< 65px)
+    if (this.portableTerminal && this.portableTerminal.isNear(this.player.x, this.player.y)) {
+      const distToPortable = Math.hypot(
+        this.player.x - (this.portableTerminal.x + this.portableTerminal.width / 2),
+        this.player.y - (this.portableTerminal.y + this.portableTerminal.height / 2)
+      );
+      if (distToPortable < distToRack || distToRack >= 65) {
+        this.openTerminal();
+        return;
+      }
+    }
+
     // 1. South Stations: Master NOC Desk, Supplies Closet, and IT Supply Kiosk (Resolved by closest proximity)
     const dNOC = this.isNearNOCDesk() ? this.getDistanceToNOCDesk() : Infinity;
     const dCloset = this.isNearSuppliesCloset() ? this.getDistanceToSuppliesCloset() : Infinity;
     const dShop = this.isNearShopKiosk() ? this.getDistanceToShopKiosk() : Infinity;
     const minSouthDist = Math.min(dNOC, dCloset, dShop);
 
-    if (minSouthDist < Infinity) {
+    if (minSouthDist < Infinity && (minSouthDist < distToRack || distToRack >= 65)) {
       if (minSouthDist === dNOC) {
         this.openTerminal();
         return;
@@ -8967,7 +9366,6 @@ class Game {
       }
     }
 
-    const nearRack = this.getNearestRack();
     if (!nearRack) return;
 
     // Boss Host Rack Guidance
@@ -9094,6 +9492,10 @@ class Game {
         nearRack.error.hasBeenInspected = true;
         this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
         if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+        if (this.terminalSelect) {
+          this.terminalSelect.value = nearRack.id;
+          this.updateTerminalSelectionFeedback();
+        }
         this.showTemporaryToast(`🛑 RESTART REQUIRED: PIN [${nearRack.code}] SCANNED ➔ TYPE AT TERMINAL TO SHUT DOWN!`, '🛑');
       }
       this.sound.playKey();
@@ -9106,6 +9508,10 @@ class Game {
         nearRack.error.hasBeenInspected = true;
         this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
         if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+        if (this.terminalSelect) {
+          this.terminalSelect.value = nearRack.id;
+          this.updateTerminalSelectionFeedback();
+        }
         this.showTemporaryToast(`🛑 SERVER BUG: PIN [${nearRack.code}] SCANNED ➔ TYPE AT TERMINAL TO SHUT DOWN & TRAP BUG!`, '🛑');
       }
       this.sound.playKey();
@@ -9118,31 +9524,27 @@ class Game {
         nearRack.error.hasBeenInspected = true;
         this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
         if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+        if (this.terminalSelect) {
+          this.terminalSelect.value = nearRack.id;
+          this.updateTerminalSelectionFeedback();
+        }
         this.showTemporaryToast(`🛑 VIRUS SLIME: PIN [${nearRack.code}] SCANNED ➔ TYPE AT TERMINAL TO SHUT DOWN FIRST!`, '🛑');
       }
       this.sound.playKey();
       return;
     }
     if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) {
-      nearRack.error.hasBeenInspected = true;
-      this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
-      if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
-      this.showTemporaryToast(`🔥 SERVER OVERHEAT: PIN [${nearRack.code}] SCANNED ➔ TYPE AT TERMINAL TO SHUT DOWN BREAKER!`, '🔥');
-      this.sound.playKey();
+      if (nearRack.isShutdown) {
+        this.showTemporaryToast(`❄️ ${nearRack.id} POWER ISOLATED // COOLANT RESERVES RESTORING AUTOMATICALLY...`, '❄️');
+      } else {
+        this.sound.playTerminalFail();
+        this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 25, '#ff5500');
+        this.showTemporaryToast(`🔥 ${nearRack.id} IS ENGULFED IN FLAMES! SCANNER OFFLINE DUE TO EXTREME HEAT — USE TERMINAL HEX DECODER!`, '🔥');
+      }
       return;
     }
     if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.HARD_REBOOT) {
       this.showTemporaryToast('⚠️ HOLD [E] CONTINUOUSLY TO HARD REBOOT POWER BREAKER');
-      this.sound.playKey();
-      return;
-    }
-    if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.COOLANT_LEAK) {
-      this.showTemporaryToast('❄️ HOLD [E] CONTINUOUSLY FOR 3.5s TO SEAL CRYO VALVE');
-      this.sound.playKey();
-      return;
-    }
-    if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.NETWORK_WORM) {
-      this.showTemporaryToast('⚡ HOLD [E] CONTINUOUSLY FOR 2.5s TO PURGE NETWORK WORM');
       this.sound.playKey();
       return;
     }
@@ -9163,6 +9565,10 @@ class Game {
     this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
     if (this.memoCodeVal) {
       this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
+    }
+    if (this.terminalSelect) {
+      this.terminalSelect.value = nearRack.id;
+      this.updateTerminalSelectionFeedback();
     }
     this.sound.playKey();
     this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 14, '#00ff9d');
@@ -9205,6 +9611,32 @@ class Game {
 
   updateObjectiveUI() {
     // Legacy objective banner removed; all alerts dispatched as bottom toasts
+  }
+
+  // ==========================================================================
+  // Portable Field NOC Terminal System (Deployable Apex Reward)
+  // ==========================================================================
+  handlePortableTerminalKey() {
+    if (!this.hasPortableTerminal) {
+      this.sound.playTerminalFail?.();
+      this.showTemporaryToast('🔒 PORTABLE FIELD TERMINAL LOCKED — Defeat a main boss to acquire this item! (Press [B] for boss)', '💻');
+      return;
+    }
+
+    if (!this.portableTerminal) {
+      this.portableTerminal = new PortableTerminalStation(this.player.x - 55, this.player.y - 29);
+      if (this.sound?.playCabinetOpen) this.sound.playCabinetOpen();
+      this.particles.spawnSparks(this.player.x, this.player.y, 40, '#00ff9d');
+      this.camera.shake(6, 0.2);
+      this.showTemporaryToast('💻 PORTABLE FIELD TERMINAL DEPLOYED! PRESS [E] TO ACCESS MASTER TERMINAL, [P] TO RELOCATE.', '💻');
+    } else {
+      this.portableTerminal.x = this.player.x - 55;
+      this.portableTerminal.y = this.player.y - 29;
+      if (this.sound?.playCabinetOpen) this.sound.playCabinetOpen();
+      this.particles.spawnSparks(this.player.x, this.player.y, 40, '#00ff9d');
+      this.showTemporaryToast('💻 PORTABLE FIELD TERMINAL RELOCATED TO CURRENT POSITION! [E: OPEN | P: RELOCATE]', '💻');
+    }
+    this.updateBuffDisplay();
   }
 
   // ==========================================================================
@@ -9430,7 +9862,7 @@ class Game {
       return; // Hold player movement and error countdowns during countdown
     }
 
-    if (this.isPaused || this.isShopOpen || this.isTutorialOpen) return;
+    if (this.isPaused || this.isShopOpen || this.isTutorialOpen || this.isBossRewardOpen) return;
 
     // While in bullet-time Cannon Aiming mode, EVERYTHING FREEZES!
     if (this.isCannonAiming) {
@@ -9534,6 +9966,13 @@ class Game {
       if (this.suppliesCloset) {
         this.player.resolveAABBCollision(
           this.suppliesCloset.x, this.suppliesCloset.y, this.suppliesCloset.width, this.suppliesCloset.height,
+          this.sound, this.particles, this.activeBuffs, isCannonPuck
+        );
+      }
+      if (this.portableTerminal) {
+        this.portableTerminal.update(dt);
+        this.player.resolveAABBCollision(
+          this.portableTerminal.x, this.portableTerminal.y, this.portableTerminal.width, this.portableTerminal.height,
           this.sound, this.particles, this.activeBuffs, isCannonPuck
         );
       }
@@ -9979,7 +10418,11 @@ class Game {
           else if (t === CONFIG.ERRORS.PHANTOM_GLITCH) tag = 'HOLO-GLITCH';
 
           if (!r.isShutdown) {
-            opt.textContent = r.error?.hasBeenInspected ? `${r.id} // ${tag} [PIN: ${r.code}]` : `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`;
+            if (t === CONFIG.ERRORS.SERVER_OVERHEAT) {
+              opt.textContent = `${r.id} // ${tag} [ON FIRE - CANNOT SCAN ON-FOOT]`;
+            } else {
+              opt.textContent = r.error?.hasBeenInspected ? `${r.id} // ${tag} [PIN: ${r.code}]` : `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`;
+            }
           } else {
             opt.textContent = `${r.id} // ${tag}`;
           }
@@ -10117,6 +10560,9 @@ class Game {
     if (this.suppliesCloset && cam.isBoundingBoxVisible(this.suppliesCloset.x, this.suppliesCloset.y, this.suppliesCloset.width, this.suppliesCloset.height)) {
       this.suppliesCloset.render(ctx, cam);
     }
+    if (this.portableTerminal && cam.isBoundingBoxVisible(this.portableTerminal.x, this.portableTerminal.y, this.portableTerminal.width, this.portableTerminal.height)) {
+      this.portableTerminal.render(ctx, cam);
+    }
 
     // 6. Particle Sparks & Explosions
     this.particles.render(ctx, cam, this.isOptimizedMode);
@@ -10156,12 +10602,15 @@ class Game {
     // 10. In-World Interactive Prompts
     const nearTeleNode = this.getNearTeleporterNode();
     const isNearHost = this.bossHostRack && activeBoss && activeBoss.isAlive && this.getDistanceToRack(this.bossHostRack) <= 120;
+    const isNearPortableTerminal = this.portableTerminal && this.portableTerminal.isNear(this.player.x, this.player.y);
     const dNOCPrompt = this.isNearNOCDesk() ? this.getDistanceToNOCDesk() : Infinity;
     const dClosetPrompt = this.isNearSuppliesCloset() ? this.getDistanceToSuppliesCloset() : Infinity;
     const dShopPrompt = this.isNearShopKiosk() ? this.getDistanceToShopKiosk() : Infinity;
     const minSouthPromptDist = Math.min(dNOCPrompt, dClosetPrompt, dShopPrompt);
 
-    if (isNearHost) {
+    if (isNearPortableTerminal) {
+      this.renderPortableTerminalPrompt(ctx, cam);
+    } else if (isNearHost) {
       this.renderRackInteractionPrompt(ctx, cam, this.bossHostRack);
     } else if (nearRack) {
       this.renderRackInteractionPrompt(ctx, cam, nearRack);
@@ -10800,13 +11249,8 @@ class Game {
           label = `❄️ OFFLINE // RESTORING COOLANT RESERVES...`;
           badgeColor = '#00f3ff';
         } else {
-          if (!rack.error?.hasBeenInspected) {
-            label = `[E] SCAN PIN [${rack.code}] ➔ TYPE AT TERMINAL [${timeLeft}s!]`;
-            badgeColor = '#ff5500';
-          } else {
-            label = `PIN: ${rack.code} ➔ TYPE AT TERMINAL TO SHUT DOWN [${timeLeft}s!]`;
-            badgeColor = '#ffaa00';
-          }
+          label = `🔥 ${rack.id} ON FIRE // SENSORS OVERHEATED [CANNOT SCAN] (${timeLeft}s!)`;
+          badgeColor = '#ff3b30';
         }
       } else if (errType === CONFIG.ERRORS.SERVER_SMALL_VIRUS) {
         if (rack.isShutdown) {
@@ -10885,6 +11329,32 @@ class Game {
     ctx.stroke();
 
     ctx.fillStyle = CONFIG.COLORS.CONSOLE_CYAN;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, pos.x, pos.y);
+    ctx.restore();
+  }
+
+  renderPortableTerminalPrompt(ctx, cam) {
+    if (!this.portableTerminal) return;
+    const pos = cam.toScreen(this.portableTerminal.x + this.portableTerminal.width / 2, this.portableTerminal.y - 14);
+    const label = `[E] ACCESS FIELD NOC TERMINAL  |  [P] RELOCATE`;
+
+    ctx.save();
+    ctx.font = 'bold 11px "JetBrains Mono", monospace';
+    const textWidth = ctx.measureText(label).width;
+    const pad = 8;
+
+    ctx.fillStyle = 'rgba(6, 11, 19, 0.92)';
+    ctx.strokeStyle = '#00ff9d';
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = 'rgba(0, 255, 157, 0.5)';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.roundRect(pos.x - textWidth / 2 - pad, pos.y - 14, textWidth + pad * 2, 20, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#00ff9d';
     ctx.textAlign = 'center';
     ctx.fillText(label, pos.x, pos.y);
     ctx.restore();

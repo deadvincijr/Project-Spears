@@ -2000,4 +2000,194 @@ body.map-rotating-active .leaflet-container {
   transform: scale(0.96);
 }
 
+/* ==========================================================================
+   LOCKOUT / COMPROMISED SCREEN (CAPTURED FUGITIVES)
+   ========================================================================== */
+.lockout-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: radial-gradient(circle at center, rgba(32, 6, 12, 0.97) 0%, rgba(4, 6, 10, 0.99) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.19, 1, 0.22, 1);
+  transform: scale(1.04);
+}
+
+.lockout-screen.is-active {
+  opacity: 1;
+  pointer-events: all;
+  transform: scale(1);
+}
+
+.lockout-card {
+  max-width: 480px;
+  width: 100%;
+  background: rgba(18, 8, 14, 0.92);
+  border: 2px solid rgba(255, 23, 68, 0.6);
+  box-shadow: 0 0 40px rgba(255, 23, 68, 0.35), inset 0 0 25px rgba(255, 23, 68, 0.15);
+  border-radius: var(--radius-lg);
+  padding: 36px 26px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+  animation: pulseLockoutGlow 3s infinite ease-in-out;
+}
+
+@keyframes pulseLockoutGlow {
+  0%, 100% { box-shadow: 0 0 35px rgba(255, 23, 68, 0.35); }
+  50% { box-shadow: 0 0 65px rgba(255, 23, 68, 0.6); }
+}
+
+.lockout-icon {
+  font-size: 3.8rem;
+  color: var(--accent-crimson);
+  filter: drop-shadow(0 0 18px rgba(255, 23, 68, 0.85));
+  animation: pulseLockoutIcon 1.8s infinite ease-in-out;
+}
+
+@keyframes pulseLockoutIcon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.09); }
+}
+
+.lockout-title {
+  font-family: var(--font-hud);
+  font-size: 1.65rem;
+  color: #fff;
+  letter-spacing: 2px;
+  text-shadow: 0 0 14px rgba(255, 23, 68, 0.7);
+}
+
+.lockout-badge {
+  display: inline-block;
+  background: rgba(255, 23, 68, 0.2);
+  border: 1px solid var(--accent-crimson);
+  color: #ff5252;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 6px 16px;
+  border-radius: 20px;
+}
+
+.lockout-desc {
+  font-size: 0.85rem;
+  color: #c0c6d0;
+  line-height: 1.5;
+  margin: 4px 0;
+}
+
+.lockout-meta-box {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Tactical Switch */
+.tactical-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.tactical-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.tactical-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: 0.25s;
+  border-radius: 26px;
+}
+
+.tactical-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #8b949e;
+  transition: 0.25s;
+  border-radius: 50%;
+}
+
+.tactical-switch input:checked + .tactical-slider {
+  background-color: rgba(255, 23, 68, 0.4);
+  border-color: var(--accent-crimson);
+}
+
+.tactical-switch input:checked + .tactical-slider:before {
+  transform: translateX(22px);
+  background-color: var(--accent-crimson);
+  box-shadow: 0 0 12px rgba(255, 23, 68, 0.9);
+}
+
+/* Roster Items in Admin */
+.player-roster-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s;
+}
+
+.player-roster-item.is-locked {
+  border-color: rgba(255, 23, 68, 0.5);
+  background: rgba(255, 23, 68, 0.08);
+}
+
+.player-roster-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.player-roster-name {
+  font-family: var(--font-hud);
+  font-size: 0.82rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.player-roster-meta {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+
 

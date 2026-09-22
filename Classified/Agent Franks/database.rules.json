@@ -1,0 +1,39 @@
+{
+  "rules": {
+    "agent_franks": {
+      ".read": true,
+      ".write": true,
+      "players": {
+        "$playerId": {
+          ".validate": "newData.hasChildren(['id', 'codename', 'lat', 'lng'])"
+        }
+      },
+      "pins": {
+        "$pinId": {
+          ".validate": "newData.hasChildren(['id', 'lat', 'lng', 'seekerId'])"
+        }
+      },
+      "chat": {
+        "$msgId": {
+          ".validate": "newData.hasChildren(['id', 'text', 'senderCodename'])"
+        }
+      },
+      "boundary": {
+        ".read": true,
+        ".write": true
+      },
+      "landmarks": {
+        ".read": true,
+        ".write": true
+      },
+      "meta": {
+        ".read": true,
+        ".write": true
+      },
+      "lockouts": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
