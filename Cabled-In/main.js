@@ -5190,11 +5190,13 @@ class Game {
     // Run Save & Load System Elements
     this.saveFileInput = document.getElementById('save-file-input');
     this.runPreviewModal = document.getElementById('run-preview-modal');
+    this.previewScenarioName = document.getElementById('preview-scenario-name');
     this.previewShiftTime = document.getElementById('preview-shift-time');
     this.previewRacksHealth = document.getElementById('preview-racks-health');
     this.previewActiveFaults = document.getElementById('preview-active-faults');
     this.previewCredits = document.getElementById('preview-credits');
     this.previewBossWave = document.getElementById('preview-boss-wave');
+    this.previewPlayerHp = document.getElementById('preview-player-hp');
     this.previewSaveDate = document.getElementById('preview-save-date');
     this.previewPowerupsList = document.getElementById('preview-powerups-list');
     this.btnConfirmLoadRun = document.getElementById('btn-confirm-load-run');
@@ -5381,7 +5383,7 @@ class Game {
     requestAnimationFrame(this.loop.bind(this));
   }
 
-  initWarehouseMap(scenarioId) {
+  initWarehouseMap(scenarioId, skipInitialErrors = false) {
     const scenario = CONFIG.SCENARIOS[scenarioId || this.activeScenarioId] || CONFIG.SCENARIOS.beginner;
     const rackCfg = scenario.racks || CONFIG.RACKS;
     const worldCfg = scenario.world || CONFIG.WORLD;
@@ -5466,8 +5468,10 @@ class Game {
       this.suppliesCloset.y = CONFIG.WORLD.HEIGHT - 170;
     }
 
-    this.triggerCableError();
-    this.triggerAuthLockoutError();
+    if (!skipInitialErrors) {
+      this.triggerCableError();
+      this.triggerAuthLockoutError();
+    }
   }
 
   // ==========================================================================
@@ -6778,7 +6782,7 @@ class Game {
 
     document.getElementById('btn-pause-new-game')?.addEventListener('click', () => {
       this.sound.init();
-      this.startNewGame();
+      this.startNewGame(this.activeScenarioId);
     });
 
     document.getElementById('btn-pause-quicksave')?.addEventListener('click', () => {
@@ -7804,13 +7808,20 @@ class Game {
       hopIds: c.hops ? c.hops.map(h => h.id) : null
     }));
 
+    const scenarioId = this.activeScenarioId || 'beginner';
+    const scenarioConfig = CONFIG.SCENARIOS ? CONFIG.SCENARIOS[scenarioId] : null;
+
     return {
-      version: '1.2.0',
+      version: '1.3.0',
       timestamp: new Date().toISOString(),
       formattedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      scenarioId: scenarioId,
+      scenarioName: scenarioConfig?.name || (scenarioId === 'beginner' ? 'BEGINNER DEPLOYMENT' : 'CLASSIC WAREHOUSE'),
       gameTime: this.gameTime,
       credits: this.credits,
       currentBossWave: this.currentBossWave || 0,
+      activeBuffs: { ...(this.activeBuffs || { nitro: 0, grip: 0 }) },
+      unlockedErrors: Array.from(this.unlockedErrors || []),
       player: {
         x: this.player.x,
         y: this.player.y,
@@ -7818,29 +7829,39 @@ class Game {
         vy: this.player.vy,
         hp: this.player.hp,
         maxHp: this.player.maxHp,
-        permanentSpeedBonus: this.player.permanentSpeedBonus,
-        permanentFrictionBonus: this.player.permanentFrictionBonus,
+        permanentSpeedBonus: this.player.permanentSpeedBonus || 0,
+        permanentFrictionBonus: this.player.permanentFrictionBonus || 0,
         hasNitrous: Boolean(this.player.hasNitrous),
+        nitrousTimer: this.player.nitrousTimer || 0,
+        nitrousCooldown: this.player.nitrousCooldown || 0,
         hasSlalomSprings: Boolean(this.player.hasSlalomSprings),
         hasTeflonSkids: Boolean(this.player.hasTeflonSkids),
         hasSpikedBumper: Boolean(this.player.hasSpikedBumper),
         hasEmpShockwave: Boolean(this.player.hasEmpShockwave),
+        empCooldown: this.player.empCooldown || 0,
         hasHexDecoder: Boolean(this.player.hasHexDecoder),
         hasSuperReel: Boolean(this.player.hasSuperReel),
         hasPhaseDash: Boolean(this.player.hasPhaseDash),
+        dashCooldown: this.player.dashCooldown || 0,
         hasCryoShield: Boolean(this.player.hasCryoShield),
+        cryoShieldCooldown: this.player.cryoShieldCooldown || 0,
+        hasPatchDrone: Boolean(this.player.hasPatchDrone),
+        hasNanotechHub: Boolean(this.player.hasNanotechHub),
+        adrenalineTimer: this.player.adrenalineTimer || 0,
         defibrillatorCharges: this.player.defibrillatorCharges || 0
       },
       upgrades: {
         energyDrinkPurchases: this.energyDrinkPurchases || 0,
         magnetPurchases: this.magnetPurchases || 0,
         cannonCharges: this.cannonCharges || 0,
+        cannonPuckTimer: this.cannonPuckTimer || 0,
         hasPortableTerminal: Boolean(this.hasPortableTerminal),
         portableTerminal: this.portableTerminal ? { x: this.portableTerminal.x, y: this.portableTerminal.y } : null,
         shopClearanceLevel: this.shopClearanceLevel || 0,
         powerupMaxLimitBonus: this.powerupMaxLimitBonus || 0,
         hasTeleporterItem: Boolean(this.hasTeleporterItem),
-        teleporterNodes: this.teleporterNodes.map(n => ({
+        teleportCooldown: this.teleportCooldown || 0,
+        teleporterNodes: (this.teleporterNodes || []).map(n => ({
           id: n.id,
           name: n.name,
           x: n.x,
@@ -7850,6 +7871,16 @@ class Game {
         })),
         hasYieldBonds: Boolean(this.hasYieldBonds),
         hasFireExtinguisher: Boolean(this.hasFireExtinguisher),
+        hasCryoCanister: Boolean(this.hasCryoCanister),
+        hasQuarantineBarrier: Boolean(this.hasQuarantineBarrier),
+        emfPylonsRemaining: this.emfPylonsRemaining || 0,
+        deployedPylons: (this.deployedPylons || []).map(p => ({
+          id: p.id,
+          x: p.x,
+          y: p.y
+        })),
+        scramLimpetsRemaining: this.scramLimpetsRemaining || 0,
+        adrenalineTimer: this.adrenalineTimer || 0,
         activeSynergies: { ...this.activeSynergies }
       },
       racks: rackStates,
@@ -7919,6 +7950,11 @@ class Game {
   }
 
   showRunPreviewModal(data) {
+    if (this.previewScenarioName) {
+      const sName = data.scenarioName || (data.scenarioId ? (CONFIG.SCENARIOS?.[data.scenarioId]?.name || data.scenarioId.toUpperCase()) : 'CLASSIC WAREHOUSE');
+      this.previewScenarioName.textContent = sName;
+    }
+
     if (this.previewShiftTime) {
       const totalSec = Math.floor(data.gameTime || 0);
       const m = Math.floor(totalSec / 60);
@@ -7927,15 +7963,15 @@ class Game {
     }
 
     if (this.previewRacksHealth) {
-      const totalRacks = data.racks.length;
-      const destroyed = data.racks.filter(r => r.isDestroyed).length;
+      const totalRacks = data.racks?.length || 0;
+      const destroyed = data.racks ? data.racks.filter(r => r.isDestroyed).length : 0;
       const operational = totalRacks - destroyed;
-      const pct = Math.round((operational / totalRacks) * 100);
+      const pct = totalRacks > 0 ? Math.round((operational / totalRacks) * 100) : 100;
       this.previewRacksHealth.textContent = `${pct}% Online (${operational}/${totalRacks})`;
     }
 
     if (this.previewActiveFaults) {
-      const faults = data.racks.filter(r => r.isFailing && !r.isDestroyed).length;
+      const faults = data.racks ? data.racks.filter(r => r.isFailing && !r.isDestroyed).length : 0;
       this.previewActiveFaults.textContent = faults === 1 ? '1 Fault Active' : `${faults} Faults Active`;
     }
 
@@ -7945,6 +7981,12 @@ class Game {
 
     if (this.previewBossWave) {
       this.previewBossWave.textContent = `Wave ${data.currentBossWave || 1}`;
+    }
+
+    if (this.previewPlayerHp) {
+      const curHp = data.player?.hp ?? 100;
+      const maxHp = data.player?.maxHp ?? 100;
+      this.previewPlayerHp.textContent = `${curHp} / ${maxHp}`;
     }
 
     if (this.previewSaveDate) {
@@ -7961,14 +8003,25 @@ class Game {
       if (p.hasTeflonSkids) items.push('⛸️ Teflon Skids');
       if (p.hasSpikedBumper) items.push('🛡️ Spiked Bumper');
       if (p.hasEmpShockwave) items.push('⚡ EMP Shockwave');
-      if (p.hasHexDecoder) items.push('🔢 Hex Decoder');
+      if (p.hasHexDecoder) items.push('📶 Hex Decoder');
+      if (p.hasSuperReel) items.push('🎣 Super Reel');
       if (p.hasCryoShield) items.push('🛡️ Cryo Deflector Shield');
       if (p.hasPhaseDash) items.push('⚡ Phase Dash Module');
+      if (p.hasPatchDrone) items.push('🛸 Sentry Patch Drone');
+      if (p.hasNanotechHub) items.push('🔬 Nanotech Repair Hub');
+      if (p.defibrillatorCharges) items.push(`💉 Defibrillator x${p.defibrillatorCharges}`);
+      if (u.cannonCharges > 1) items.push(`🎯 Kinetic Cannon x${u.cannonCharges}`);
       if (u.hasTeleporterItem) items.push('🌌 Quantum Teleporter');
       if (u.hasPortableTerminal) items.push('💻 Field NOC Terminal');
       if (u.shopClearanceLevel) items.push(`🔓 Clearance Lv.${u.shopClearanceLevel}`);
       if (u.hasYieldBonds) items.push('📈 High-Yield Bonds');
       if (u.hasFireExtinguisher || u.hasCryoCanister) items.push('🧯 Fire Extinguisher');
+      if (u.hasQuarantineBarrier) items.push('🟡 Quarantine Barrier');
+      if (u.emfPylonsRemaining) items.push(`📡 EMF Pylons x${u.emfPylonsRemaining}`);
+      if (u.scramLimpetsRemaining) items.push(`🧲 SCRAM Limpets x${u.scramLimpetsRemaining}`);
+      if (u.activeSynergies?.drift > 0) items.push(`🏎️ Synergy: Drift T${u.activeSynergies.drift}`);
+      if (u.activeSynergies?.combat > 0) items.push(`🛡️ Synergy: Combat T${u.activeSynergies.combat}`);
+      if (u.activeSynergies?.netops > 0) items.push(`⚡ Synergy: NetOps T${u.activeSynergies.netops}`);
 
       this.previewPowerupsList.innerHTML = items.length > 0
         ? items.map(it => `<span class="preview-chip">${it}</span>`).join(' ')
@@ -8001,54 +8054,101 @@ class Game {
     this.gameOverModal?.classList.add('hidden');
     this.hudOverlay?.classList.remove('hidden');
 
-    // Restore Clocks and Progression
+    // 1. Restore Scenario and Re-Initialize Warehouse Map Dimensions & Stations
+    this.activeScenarioId = data.scenarioId || (data.racks && data.racks.length <= 60 ? 'beginner' : 'classic');
+    this.initWarehouseMap(this.activeScenarioId, true);
+    this.floorPattern = null;
+    this.resizeCanvas();
+
+    // 2. Restore Clocks, Progression & Buffs
     this.gameTime = data.gameTime || 0;
     this.credits = data.credits || 0;
     this.currentBossWave = data.currentBossWave || 0;
+    this.activeBuffs = {
+      nitro: data.activeBuffs?.nitro || 0,
+      grip: data.activeBuffs?.grip || 0
+    };
+    this.unlockedErrors = new Set(Array.isArray(data.unlockedErrors) ? data.unlockedErrors : []);
     this.activeBoss = null;
     this.bugBoss = null;
     this.bossSpawned = false;
     this.smallBugs = [];
 
-    // Restore Player Coordinates & Powerups
+    // 3. Restore Player Coordinates, Cooldowns & Powerups
     const pData = data.player || {};
     this.player.x = pData.x ?? CONFIG.WORLD.WIDTH / 2;
     this.player.y = pData.y ?? CONFIG.WORLD.HEIGHT / 2;
-    this.player.vx = 0;
-    this.player.vy = 0;
+    this.player.vx = pData.vx ?? 0;
+    this.player.vy = pData.vy ?? 0;
     this.player.hp = pData.hp ?? 100;
     this.player.maxHp = pData.maxHp ?? 100;
     this.player.permanentSpeedBonus = pData.permanentSpeedBonus ?? 0;
     this.player.permanentFrictionBonus = pData.permanentFrictionBonus ?? 0;
     this.player.hasNitrous = Boolean(pData.hasNitrous);
+    this.player.nitrousTimer = pData.nitrousTimer ?? 0;
+    this.player.nitrousCooldown = pData.nitrousCooldown ?? 0;
     this.player.hasSlalomSprings = Boolean(pData.hasSlalomSprings);
     this.player.hasTeflonSkids = Boolean(pData.hasTeflonSkids);
     this.player.hasSpikedBumper = Boolean(pData.hasSpikedBumper);
     this.player.hasEmpShockwave = Boolean(pData.hasEmpShockwave);
+    this.player.empCooldown = pData.empCooldown ?? 0;
     this.player.hasHexDecoder = Boolean(pData.hasHexDecoder);
     this.player.hasSuperReel = Boolean(pData.hasSuperReel);
     this.player.hasPhaseDash = Boolean(pData.hasPhaseDash);
+    this.player.dashCooldown = pData.dashCooldown ?? 0;
     this.player.hasCryoShield = Boolean(pData.hasCryoShield);
+    this.player.cryoShieldCooldown = pData.cryoShieldCooldown ?? 0;
+    this.player.hasNanotechHub = Boolean(pData.hasNanotechHub);
+    this.player.adrenalineTimer = pData.adrenalineTimer ?? 0;
     this.player.defibrillatorCharges = pData.defibrillatorCharges ?? 0;
 
-    // Restore Upgrades & Synergies
+    // Restore Patch Drone Entity
+    this.player.hasPatchDrone = Boolean(pData.hasPatchDrone);
+    if (this.player.hasPatchDrone) {
+      this.patchDrone = new PatchDroneEntity(this.player);
+    } else {
+      this.patchDrone = null;
+    }
+
+    // 4. Restore Upgrades, Supplies & Synergies
     const uData = data.upgrades || {};
     this.energyDrinkPurchases = uData.energyDrinkPurchases ?? 0;
-    this.magnetPurchases = 0; // Magnet powerup deprecated & removed
+    this.magnetPurchases = 0; // Magnet deprecated
     this.cannonCharges = uData.cannonCharges ?? 1;
+    this.cannonPuckTimer = uData.cannonPuckTimer ?? 0;
     this.hasTeleporterItem = Boolean(uData.hasTeleporterItem);
+    this.teleportCooldown = uData.teleportCooldown ?? 0;
     this.hasYieldBonds = Boolean(uData.hasYieldBonds);
     this.hasPortableTerminal = Boolean(uData.hasPortableTerminal);
-    this.hasFireExtinguisher = Boolean(uData.hasFireExtinguisher || uData.hasCryoCanister);
+    this.hasFireExtinguisher = Boolean(uData.hasFireExtinguisher);
+    this.hasCryoCanister = Boolean(uData.hasCryoCanister || uData.hasFireExtinguisher);
+    this.hasQuarantineBarrier = Boolean(uData.hasQuarantineBarrier);
     this.shopClearanceLevel = uData.shopClearanceLevel ?? 0;
     this.powerupMaxLimitBonus = uData.powerupMaxLimitBonus ?? 0;
+    this.emfPylonsRemaining = uData.emfPylonsRemaining ?? 0;
+    this.scramLimpetsRemaining = uData.scramLimpetsRemaining ?? 0;
+    this.adrenalineTimer = uData.adrenalineTimer ?? 0;
+
+    // Restore Deployed EMF Pylons
+    this.deployedPylons = [];
+    if (Array.isArray(uData.deployedPylons)) {
+      uData.deployedPylons.forEach(p => {
+        if (p && typeof p.x === 'number' && typeof p.y === 'number') {
+          this.deployedPylons.push(new EMFGroundingPylon(p.x, p.y, p.id || (this.deployedPylons.length + 1)));
+        }
+      });
+    }
+
     if (uData.portableTerminal && typeof uData.portableTerminal.x === 'number') {
       this.portableTerminal = new PortableTerminalStation(uData.portableTerminal.x, uData.portableTerminal.y);
     } else {
       this.portableTerminal = null;
     }
+
     if (uData.activeSynergies) {
       this.activeSynergies = { ...uData.activeSynergies };
+    } else {
+      this.calculateSynergies();
     }
 
     // Restore Quantum Teleporters
@@ -8076,7 +8176,7 @@ class Game {
     this.camera.targetX = this.player.x;
     this.camera.targetY = this.player.y;
 
-    // Restore Server Racks
+    // 5. Restore Server Racks & Error States
     if (Array.isArray(data.racks)) {
       const rackMap = new Map();
       data.racks.forEach(rState => {
@@ -8122,21 +8222,43 @@ class Game {
       });
     }
 
-    // Restore active cables
+    // 6. Restore Cables
     this.activeCable = null;
     this.connectedCables = [];
+
+    if (Array.isArray(data.connectedCables)) {
+      data.connectedCables.forEach(cData => {
+        const src = this.racks.find(r => r.id === cData.sourceId);
+        const tgt = this.racks.find(r => r.id === cData.targetId);
+        if (src && tgt) {
+          const cable = new PatchCable(src, tgt);
+          cable.isConnected = true;
+          this.connectedCables.push(cable);
+        }
+      });
+    }
+
     if (data.activeCable && data.activeCable.sourceId) {
       const src = this.racks.find(r => r.id === data.activeCable.sourceId);
       const tgt = this.racks.find(r => r.id === data.activeCable.targetId);
       if (src && tgt && data.activeCable.type === 'PatchCable') {
         this.activeCable = new PatchCable(src, tgt);
+      } else if (src && Array.isArray(data.activeCable.hopIds) && data.activeCable.type === 'MultiHopCable') {
+        const hops = data.activeCable.hopIds.map(hid => this.racks.find(r => r.id === hid)).filter(Boolean);
+        if (hops.length > 0) {
+          const mhc = new MultiHopCable(src, hops);
+          mhc.currentHopIndex = data.activeCable.currentHopIndex || 0;
+          this.activeCable = mhc;
+        }
       }
     }
 
+    this.calculateSynergies();
     this.updatePlayerHealthUI();
     this.updateCreditsUI();
     this.updateBuffDisplay();
     this.updateShopButtons();
+    this.updateObjectiveUI();
 
     // Start 3-Second Countdown before operator movement resumes
     this.startResumeCountdown();
