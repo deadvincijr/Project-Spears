@@ -45,7 +45,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start();
       osc.stop(this.ctx.currentTime + 0.09);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playPlugSuccess() {
@@ -64,7 +64,7 @@ class SoundFX {
         osc.start(now + i * 0.06);
         osc.stop(now + i * 0.06 + 0.19);
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playError() {
@@ -81,7 +81,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start();
       osc.stop(this.ctx.currentTime + 0.15);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playExplosion() {
@@ -113,7 +113,7 @@ class SoundFX {
       subGain.connect(this.ctx.destination);
       subOsc.start(now);
       subOsc.stop(now + 0.51);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playBump() {
@@ -130,7 +130,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start();
       osc.stop(this.ctx.currentTime + 0.08);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playKey() {
@@ -146,7 +146,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start();
       osc.stop(this.ctx.currentTime + 0.04);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playTerminalSuccess() {
@@ -165,7 +165,7 @@ class SoundFX {
         osc.start(now + i * 0.07);
         osc.stop(now + i * 0.07 + 0.17);
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playTerminalFail() {
@@ -183,7 +183,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.26);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playBuy() {
@@ -202,7 +202,7 @@ class SoundFX {
         osc.start(now + i * 0.05);
         osc.stop(now + i * 0.05 + 0.15);
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playPowerup() {
@@ -220,7 +220,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.26);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playUpgrade() {
@@ -245,7 +245,7 @@ class SoundFX {
       } else {
         this.rebootOsc.frequency.setTargetAtTime(targetFreq, now, 0.05);
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   stopRebootCharge() {
@@ -254,7 +254,7 @@ class SoundFX {
         const now = this.ctx.currentTime;
         this.rebootGain.gain.linearRampToValueAtTime(0.001, now + 0.05);
         this.rebootOsc.stop(now + 0.06);
-      } catch (e) {}
+      } catch (e) { }
       this.rebootOsc = null;
       this.rebootGain = null;
     }
@@ -275,7 +275,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.24);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playBusHop() {
@@ -294,7 +294,7 @@ class SoundFX {
         osc.start(now + i * 0.08);
         osc.stop(now + i * 0.08 + 0.17);
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playTimeFreeze() {
@@ -312,7 +312,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.31);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playCannonLaunch() {
@@ -344,7 +344,7 @@ class SoundFX {
       gain2.connect(this.ctx.destination);
       osc2.start(now);
       osc2.stop(now + 0.22);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playAirHockeyClack() {
@@ -362,7 +362,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.065);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playAlarm() {
@@ -386,7 +386,7 @@ class SoundFX {
         osc.start(now + i * 0.28);
         osc.stop(now + i * 0.28 + 0.28);
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playBossRoar() {
@@ -405,7 +405,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.92);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playBossLunge() {
@@ -423,7 +423,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.26);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playBossWrapCinch() {
@@ -453,7 +453,7 @@ class SoundFX {
       gain2.connect(this.ctx.destination);
       osc2.start(now + 0.05);
       osc2.stop(now + 0.24);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playBossWrapUnwind() {
@@ -483,7 +483,7 @@ class SoundFX {
       gain2.connect(this.ctx.destination);
       osc2.start(now + 0.03);
       osc2.stop(now + 0.22);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playPlayerDamage() {
@@ -501,7 +501,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.3);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playBossDefeat() {
@@ -531,7 +531,7 @@ class SoundFX {
       boomGain.connect(this.ctx.destination);
       boom.start(now + 0.2);
       boom.stop(now + 1.05);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playBugSquish() {
@@ -576,7 +576,7 @@ class SoundFX {
       gain3.connect(this.ctx.destination);
       osc3.start(now + 0.04);
       osc3.stop(now + 0.3);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playCryoSpray() {
@@ -607,7 +607,7 @@ class SoundFX {
       gain2.connect(this.ctx.destination);
       osc2.start(now);
       osc2.stop(now + 0.26);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playIceShatter() {
@@ -641,7 +641,7 @@ class SoundFX {
       boomGain.connect(this.ctx.destination);
       boom.start(now);
       boom.stop(now + 0.88);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playPylonDeploy() {
@@ -672,7 +672,7 @@ class SoundFX {
       thudGain.connect(this.ctx.destination);
       thud.start(now + 0.18);
       thud.stop(now + 0.44);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playLaserGridHum() {
@@ -690,7 +690,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.24);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playLimpetAttach() {
@@ -722,7 +722,7 @@ class SoundFX {
       pingGain.connect(this.ctx.destination);
       ping.start(now + 0.06);
       ping.stop(now + 0.26);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playCabinetOpen() {
@@ -740,7 +740,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.24);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playTeleportDeploy(nodeIndex = 0) {
@@ -798,7 +798,7 @@ class SoundFX {
         sub.start(now);
         sub.stop(now + 0.44);
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playTeleportWarp() {
@@ -844,7 +844,7 @@ class SoundFX {
       gain3.connect(this.ctx.destination);
       osc3.start(now);
       osc3.stop(now + 0.18);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playIceShatter() {
@@ -864,7 +864,7 @@ class SoundFX {
         osc.start(now + idx * 0.03);
         osc.stop(now + idx * 0.03 + 0.2);
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playGlitchStatic() {
@@ -884,7 +884,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.23);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playLaserSweep() {
@@ -902,7 +902,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.33);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playEmpShockwave() {
@@ -932,7 +932,7 @@ class SoundFX {
       highGain.connect(this.ctx.destination);
       highOsc.start(now);
       highOsc.stop(now + 0.4);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playNitrousBurn() {
@@ -950,7 +950,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.48);
-    } catch (e) {}
+    } catch (e) { }
   }
   playShutdown() {
     if (!this.ctx) return;
@@ -967,7 +967,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.37);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playShake() {
@@ -985,7 +985,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.1);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playDisinfect() {
@@ -1003,7 +1003,7 @@ class SoundFX {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.17);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   playQuarantineSeal() {
@@ -1022,7 +1022,7 @@ class SoundFX {
         osc.start(now + idx * 0.08);
         osc.stop(now + idx * 0.08 + 0.32);
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 
 }
@@ -1148,7 +1148,7 @@ const CONFIG = {
       name: 'OVERHEAT DAEMON',
       baseTitle: 'DEFCON 1 OVERHEAT // OVERHEAT DAEMON',
       icon: '🔥',
-      restraintName: 'CRYO COOLANT CANISTER',
+      restraintName: 'FIRE EXTINGUISHER',
       triggerTime: 1200, // 20 minutes
       minWraps: 4,
       maxWraps: 6,
@@ -1226,7 +1226,95 @@ const CONFIG = {
     TELEPORTER_ALPHA: '#00f3ff',
     TELEPORTER_BETA: '#e024c3',
     TELEPORTER_LINK: 'rgba(0, 243, 255, 0.35)',
-  }
+  },
+
+  // ==========================================================================
+  // SCENARIO DEFINITIONS (Level Selection)
+  // ==========================================================================
+  SCENARIOS: {
+    beginner: {
+      id: 'beginner',
+      name: 'BEGINNER DEPLOYMENT',
+      subtitle: 'SCENARIO 1 // TRAINING FACILITY',
+      description: 'A compact server room with fewer racks. Perfect for learning the ropes before tackling the full warehouse.',
+      serverCount: 50,
+      locked: false,
+      world: { WIDTH: 2600, HEIGHT: 2100, TILE_SIZE: 64 },
+      racks: { WIDTH: 58, HEIGHT: 92, ROW_SPACING_X: 300, RACK_SPACING_Y: 155, AISLE_BREAK_EVERY: 6 },
+      difficulty: {
+        INITIAL_SPAWN_INTERVAL: 16.0,
+        MIN_SPAWN_INTERVAL: 5.5,
+        RAMP_DURATION: 720,
+        INITIAL_MAX_ERRORS: 1,
+        PEAK_MAX_ERRORS: 4,
+      },
+      boss: { TRIGGER_TIME: 600 },
+      icon: '🖥️',
+      accentColor: '#00f3ff',
+      tags: ['50 SERVERS', 'SMALL MAP', 'TRAINING'],
+    },
+    classic: {
+      id: 'classic',
+      name: 'CLASSIC WAREHOUSE',
+      subtitle: 'ORIGINAL SCENARIO // FULL DEPLOYMENT',
+      description: 'The original full-scale data center with maximum server density and aggressive fault escalation.',
+      serverCount: null, // dynamic based on layout
+      locked: false,
+      world: { WIDTH: 4200, HEIGHT: 3200, TILE_SIZE: 64 },
+      racks: { WIDTH: 58, HEIGHT: 92, ROW_SPACING_X: 300, RACK_SPACING_Y: 155, AISLE_BREAK_EVERY: 5 },
+      difficulty: {
+        INITIAL_SPAWN_INTERVAL: 14.0,
+        MIN_SPAWN_INTERVAL: 4.5,
+        RAMP_DURATION: 600,
+        INITIAL_MAX_ERRORS: 1,
+        PEAK_MAX_ERRORS: 5,
+      },
+      boss: { TRIGGER_TIME: 600 },
+      icon: '🏭',
+      accentColor: '#ffb800',
+      tags: ['100+ SERVERS', 'FULL MAP', 'ORIGINAL'],
+    },
+    scenario_3: {
+      id: 'scenario_3',
+      name: 'OVERCLOCKED FACILITY',
+      subtitle: 'SCENARIO 3 // HIGH DENSITY',
+      description: 'A hyper-dense server farm with tighter aisles and accelerated fault rates.',
+      locked: true,
+      icon: '⚡',
+      accentColor: '#a855f7',
+      tags: ['COMING SOON'],
+    },
+    scenario_4: {
+      id: 'scenario_4',
+      name: 'ARCTIC DATA BUNKER',
+      subtitle: 'SCENARIO 4 // EXTREME COLD',
+      description: 'Sub-zero cooling systems create icy floors with near-zero friction drift physics.',
+      locked: true,
+      icon: '❄️',
+      accentColor: '#38bdf8',
+      tags: ['COMING SOON'],
+    },
+    scenario_5: {
+      id: 'scenario_5',
+      name: 'EMERGENCY PROTOCOL',
+      subtitle: 'SCENARIO 5 // SURVIVAL',
+      description: 'Start with half the servers already failing. Hold uptime as long as possible.',
+      locked: true,
+      icon: '🚨',
+      accentColor: '#ff2a55',
+      tags: ['COMING SOON'],
+    },
+    scenario_6: {
+      id: 'scenario_6',
+      name: 'QUANTUM MAINFRAME',
+      subtitle: 'SCENARIO 6 // ENDGAME',
+      description: 'A massive quantum computing complex with unprecedented scale and difficulty.',
+      locked: true,
+      icon: '🌌',
+      accentColor: '#e024c3',
+      tags: ['COMING SOON'],
+    },
+  },
 };
 
 // ============================================================================
@@ -2337,8 +2425,8 @@ class Player {
     this.vy *= Math.pow(friction, dt * 60);
 
     // SPEED: Permanent energy drinks boost top speed; Nitrous gives +400 px/s burst; Puck state allows cannon velocity
-    let maxSpeed = isCannonPuck 
-      ? (CONFIG.CANNON.LAUNCH_SPEED ?? 2150) 
+    let maxSpeed = isCannonPuck
+      ? (CONFIG.CANNON.LAUNCH_SPEED ?? 2150)
       : ((CONFIG.SPEED ?? 650) + this.permanentSpeedBonus + (this.nitrousTimer > 0 ? 400 : 0) + (this.adrenalineTimer > 0 ? 40 : 0));
 
     const currentSpeed = Math.hypot(this.vx, this.vy);
@@ -2594,7 +2682,7 @@ class ServerRack {
     this.error = {
       type: CONFIG.ERRORS.SERVER_OVERHEAT,
       isShutdown: false,
-      description: 'SERVER OVERHEAT ➔ SHUT DOWN AT TERMINAL BEFORE 45s FIRE CASCADE',
+      description: 'SERVER ON FIRE ➔ USE FIRE EXTINGUISHER TO PUT OUT FLAMES BEFORE 30s EXPLOSION',
     };
   }
 
@@ -3463,7 +3551,7 @@ class BugBoss {
     this.color = variantLevel === 0 ? '#ff2a55' : '#e024c3';
     this.maxWraps = Math.min(8, (CONFIG.BOSS?.MIN_WRAPS ?? 3) + variantLevel);
     this.speed = (CONFIG.BOSS?.SPEED ?? 175) + variantLevel * 25;
-    
+
     // Wire/rope wrapping restraint parameters (randomized between 3 and 5 wraps)
     const minW = CONFIG.BOSS?.MIN_WRAPS ?? 3;
     const maxW = CONFIG.BOSS?.MAX_WRAPS ?? 5;
@@ -4071,9 +4159,9 @@ class SmallBug {
       const rackCenterY = this.targetRack.y + this.targetRack.height / 2;
       const distToRack = Math.hypot(this.x - rackCenterX, this.y - rackCenterY);
 
-      if (distToRack < 38 || 
-          (this.x >= this.targetRack.x && this.x <= this.targetRack.x + this.targetRack.width &&
-           this.y >= this.targetRack.y && this.y <= this.targetRack.y + this.targetRack.height)) {
+      if (distToRack < 38 ||
+        (this.x >= this.targetRack.x && this.x <= this.targetRack.x + this.targetRack.width &&
+          this.y >= this.targetRack.y && this.y <= this.targetRack.y + this.targetRack.height)) {
         this.enterRack(this.targetRack, game);
       }
     }
@@ -4267,10 +4355,10 @@ class ThermalGolemBoss {
     this.name = variantLevel === 0 ? 'OVERHEAT DAEMON' : `OVERHEAT DAEMON [V${variantLevel + 1}]`;
     this.title = 'DEFCON 1 OVERHEAT // ' + (variantLevel === 0 ? 'OVERHEAT DAEMON' : 'OVERHEAT DAEMON // INFERNAL PRIME');
     this.icon = '🔥';
-    this.restraintName = 'CRYO CANISTER';
+    this.restraintName = 'FIRE EXTINGUISHER';
     this.color = variantLevel === 0 ? '#ff5500' : '#38bdf8';
-    this.cableColor = '#00f3ff';
-    this.glowColor = 'rgba(0, 243, 255, 0.45)';
+    this.cableColor = '#ffffff';
+    this.glowColor = 'rgba(255, 255, 255, 0.45)';
 
     this.temperature = 1000 + variantLevel * 350;
     this.maxTemperature = this.temperature;
@@ -4292,15 +4380,15 @@ class ThermalGolemBoss {
     if (!this.isAlive) return;
     this.animTime += dt;
 
-    // 1. Frozen Solid State: Vulnerable to high-speed cart ramming or Kinetic Cannon shatter!
+    // 1. Frozen / Extinguished Solid State: Vulnerable to high-speed cart ramming or Kinetic Cannon shatter!
     if (this.isFrozen) {
       this.vx = 0;
       this.vy = 0;
       this.state = 'FROZEN_SOLID';
 
-      // Ambient sub-zero mist
+      // Ambient extinguishing mist
       if (Math.random() < 0.4) {
-        game.particles.spawnSparks(this.x + (Math.random() - 0.5) * 40, this.y + (Math.random() - 0.5) * 40, 1, '#00f3ff');
+        game.particles.spawnSparks(this.x + (Math.random() - 0.5) * 40, this.y + (Math.random() - 0.5) * 40, 1, '#ffffff');
       }
 
       // Check collision with player cart
@@ -4308,14 +4396,14 @@ class ThermalGolemBoss {
       if (pDist < this.radius + player.radius) {
         const pSpeed = Math.hypot(player.vx, player.vy);
         if (pSpeed > 260 || player.isCannonPuck) {
-          // SHATTER THE FROZEN TITAN!
+          // SHATTER THE EXTINGUISHED TITAN!
           game.camera.shake(38, 1.2);
           game.sound.playIceShatter();
           game.particles.spawnExplosion(this.x, this.y);
-          game.particles.spawnSparks(this.x, this.y, 80, '#00f3ff');
+          game.particles.spawnSparks(this.x, this.y, 80, '#ff5500');
           game.particles.spawnSparks(this.x, this.y, 80, '#ffffff');
-          game.particles.spawnSparks(this.x, this.y, 60, '#38bdf8');
-          game.showTemporaryToast('💥 CRITICAL THERMAL SHOCK! FROZEN GOLEM SHATTERED TO ICY RUBBLE!');
+          game.particles.spawnSparks(this.x, this.y, 60, '#cbd5e1');
+          game.showTemporaryToast('💥 CRITICAL IMPACT! EXTINGUISHED DAEMON SHATTERED TO ASH & RUBBLE!');
           game.defeatBoss(this);
           return;
         } else {
@@ -4325,15 +4413,15 @@ class ThermalGolemBoss {
           player.y = this.y + Math.sin(ang) * (this.radius + player.radius + 3);
           player.vx *= -0.5;
           player.vy *= -0.5;
-          game.showTemporaryToast('❄️ GOLEM IS FROZEN SOLID! SLIDE AT HIGH SPEED TO SHATTER IT!', '❄️');
+          game.showTemporaryToast('🧯 DAEMON IS EXTINGUISHED SOLID! SLIDE AT HIGH SPEED TO SHATTER IT!', '🧯');
         }
       }
       return;
     }
 
-    // 2. Active Cryo Spray Injection Check
+    // 2. Active Fire Extinguisher Spray Injection Check
     const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
-    if (game.hasCryoCanister && distToPlayer < 195 && (game.keys['KeyE'] || game.keys['Space'])) {
+    if ((game.hasFireExtinguisher || game.hasCryoCanister) && distToPlayer < 195 && (game.keys['KeyE'] || game.keys['Space'])) {
       this.temperature = Math.max(0, this.temperature - 260 * dt);
       this.flinchTimer = 0.25;
 
@@ -4342,12 +4430,13 @@ class ThermalGolemBoss {
         game.camera.shake(4, 0.1);
       }
 
-      // Spray frost foam stream from player to golem
+      // Spray chemical fire extinguisher foam stream from player to daemon
       const toGolem = Math.atan2(this.y - player.y, this.x - player.x);
       const sprayX = player.x + Math.cos(toGolem) * 20;
       const sprayY = player.y + Math.sin(toGolem) * 20;
-      game.particles.spawnSparks(sprayX, sprayY, 3, '#00f3ff');
-      game.particles.spawnSparks(this.x + (Math.random() - 0.5) * 45, this.y + (Math.random() - 0.5) * 45, 2, '#ffffff');
+      game.particles.spawnSparks(sprayX, sprayY, 3, '#ffffff');
+      game.particles.spawnSparks(this.x + (Math.random() - 0.5) * 45, this.y + (Math.random() - 0.5) * 45, 3, '#e2e8f0');
+      game.particles.spawnSparks(this.x + (Math.random() - 0.5) * 45, this.y + (Math.random() - 0.5) * 45, 1, '#94a3b8');
       game.updateBossHUD();
 
       if (this.temperature <= 0 && !this.isFrozen) {
@@ -4357,7 +4446,7 @@ class ThermalGolemBoss {
         this.vy = 0;
         game.sound.playIceShatter();
         game.camera.shake(24, 0.6);
-        game.showTemporaryToast('❄️ THERMAL GOLEM FROZEN SOLID AT 0°C! RAM CART AT SPEED TO SHATTER!', '❄️');
+        game.showTemporaryToast('🧯 FIERY DAEMON EXTINGUISHED SOLID AT 0°C! RAM CART AT SPEED TO SHATTER!', '🧯');
         game.updateBossHUD();
         return;
       }
@@ -5166,6 +5255,13 @@ class Game {
     this.showFpsMeter = localStorage.getItem('cabled_in_show_fps') !== 'false';
     this.crtFilterEnabled = localStorage.getItem('cabled_in_crt_filter') !== 'false';
     this.isDevMode = localStorage.getItem('cabled_in_dev_mode') === 'true';
+    this.showClassicScenario = localStorage.getItem('cabled_in_show_classic') === 'true';
+    this.settingToggleClassic = document.getElementById('setting-toggle-classic');
+
+    // Scenario Selection System
+    this.scenarioModal = document.getElementById('scenario-modal');
+    this.isScenarioModalOpen = false;
+    this.activeScenarioId = 'beginner'; // Default scenario
 
     this.fpsFrames = 0;
     this.fpsLastTime = performance.now();
@@ -5218,8 +5314,11 @@ class Game {
     // Facility Supplies Closet & Boss Emergency Gear State
     this.suppliesModal = document.getElementById('supplies-modal');
     this.isSuppliesModalOpen = false;
+    this.hasFireExtinguisher = false;
     this.hasCryoCanister = false;
     this.isCryoSpraying = false;
+    this.extinguishingRack = null;
+    this.extinguishHoldTime = 0;
     this.emfPylonsRemaining = 0;
     this.deployedPylons = []; // Array of EMFGroundingPylon
     this.scramLimpetsRemaining = 0;
@@ -5269,6 +5368,7 @@ class Game {
     this.initSuppliesModal();
     this.initBossRewardModal();
     this.initMenuAndTutorial();
+    this.initScenarioModal();
     this.checkLocalQuickSave();
     this.applySettings(false);
     this.resizeCanvas();
@@ -5281,27 +5381,89 @@ class Game {
     requestAnimationFrame(this.loop.bind(this));
   }
 
-  initWarehouseMap() {
-    const { ROW_SPACING_X, RACK_SPACING_Y, AISLE_BREAK_EVERY, WIDTH, HEIGHT } = CONFIG.RACKS;
+  initWarehouseMap(scenarioId) {
+    const scenario = CONFIG.SCENARIOS[scenarioId || this.activeScenarioId] || CONFIG.SCENARIOS.beginner;
+    const rackCfg = scenario.racks || CONFIG.RACKS;
+    const worldCfg = scenario.world || CONFIG.WORLD;
+    const { ROW_SPACING_X, RACK_SPACING_Y, AISLE_BREAK_EVERY, WIDTH, HEIGHT } = rackCfg;
+    const maxServers = scenario.serverCount || Infinity;
     let idCounter = 1;
 
-    for (let x = 320; x < CONFIG.WORLD.WIDTH - 320; x += ROW_SPACING_X) {
-      let rowIndex = 0;
-      for (let y = 260; y < CONFIG.WORLD.HEIGHT - 320; y += RACK_SPACING_Y) {
-        rowIndex++;
-        if (rowIndex % AISLE_BREAK_EVERY === 0) {
-          continue;
-        }
+    // Apply scenario world dimensions to CONFIG for the active session
+    CONFIG.WORLD.WIDTH = worldCfg.WIDTH;
+    CONFIG.WORLD.HEIGHT = worldCfg.HEIGHT;
+    CONFIG.WORLD.TILE_SIZE = worldCfg.TILE_SIZE || 64;
 
-        const rack = new ServerRack(
-          `RACK-${String(idCounter++).padStart(2, '0')}`,
-          x,
-          y,
-          WIDTH,
-          HEIGHT
-        );
-        this.racks.push(rack);
+    // Apply scenario difficulty to CONFIG
+    if (scenario.difficulty) {
+      Object.assign(CONFIG.DIFFICULTY, scenario.difficulty);
+    }
+    if (scenario.boss) {
+      CONFIG.BOSS.TRIGGER_TIME = scenario.boss.TRIGGER_TIME;
+    }
+
+    // Clear existing racks
+    this.racks = [];
+
+    if (scenario.serverCount === 50 || scenario.id === 'beginner') {
+      // Symmetrical 5 columns x 10 racks layout = exactly 50 servers
+      const numCols = 5;
+      const colSpacing = ROW_SPACING_X; // 300
+      const totalColSpan = (numCols - 1) * colSpacing; // 4 * 300 = 1200
+      const startX = (CONFIG.WORLD.WIDTH - totalColSpan) / 2; // (2600 - 1200) / 2 = 700
+
+      // 5 racks in upper half, central cross-aisle walkway, 5 racks in lower half
+      const topStartY = 240;
+      const bottomStartY = topStartY + 5 * RACK_SPACING_Y + 110; // 240 + 775 + 110 = 1125
+
+      for (let c = 0; c < numCols; c++) {
+        const x = startX + c * colSpacing;
+        // Upper 5 racks
+        for (let r = 0; r < 5; r++) {
+          const y = topStartY + r * RACK_SPACING_Y;
+          this.racks.push(new ServerRack(`RACK-${String(idCounter++).padStart(2, '0')}`, x, y, WIDTH, HEIGHT));
+        }
+        // Lower 5 racks
+        for (let r = 0; r < 5; r++) {
+          const y = bottomStartY + r * RACK_SPACING_Y;
+          this.racks.push(new ServerRack(`RACK-${String(idCounter++).padStart(2, '0')}`, x, y, WIDTH, HEIGHT));
+        }
       }
+    } else {
+      for (let x = 320; x < CONFIG.WORLD.WIDTH - 320; x += ROW_SPACING_X) {
+        let rowIndex = 0;
+        for (let y = 260; y < CONFIG.WORLD.HEIGHT - 320; y += RACK_SPACING_Y) {
+          if (idCounter > maxServers) break;
+          rowIndex++;
+          if (rowIndex % AISLE_BREAK_EVERY === 0) {
+            continue;
+          }
+
+          const rack = new ServerRack(
+            `RACK-${String(idCounter++).padStart(2, '0')}`,
+            x,
+            y,
+            WIDTH,
+            HEIGHT
+          );
+          this.racks.push(rack);
+        }
+        if (idCounter > maxServers) break;
+      }
+    }
+
+    // Reposition bottom stations to match new world dimensions
+    if (this.nocDesk) {
+      this.nocDesk.x = CONFIG.WORLD.WIDTH / 2 - 120;
+      this.nocDesk.y = CONFIG.WORLD.HEIGHT - 170;
+    }
+    if (this.shopKiosk) {
+      this.shopKiosk.x = CONFIG.WORLD.WIDTH / 2 + 420;
+      this.shopKiosk.y = CONFIG.WORLD.HEIGHT - 170;
+    }
+    if (this.suppliesCloset) {
+      this.suppliesCloset.x = CONFIG.WORLD.WIDTH / 2 - 600;
+      this.suppliesCloset.y = CONFIG.WORLD.HEIGHT - 170;
     }
 
     this.triggerCableError();
@@ -5453,7 +5615,7 @@ class Game {
     const devTag = isDevShortcut ? `🛠️ [DEV SHORTCUT W${waveNumber}] ` : '🚨 DEFCON 1 BREACH // ';
     let objectiveHint = '';
     if (boss instanceof BugBoss) objectiveHint = 'RETRIEVE HEAVY ROPE FROM SUPPLIES CLOSET!';
-    else if (boss instanceof ThermalGolemBoss) objectiveHint = 'RETRIEVE CRYO CANISTER FROM SUPPLIES CLOSET TO FREEZE & SHATTER!';
+    else if (boss instanceof ThermalGolemBoss) objectiveHint = 'RETRIEVE FIRE EXTINGUISHER FROM SUPPLIES CLOSET TO EXTINGUISH & SHATTER!';
     else if (boss instanceof MajorVirusBoss) objectiveHint = 'RETRIEVE QUARANTINE BARRIER FROM SUPPLIES CLOSET TO ENCLOSE ALL INFECTED NODES!';
     else objectiveHint = `RETRIEVE ${boss.restraintName} FROM SUPPLIES CLOSET!`;
 
@@ -5483,11 +5645,11 @@ class Game {
       }
       if (this.bossStatusText) {
         if (boss.isFrozen) {
-          this.bossStatusText.textContent = '❄️ CORE FROZEN SOLID (0°C)! SLIDE/RAM CART AT HIGH SPEED TO SHATTER!';
-        } else if (this.hasCryoCanister) {
-          this.bossStatusText.textContent = '❄️ CRYO CANISTER READY! HOLD [E] NEAR TITAN TO INJECT SUB-ZERO SPRAY!';
+          this.bossStatusText.textContent = '🧯 CORE EXTINGUISHED SOLID (0°C)! SLIDE/RAM CART AT HIGH SPEED TO SHATTER!';
+        } else if (this.hasFireExtinguisher || this.hasCryoCanister) {
+          this.bossStatusText.textContent = '🧯 FIRE EXTINGUISHER READY! HOLD [E] NEAR DAEMON TO SPRAY CHEMICAL FOAM!';
         } else {
-          this.bossStatusText.textContent = '❄️ RETRIEVE CRYO CANISTER FROM SOUTH SUPPLIES CLOSET!';
+          this.bossStatusText.textContent = '🧯 RETRIEVE FIRE EXTINGUISHER FROM SOUTH SUPPLIES CLOSET!';
         }
       }
       return;
@@ -5931,6 +6093,29 @@ class Game {
     const btnAdren = document.getElementById('btn-supplies-adrenaline');
     if (btnAdren) btnAdren.disabled = this.credits < 85;
 
+    const createExtinguisherCard = () => {
+      const card = document.createElement('div');
+      card.className = 'shop-card';
+      const isEquipped = Boolean(this.hasFireExtinguisher || this.hasCryoCanister);
+      card.innerHTML = `
+        <div class="card-icon">🧯</div>
+        <div class="card-info">
+          <div class="card-name">Class-C Industrial Fire Extinguisher <span style="font-size: 0.68rem; color: #ff5500;">[DEFCON 1 SUPPRESSION]</span></div>
+          <div class="card-desc">Pressurized chemical CO2 foam. Hold [E] near the Overheat Daemon to extinguish its core, or use it to put out server racks engulfed in flames!</div>
+        </div>
+        <button type="button" class="btn-buy" id="btn-retrieve-extinguisher" style="background: ${isEquipped ? '#334155' : 'linear-gradient(135deg, #ea580c, #ff5500)'}; color: #fff; font-weight: 700;">
+          ${isEquipped ? '✓ EQUIPPED' : 'FREE RETRIEVE'}
+        </button>`;
+      card.querySelector('#btn-retrieve-extinguisher')?.addEventListener('click', () => {
+        this.hasFireExtinguisher = true;
+        this.hasCryoCanister = true;
+        this.sound.playCabinetOpen();
+        this.showTemporaryToast('🧯 FIRE EXTINGUISHER EQUIPPED! HOLD [E] NEAR FIERY DAEMON OR BURNING RACKS TO EXTINGUISH FLAMES!', '🧯');
+        this.closeSuppliesModal();
+      });
+      return card;
+    };
+
     // Active Mission Boss Gear Grid
     const gearGrid = document.getElementById('supplies-boss-gear-grid');
     if (!gearGrid) return;
@@ -5938,10 +6123,7 @@ class Game {
 
     const boss = this.activeBoss || this.bugBoss;
     if (!boss || !boss.isAlive) {
-      gearGrid.innerHTML = `
-        <div style="grid-column: 1 / -1; padding: 18px; text-align: center; color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: rgba(15, 23, 42, 0.6); border-radius: 6px; border: 1px dashed rgba(100, 116, 139, 0.3);">
-          ⚡ NO ACTIVE DEFCON BREACH // WAREHOUSE SYSTEMS IN STANDARD OPERATION STATUS
-        </div>`;
+      gearGrid.appendChild(createExtinguisherCard());
       return;
     }
 
@@ -5973,24 +6155,7 @@ class Game {
         this.closeSuppliesModal();
       });
     } else if (boss instanceof ThermalGolemBoss) {
-      const card = document.createElement('div');
-      card.className = 'shop-card';
-      card.innerHTML = `
-        <div class="card-icon">❄️</div>
-        <div class="card-info">
-          <div class="card-name">Cryo Coolant Injection Canister <span style="font-size: 0.68rem; color: #00f3ff;">[DEFCON 1 CRYO]</span></div>
-          <div class="card-desc">Pressurized liquid nitrogen (-196°C). Hold [E] near Thermal Golem to freeze core to 0°C, then ram at speed to shatter!</div>
-        </div>
-        <button type="button" class="btn-buy" id="btn-retrieve-cryo" style="background: ${this.hasCryoCanister ? '#334155' : 'linear-gradient(135deg, #0284c7, #00f3ff)'}; color: #000; font-weight: 700;">
-          ${this.hasCryoCanister ? '✓ EQUIPPED' : 'FREE RETRIEVE'}
-        </button>`;
-      gearGrid.appendChild(card);
-      card.querySelector('#btn-retrieve-cryo')?.addEventListener('click', () => {
-        this.hasCryoCanister = true;
-        this.sound.playCabinetOpen();
-        this.showTemporaryToast('❄️ CRYO COOLANT CANISTER EQUIPPED! HOLD [E] NEAR TITAN TO FREEZE ITS CORE!', '❄️');
-        this.closeSuppliesModal();
-      });
+      gearGrid.appendChild(createExtinguisherCard());
     } else if (boss instanceof MajorVirusBoss) {
       const isEquipped = Boolean(this.hasQuarantineBarrier && this.activeCable instanceof ContainmentWire);
       const card = document.createElement('div');
@@ -6034,25 +6199,30 @@ class Game {
         </button>`;
       gearGrid.appendChild(card);
     }
+
+    // Always offer Fire Extinguisher if any rack is currently burning
+    if (!(boss instanceof ThermalGolemBoss) && this.racks.some(r => r.isFailing && !r.isDestroyed && r.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT)) {
+      gearGrid.appendChild(createExtinguisherCard());
+    }
   }
 
   calculateSynergies() {
-    const driftCount = (this.energyDrinkPurchases > 0 ? 1 : 0) + 
-      (this.magnetPurchases > 0 ? 1 : 0) + 
-      (this.player.hasNitrous ? 1 : 0) + 
-      (this.player.hasSlalomSprings ? 1 : 0) + 
+    const driftCount = (this.energyDrinkPurchases > 0 ? 1 : 0) +
+      (this.magnetPurchases > 0 ? 1 : 0) +
+      (this.player.hasNitrous ? 1 : 0) +
+      (this.player.hasSlalomSprings ? 1 : 0) +
       (this.player.hasTeflonSkids ? 1 : 0) +
       (this.player.hasPhaseDash ? 1 : 0);
 
-    const combatCount = (this.cannonCharges > 1 ? 1 : 0) + 
-      (this.player.hasSpikedBumper ? 1 : 0) + 
-      (this.player.hasEmpShockwave ? 1 : 0) + 
+    const combatCount = (this.cannonCharges > 1 ? 1 : 0) +
+      (this.player.hasSpikedBumper ? 1 : 0) +
+      (this.player.hasEmpShockwave ? 1 : 0) +
       (this.player.defibrillatorCharges > 0 ? 1 : 0) +
       (this.player.hasCryoShield ? 1 : 0);
 
-    const netopsCount = (this.player.hasSuperReel ? 1 : 0) + 
-      (this.player.hasHexDecoder ? 1 : 0) + 
-      (this.player.hasPatchDrone ? 1 : 0) + 
+    const netopsCount = (this.player.hasSuperReel ? 1 : 0) +
+      (this.player.hasHexDecoder ? 1 : 0) +
+      (this.player.hasPatchDrone ? 1 : 0) +
       (this.hasYieldBonds ? 1 : 0) +
       (this.hasPortableTerminal ? 1 : 0);
 
@@ -6075,8 +6245,8 @@ class Game {
     }
 
     if (this.shopSynergyText) {
-      this.shopSynergyText.innerHTML = parts.length > 0 
-        ? parts.join(' &nbsp;|&nbsp; ') 
+      this.shopSynergyText.innerHTML = parts.length > 0
+        ? parts.join(' &nbsp;|&nbsp; ')
         : 'Equip 2+ items of the same hardware category to activate powerful build bonuses!';
     }
   }
@@ -6559,12 +6729,12 @@ class Game {
     // Menu buttons
     document.getElementById('btn-menu-new-game')?.addEventListener('click', () => {
       this.sound.init();
-      this.startNewGame();
+      this.openScenarioModal();
     });
 
     document.getElementById('btn-menu-play')?.addEventListener('click', () => {
       this.sound.init();
-      this.startNewGame();
+      this.openScenarioModal();
     });
 
     document.getElementById('btn-menu-continue')?.addEventListener('click', () => {
@@ -6670,6 +6840,14 @@ class Game {
     });
     this.settingToggleDev?.addEventListener('click', () => {
       this.toggleDevMode();
+    });
+    this.settingToggleClassic?.addEventListener('click', () => {
+      this.toggleClassicScenario();
+    });
+    document.getElementById('btn-pause-scenarios')?.addEventListener('click', () => {
+      this.sound.init();
+      this.pauseModal?.classList.add('hidden');
+      this.openScenarioModal();
     });
 
     // Save & Load File Handling Listeners
@@ -6927,8 +7105,8 @@ class Game {
       if (this.player.hasPhaseDash) items.push('Phase Dash Coil');
       if (this.hasYieldBonds) items.push('High-Yield Bonds');
       if (this.player.defibrillatorCharges > 0) items.push(`Defibrillator (x${this.player.defibrillatorCharges})`);
-      charUpgradesSummary.textContent = items.length > 0 
-        ? `Purchased Powerups: ${items.join(', ')}` 
+      charUpgradesSummary.textContent = items.length > 0
+        ? `Purchased Powerups: ${items.join(', ')}`
         : 'Purchased Powerups: None (Visit IT Supply Depot [K])';
     }
   }
@@ -6975,6 +7153,24 @@ class Game {
         ? '🛠️ DEV MODE ENABLED // Debug keys unlocked [B: Boss, N: Bug, 1-3: Errors, 8: Fire, 9: Virus]'
         : '🔒 DEV MODE DISABLED // Debug keys locked',
       this.isDevMode ? '🛠️' : '🔒'
+    );
+  }
+
+  toggleClassicScenario() {
+    this.showClassicScenario = !this.showClassicScenario;
+    try {
+      localStorage.setItem('cabled_in_show_classic', this.showClassicScenario ? 'true' : 'false');
+    } catch (e) {
+      console.warn('Could not save classic scenario setting:', e);
+    }
+    this.sound.playUpgrade();
+    this.updateSettingsUI();
+    this.updateClassicScenarioVisibility();
+    this.showTemporaryToast(
+      this.showClassicScenario
+        ? '🏭 CLASSIC SCENARIO VISIBLE // Full warehouse deployment unlocked in scenario menu!'
+        : '🔒 CLASSIC SCENARIO HIDDEN // Only Beginner scenario displayed in scenario menu.',
+      this.showClassicScenario ? '🏭' : '🔒'
     );
   }
 
@@ -7035,6 +7231,12 @@ class Game {
       if (lbl) lbl.textContent = this.isDevMode ? 'ON' : 'OFF';
     }
 
+    if (this.settingToggleClassic) {
+      this.settingToggleClassic.classList.toggle('active', this.showClassicScenario);
+      const lbl = this.settingToggleClassic.querySelector('.switch-label');
+      if (lbl) lbl.textContent = this.showClassicScenario ? 'ON' : 'OFF';
+    }
+
     if (this.perfStatusDot) {
       this.perfStatusDot.classList.toggle('active-perf', this.isOptimizedMode);
     }
@@ -7044,6 +7246,311 @@ class Game {
         : 'ACTIVE PROFILE: 💎 ULTRA FIDELITY (High Resolution)';
       this.perfStatusText.style.color = this.isOptimizedMode ? '#00ff9d' : '#00f3ff';
     }
+  }
+
+  // ==========================================================================
+  // Scenario Selection System (Level Selection & Blueprints)
+  // ==========================================================================
+  initScenarioModal() {
+    this.scenarioModal = document.getElementById('scenario-modal');
+    this.scenarioCardClassic = document.getElementById('scenario-card-classic');
+
+    // Close button
+    document.getElementById('btn-close-scenario')?.addEventListener('click', () => {
+      this.sound.init();
+      this.closeScenarioModal();
+    });
+
+    // Wire up all scenario cards and select buttons
+    const cards = document.querySelectorAll('.scenario-card');
+    cards.forEach((card) => {
+      const scenarioId = card.getAttribute('data-scenario');
+      const isLocked = card.classList.contains('scenario-locked');
+
+      const handleSelect = (e) => {
+        // Prevent duplicate trigger if clicking the button directly inside card
+        if (e.target.closest('.btn-scenario-select') && e.currentTarget === card) {
+          return;
+        }
+        this.sound.init();
+        if (isLocked) {
+          this.sound.playTerminalFail?.();
+          this.showTemporaryToast('🔒 SCENARIO LOCKED // Coming in future updates!', '🔒');
+          return;
+        }
+        this.startGame(scenarioId);
+      };
+
+      card.addEventListener('click', handleSelect);
+
+      const btn = card.querySelector('.btn-scenario-select');
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.sound.init();
+          if (isLocked) {
+            this.sound.playTerminalFail?.();
+            this.showTemporaryToast('🔒 SCENARIO LOCKED // Coming in future updates!', '🔒');
+            return;
+          }
+          this.startGame(scenarioId);
+        });
+      }
+    });
+
+    // Initial sync of classic scenario card visibility
+    this.updateClassicScenarioVisibility();
+  }
+
+  updateClassicScenarioVisibility() {
+    if (this.scenarioCardClassic) {
+      this.scenarioCardClassic.classList.toggle('scenario-classic-hidden', !this.showClassicScenario);
+    }
+  }
+
+  openScenarioModal() {
+    this.isScenarioModalOpen = true;
+    this.scenarioModal?.classList.remove('hidden');
+    this.updateClassicScenarioVisibility();
+    this.renderScenarioPreviews();
+  }
+
+  closeScenarioModal() {
+    this.isScenarioModalOpen = false;
+    this.scenarioModal?.classList.add('hidden');
+    if (this.gameState === 'PLAYING' && this.isPaused) {
+      this.pauseModal?.classList.remove('hidden');
+    } else if (this.gameState === 'MENU') {
+      this.mainMenuOverlay?.classList.remove('hidden');
+    }
+  }
+
+  renderScenarioPreviews() {
+    // Double-buffered frame wait ensures CSS layout & dimension computations are complete
+    requestAnimationFrame(() => {
+      this.renderScenarioPreview('preview-canvas-beginner', 'beginner');
+      this.renderScenarioPreview('preview-canvas-classic', 'classic');
+    });
+  }
+
+  renderScenarioPreview(canvasId, scenarioId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const scenario = CONFIG.SCENARIOS[scenarioId];
+    if (!scenario) return;
+
+    const worldW = scenario.world.WIDTH;
+    const worldH = scenario.world.HEIGHT;
+
+    const cw = canvas.width;
+    const ch = canvas.height;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, cw, ch);
+
+    // High-tech blueprint dark background
+    ctx.fillStyle = '#050b14';
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Inner layout padding
+    const pad = 12;
+    const availW = cw - pad * 2;
+    const availH = ch - pad * 2 - 18; // Reserved space at bottom for legend
+    const scale = Math.min(availW / worldW, availH / worldH);
+
+    const mapDrawW = worldW * scale;
+    const mapDrawH = worldH * scale;
+    const offsetX = pad + (availW - mapDrawW) / 2;
+    const offsetY = pad + (availH - mapDrawH) / 2;
+
+    const toCanvasX = (wx) => offsetX + wx * scale;
+    const toCanvasY = (wy) => offsetY + wy * scale;
+
+    ctx.save();
+
+    // Blueprint Grid Lines
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.08)';
+    ctx.lineWidth = 1;
+    const gridStep = Math.max(16, 250 * scale);
+    for (let gx = offsetX; gx <= offsetX + mapDrawW + 0.1; gx += gridStep) {
+      ctx.beginPath();
+      ctx.moveTo(gx, offsetY);
+      ctx.lineTo(gx, offsetY + mapDrawH);
+      ctx.stroke();
+    }
+    for (let gy = offsetY; gy <= offsetY + mapDrawH + 0.1; gy += gridStep) {
+      ctx.beginPath();
+      ctx.moveTo(offsetX, gy);
+      ctx.lineTo(offsetX + mapDrawW, gy);
+      ctx.stroke();
+    }
+
+    // Warehouse Wall Boundary
+    const isClassic = scenarioId === 'classic';
+    const primaryColor = isClassic ? '#ffb800' : '#00f3ff';
+    ctx.strokeStyle = isClassic ? 'rgba(255, 184, 0, 0.4)' : 'rgba(0, 243, 255, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(offsetX, offsetY, mapDrawW, mapDrawH);
+
+    // Corner brackets
+    const bLen = 8;
+    ctx.strokeStyle = primaryColor;
+    ctx.lineWidth = 2;
+    // Top-Left
+    ctx.beginPath(); ctx.moveTo(offsetX, offsetY + bLen); ctx.lineTo(offsetX, offsetY); ctx.lineTo(offsetX + bLen, offsetY); ctx.stroke();
+    // Top-Right
+    ctx.beginPath(); ctx.moveTo(offsetX + mapDrawW - bLen, offsetY); ctx.lineTo(offsetX + mapDrawW, offsetY); ctx.lineTo(offsetX + mapDrawW, offsetY + bLen); ctx.stroke();
+    // Bottom-Left
+    ctx.beginPath(); ctx.moveTo(offsetX, offsetY + mapDrawH - bLen); ctx.lineTo(offsetX, offsetY + mapDrawH); ctx.lineTo(offsetX + bLen, offsetY + mapDrawH); ctx.stroke();
+    // Bottom-Right
+    ctx.beginPath(); ctx.moveTo(offsetX + mapDrawW - bLen, offsetY + mapDrawH); ctx.lineTo(offsetX + mapDrawW, offsetY + mapDrawH); ctx.lineTo(offsetX + mapDrawW, offsetY + mapDrawH - bLen); ctx.stroke();
+
+    // Render all server racks for this scenario
+    const rackW = Math.max(2.5, 58 * scale);
+    const rackH = Math.max(4, 92 * scale);
+    ctx.fillStyle = isClassic ? 'rgba(255, 184, 0, 0.85)' : 'rgba(0, 243, 255, 0.85)';
+
+    let serverCountDrawn = 0;
+    if (scenarioId === 'beginner') {
+      const numCols = 5;
+      const colSpacing = 300;
+      const totalColSpan = (numCols - 1) * colSpacing;
+      const startX = (worldW - totalColSpan) / 2;
+      const topStartY = 240;
+      const bottomStartY = topStartY + 5 * 155 + 110;
+
+      for (let c = 0; c < numCols; c++) {
+        const wx = startX + c * colSpacing;
+        for (let r = 0; r < 5; r++) {
+          const wy = topStartY + r * 155;
+          ctx.fillRect(toCanvasX(wx), toCanvasY(wy), rackW, rackH);
+          serverCountDrawn++;
+        }
+        for (let r = 0; r < 5; r++) {
+          const wy = bottomStartY + r * 155;
+          ctx.fillRect(toCanvasX(wx), toCanvasY(wy), rackW, rackH);
+          serverCountDrawn++;
+        }
+      }
+    } else {
+      for (let wx = 320; wx < worldW - 320; wx += 300) {
+        let rowIdx = 0;
+        for (let wy = 260; wy < worldH - 320; wy += 155) {
+          rowIdx++;
+          if (rowIdx % 5 === 0) continue;
+          ctx.fillRect(toCanvasX(wx), toCanvasY(wy), rackW, rackH);
+          serverCountDrawn++;
+        }
+      }
+    }
+
+    // Stations along the South wall
+    // 1. NOC Terminal (South Center)
+    const nocWX = worldW / 2 - 120;
+    const nocWY = worldH - 170;
+    const nocW = Math.max(16, 240 * scale);
+    const nocH = Math.max(7, 74 * scale);
+    ctx.fillStyle = '#00f3ff';
+    ctx.shadowColor = '#00f3ff';
+    ctx.shadowBlur = 5;
+    ctx.fillRect(toCanvasX(nocWX), toCanvasY(nocWY), nocW, nocH);
+    ctx.shadowBlur = 0;
+
+    // Label NOC
+    ctx.font = 'bold 8px "Orbitron", sans-serif';
+    ctx.fillStyle = '#00f3ff';
+    ctx.textAlign = 'center';
+    ctx.fillText('NOC', toCanvasX(nocWX) + nocW / 2, toCanvasY(nocWY) - 3);
+
+    // 2. IT Shop Kiosk (South Right / East)
+    const shopWX = worldW / 2 + 420;
+    const shopWY = worldH - 170;
+    const shopW = Math.max(13, 180 * scale);
+    const shopH = Math.max(7, 74 * scale);
+    ctx.fillStyle = '#ffaa00';
+    ctx.shadowColor = '#ffaa00';
+    ctx.shadowBlur = 5;
+    ctx.fillRect(toCanvasX(shopWX), toCanvasY(shopWY), shopW, shopH);
+    ctx.shadowBlur = 0;
+
+    // Label SHOP
+    ctx.fillStyle = '#ffaa00';
+    ctx.fillText('SHOP', toCanvasX(shopWX) + shopW / 2, toCanvasY(shopWY) - 3);
+
+    // 3. Facility Supplies Closet (South Left / West)
+    const supWX = worldW / 2 - 600;
+    const supWY = worldH - 170;
+    const supW = Math.max(13, 180 * scale);
+    const supH = Math.max(7, 74 * scale);
+    ctx.fillStyle = '#00ff9d';
+    ctx.shadowColor = '#00ff9d';
+    ctx.shadowBlur = 5;
+    ctx.fillRect(toCanvasX(supWX), toCanvasY(supWY), supW, supH);
+    ctx.shadowBlur = 0;
+
+    // Label SUPPLY
+    ctx.fillStyle = '#00ff9d';
+    ctx.fillText('SUPPLY', toCanvasX(supWX) + supW / 2, toCanvasY(supWY) - 3);
+
+    // Player Start Location (Center of Warehouse)
+    const pStartX = toCanvasX(worldW / 2);
+    const pStartY = toCanvasY(worldH / 2);
+    ctx.fillStyle = '#00ff9d';
+    ctx.beginPath();
+    ctx.arc(pStartX, pStartY, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0, 255, 157, 0.6)';
+    ctx.beginPath();
+    ctx.arc(pStartX, pStartY, 6, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Map Dimensions badge (top right)
+    ctx.font = '8px "JetBrains Mono", monospace';
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${worldW}x${worldH} // ${serverCountDrawn} NODES`, offsetX + mapDrawW - 4, offsetY + 11);
+
+    // Bottom Legend Bar
+    const legY = ch - 5;
+    ctx.font = '7.5px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left';
+
+    // Rack chip
+    ctx.fillStyle = primaryColor;
+    ctx.fillRect(pad + 2, legY - 6, 6, 6);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText(`RACK (${serverCountDrawn})`, pad + 11, legY);
+
+    // NOC chip
+    ctx.fillStyle = '#00f3ff';
+    ctx.fillRect(pad + 78, legY - 6, 6, 6);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('NOC', pad + 87, legY);
+
+    // Shop chip
+    ctx.fillStyle = '#ffaa00';
+    ctx.fillRect(pad + 118, legY - 6, 6, 6);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('SHOP', pad + 127, legY);
+
+    // Supplies chip
+    ctx.fillStyle = '#00ff9d';
+    ctx.fillRect(pad + 162, legY - 6, 6, 6);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('SUPPLY', pad + 171, legY);
+
+    // Start chip
+    ctx.fillStyle = '#00ff9d';
+    ctx.beginPath();
+    ctx.arc(pad + 225, legY - 3, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('START', pad + 232, legY);
+
+    ctx.restore();
   }
 
   createFloorPattern() {
@@ -7078,14 +7585,25 @@ class Game {
     }
   }
 
-  startGame() {
+  startGame(scenarioId) {
+    // Apply scenario if provided
+    if (scenarioId) {
+      this.activeScenarioId = scenarioId;
+    }
+
     this.gameState = 'PLAYING';
     this.isPaused = false;
     this.isTutorialOpen = false;
+    this.isScenarioModalOpen = false;
+    this.scenarioModal?.classList.add('hidden');
     this.tutorialModal?.classList.add('hidden');
     this.pauseModal?.classList.add('hidden');
     this.mainMenuOverlay?.classList.add('hidden');
     this.hudOverlay?.classList.remove('hidden');
+
+    // Rebuild warehouse for this scenario
+    this.initWarehouseMap(this.activeScenarioId);
+    this.floorPattern = null; // Force floor pattern rebuild for new dimensions
 
     // Place player at warehouse center
     this.player.x = CONFIG.WORLD.WIDTH / 2;
@@ -7115,6 +7633,10 @@ class Game {
     this.hasTeleporterItem = false;
     this.teleporterNodes = [];
     this.teleportCooldown = 0;
+    this.hasFireExtinguisher = false;
+    this.hasCryoCanister = false;
+    this.extinguishingRack = null;
+    this.extinguishHoldTime = 0;
     this.unlockedErrors = new Set();
     this.updateBuffDisplay();
 
@@ -7130,14 +7652,16 @@ class Game {
       rack.error = null;
     }
 
+    this.resizeCanvas();
     this.sound.init();
     this.sound.playUpgrade();
-    this.showTemporaryToast('🚀 SHIFT STARTED // MONITOR WAREHOUSE NODES', '⚡');
+    const scenarioName = CONFIG.SCENARIOS[this.activeScenarioId]?.name || 'UNKNOWN';
+    this.showTemporaryToast(`🚀 ${scenarioName} SHIFT STARTED // MONITOR WAREHOUSE NODES`, '⚡');
     this.keys = {};
   }
 
-  startNewGame() {
-    this.startGame();
+  startNewGame(scenarioId) {
+    this.startGame(scenarioId);
   }
 
   checkLocalQuickSave() {
@@ -7199,6 +7723,8 @@ class Game {
     this.isTutorialOpen = false;
     this.isShopOpen = false;
     this.isTerminalOpen = false;
+    this.isScenarioModalOpen = false;
+    this.scenarioModal?.classList.add('hidden');
     this.gameOverModal?.classList.add('hidden');
     this.runPreviewModal?.classList.add('hidden');
     this.leaderboardModal?.classList.add('hidden');
@@ -7264,8 +7790,8 @@ class Game {
 
     const activeCableData = this.activeCable ? {
       type: this.activeCable instanceof MultiHopCable ? 'MultiHopCable' :
-            (this.activeCable instanceof RestraintRope ? 'RestraintRope' :
-            (this.activeCable instanceof ContainmentWire ? 'ContainmentWire' : 'PatchCable')),
+        (this.activeCable instanceof RestraintRope ? 'RestraintRope' :
+          (this.activeCable instanceof ContainmentWire ? 'ContainmentWire' : 'PatchCable')),
       sourceId: this.activeCable.sourceRack?.id || null,
       targetId: this.activeCable.targetRack?.id || null,
       hopIds: this.activeCable.hops ? this.activeCable.hops.map(h => h.id) : null,
@@ -7323,6 +7849,7 @@ class Game {
           secondaryColor: n.secondaryColor
         })),
         hasYieldBonds: Boolean(this.hasYieldBonds),
+        hasFireExtinguisher: Boolean(this.hasFireExtinguisher),
         activeSynergies: { ...this.activeSynergies }
       },
       racks: rackStates,
@@ -7441,6 +7968,7 @@ class Game {
       if (u.hasPortableTerminal) items.push('💻 Field NOC Terminal');
       if (u.shopClearanceLevel) items.push(`🔓 Clearance Lv.${u.shopClearanceLevel}`);
       if (u.hasYieldBonds) items.push('📈 High-Yield Bonds');
+      if (u.hasFireExtinguisher || u.hasCryoCanister) items.push('🧯 Fire Extinguisher');
 
       this.previewPowerupsList.innerHTML = items.length > 0
         ? items.map(it => `<span class="preview-chip">${it}</span>`).join(' ')
@@ -7511,6 +8039,7 @@ class Game {
     this.hasTeleporterItem = Boolean(uData.hasTeleporterItem);
     this.hasYieldBonds = Boolean(uData.hasYieldBonds);
     this.hasPortableTerminal = Boolean(uData.hasPortableTerminal);
+    this.hasFireExtinguisher = Boolean(uData.hasFireExtinguisher || uData.hasCryoCanister);
     this.shopClearanceLevel = uData.shopClearanceLevel ?? 0;
     this.powerupMaxLimitBonus = uData.powerupMaxLimitBonus ?? 0;
     if (uData.portableTerminal && typeof uData.portableTerminal.x === 'number') {
@@ -7799,7 +8328,7 @@ class Game {
     // Check server racks near the player
     for (const rack of this.racks) {
       if (Math.abs(rack.x + rack.width / 2 - startX) > maxDist + 100 ||
-          Math.abs(rack.y + rack.height / 2 - startY) > maxDist + 100) {
+        Math.abs(rack.y + rack.height / 2 - startY) > maxDist + 100) {
         continue;
       }
       const minX = rack.x - this.player.radius;
@@ -8258,7 +8787,7 @@ class Game {
 
     const prefix = isDevShortcut ? '🛠️ [DEV] ' : '🔥 ';
     this.showTemporaryToast(
-      `${prefix}SERVER OVERHEAT AT ${rack.id}! SHUT DOWN AT NOC TERMINAL BEFORE FIRE SPREAD (30s)!`,
+      `${prefix}SERVER ON FIRE AT ${rack.id}! RETRIEVE FIRE EXTINGUISHER TO EXTINGUISH FLAMES (30s)!`,
       '🔥'
     );
   }
@@ -8331,7 +8860,7 @@ class Game {
         hops.push(nextHop);
         usedRackIds.add(nextHop.id);
       } else {
-        const fallbackCandidates = this.racks.filter(r => 
+        const fallbackCandidates = this.racks.filter(r =>
           !usedRackIds.has(r.id) && !r.isFailing && !r.isDestroyed && !r.isTargetDestination
         );
         if (fallbackCandidates.length === 0) break;
@@ -8417,6 +8946,13 @@ class Game {
           this.openStats();
           return;
         }
+      }
+
+      if (this.isScenarioModalOpen) {
+        if (e.code === 'Escape') {
+          this.closeScenarioModal();
+        }
+        return;
       }
 
       if (this.isSettingsOpen) {
@@ -8733,6 +9269,10 @@ class Game {
           this.wormRack = null;
           this.wormHoldTime = 0;
         }
+        if (this.extinguishingRack) {
+          this.extinguishingRack = null;
+          this.extinguishHoldTime = 0;
+        }
       }
     });
 
@@ -8804,6 +9344,7 @@ class Game {
     const selectedRackId = this.terminalSelect?.value;
     const rack = this.racks.find(r => r.id === selectedRackId);
     if (!rack || !rack.code) return;
+    if (rack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) return; // Sensors destroyed by flames: hex decoder cannot scan or decode
 
     const nextDigit = rack.code[this.terminalInputBuffer.length];
     if (nextDigit !== undefined) {
@@ -8848,14 +9389,9 @@ class Game {
         this.terminalFeedback.textContent = `BREAKER POWER OFF: ${rack.id} SHUT DOWN // COMPLETE ON-FOOT ACTION`;
         this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
       } else if (errType === CONFIG.ERRORS.SERVER_OVERHEAT) {
-        if (promptElem) promptElem.textContent = '> OVERHEAT BREAKER SHUTDOWN PIN:';
-        if (this.player?.hasHexDecoder) {
-          this.terminalFeedback.textContent = `🔥 SENSORS OVERHEATED (NO ON-FOOT SCAN) // USE HEX DECODER GREEN HIGHLIGHTS TO ENTER PIN & SHUT DOWN`;
-          this.terminalFeedback.style.color = '#00ff9d';
-        } else {
-          this.terminalFeedback.textContent = `🔥 SENSORS OVERHEATED (NO ON-FOOT SCAN) // PURCHASE HEX DECODER AT SHOP TO DECODE PIN`;
-          this.terminalFeedback.style.color = '#ff5500';
-        }
+        if (promptElem) promptElem.textContent = '> OVERHEAT FLAME EMERGENCY:';
+        this.terminalFeedback.textContent = `🔥 SENSORS MELTED BY FLAMES // HEX DECODER CANNOT SCAN // RETRIEVE FIRE EXTINGUISHER FROM SUPPLIES CLOSET!`;
+        this.terminalFeedback.style.color = '#ff5500';
       } else {
         if (promptElem) promptElem.textContent = '> ENTER RACK PIN TO SHUT DOWN BREAKER:';
         if (!rack.error?.hasBeenInspected) {
@@ -8874,7 +9410,7 @@ class Game {
         this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
       } else {
         const isGlitch = errType === CONFIG.ERRORS.PHANTOM_GLITCH;
-        this.terminalFeedback.textContent = isGlitch 
+        this.terminalFeedback.textContent = isGlitch
           ? `AUTHENTIC PIN: [${rack.code}] ➔ ENTER PIN TO DISPEL PHANTOM GLITCH`
           : `SAVED PIN: [${rack.code}] ➔ ENTER PIN TO RESTORE NODE`;
         this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
@@ -8923,7 +9459,7 @@ class Game {
 
           if (!r.isShutdown) {
             if (t === CONFIG.ERRORS.SERVER_OVERHEAT) {
-              opt.textContent = `${r.id} // ${tag} [ON FIRE - CANNOT SCAN ON-FOOT]`;
+              opt.textContent = `${r.id} // ${tag} [ON FIRE - USE FIRE EXTINGUISHER]`;
             } else {
               opt.textContent = r.error?.hasBeenInspected
                 ? `${r.id} // ${tag} [PIN: ${r.code}]`
@@ -8953,6 +9489,16 @@ class Game {
     const rack = this.racks.find(r => r.id === rackId);
     if (!rack || !rack.isFailing) {
       this.sound.playTerminalFail();
+      return;
+    }
+
+    if (rack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) {
+      this.sound.playTerminalFail();
+      if (this.terminalFeedback) {
+        this.terminalFeedback.textContent = '🔥 SENSORS DESTROYED BY FLAMES // REMOTE SHUTDOWN OFFLINE // USE FIRE EXTINGUISHER ON-FOOT!';
+        this.terminalFeedback.style.color = '#ff5500';
+      }
+      this.showTemporaryToast(`🔥 ${rack.id} SENSORS MELTED! CANNOT SHUT DOWN VIA TERMINAL ➔ USE FIRE EXTINGUISHER!`, '🔥');
       return;
     }
 
@@ -9141,7 +9687,7 @@ class Game {
   }
 
   togglePause() {
-    if (this.gameState === 'MENU' || this.isTerminalOpen || this.isShopOpen || this.isTutorialOpen || this.isSettingsOpen || this.isBossRewardOpen) return;
+    if (this.gameState === 'MENU' || this.isTerminalOpen || this.isShopOpen || this.isTutorialOpen || this.isSettingsOpen || this.isBossRewardOpen || this.isScenarioModalOpen) return;
     this.isPaused = !this.isPaused;
     if (this.isPaused) {
       this.gameState = 'PAUSED';
@@ -9300,11 +9846,12 @@ class Game {
               return;
             }
           } else if (boss instanceof ThermalGolemBoss) {
-            if (!this.hasCryoCanister) {
+            if (!this.hasFireExtinguisher) {
+              this.hasFireExtinguisher = true;
               this.hasCryoCanister = true;
               this.sound.playCabinetOpen();
-              this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 35, '#00f3ff');
-              this.showTemporaryToast('❄️ CRYO COOLANT CANISTER EQUIPPED! HOLD [E] NEAR TITAN TO FREEZE ITS CORE!', '❄️');
+              this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 35, '#ff5500');
+              this.showTemporaryToast('🧯 FIRE EXTINGUISHER EQUIPPED! HOLD [E] NEAR DAEMON OR BURNING SERVERS TO EXTINGUISH FLAMES!', '🧯');
               this.updateBossHUD();
               return;
             }
@@ -9340,6 +9887,15 @@ class Game {
             }
           }
         }
+
+        if (!this.hasFireExtinguisher && this.racks.some(r => r.isFailing && !r.isDestroyed && r.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT)) {
+          this.hasFireExtinguisher = true;
+          this.hasCryoCanister = true;
+          this.sound.playCabinetOpen();
+          this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 35, '#ff5500');
+          this.showTemporaryToast('🧯 FIRE EXTINGUISHER EQUIPPED! HOLD [E] NEAR BURNING SERVERS TO EXTINGUISH FLAMES!', '🧯');
+          return;
+        }
         this.openSuppliesModal();
         return;
       }
@@ -9354,7 +9910,7 @@ class Game {
           this.showTemporaryToast('⚠️ ANOMALY EPICENTER! RETRIEVE HEAVY RESTRAINT ROPE AT THE SOUTH SUPPLIES CLOSET!', '🪢');
           return;
         } else if (activeBoss instanceof ThermalGolemBoss) {
-          this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE CRYO CANISTER FROM THE SOUTH SUPPLIES CLOSET!', '❄️');
+          this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE FIRE EXTINGUISHER FROM THE SOUTH SUPPLIES CLOSET!', '🧯');
           return;
         } else if (activeBoss instanceof MajorVirusBoss) {
           this.showTemporaryToast('⚠️ VIRUS EPICENTER! RETRIEVE QUARANTINE BARRIER AT THE SOUTH SUPPLIES CLOSET!', '🟡');
@@ -9376,7 +9932,7 @@ class Game {
           this.showTemporaryToast('⚠️ ANOMALY EPICENTER! RETRIEVE HEAVY RESTRAINT ROPE AT THE SOUTH SUPPLIES CLOSET!', '🪢');
           return;
         } else if (boss instanceof ThermalGolemBoss) {
-          this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE CRYO CANISTER FROM THE SOUTH SUPPLIES CLOSET!', '❄️');
+          this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE FIRE EXTINGUISHER FROM THE SOUTH SUPPLIES CLOSET!', '🧯');
           return;
         } else if (boss instanceof MajorVirusBoss) {
           this.showTemporaryToast('⚠️ VIRUS EPICENTER! RETRIEVE QUARANTINE BARRIER AT THE SOUTH SUPPLIES CLOSET!', '🟡');
@@ -9534,12 +10090,12 @@ class Game {
       return;
     }
     if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) {
-      if (nearRack.isShutdown) {
-        this.showTemporaryToast(`❄️ ${nearRack.id} POWER ISOLATED // COOLANT RESERVES RESTORING AUTOMATICALLY...`, '❄️');
+      if (this.hasFireExtinguisher || this.hasCryoCanister) {
+        this.showTemporaryToast(`🧯 HOLD [E] TO SPRAY FIRE EXTINGUISHER & PUT OUT FLAMES!`, '🧯');
       } else {
         this.sound.playTerminalFail();
         this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 25, '#ff5500');
-        this.showTemporaryToast(`🔥 ${nearRack.id} IS ENGULFED IN FLAMES! SCANNER OFFLINE DUE TO EXTREME HEAT — USE TERMINAL HEX DECODER!`, '🔥');
+        this.showTemporaryToast(`🔥 ${nearRack.id} IS ENGULFED IN FLAMES! SENSORS ARE MELTED (CANNOT SCAN EVEN WITH HEX DECODER) ➔ RETRIEVE FIRE EXTINGUISHER FROM SUPPLIES CLOSET!`, '🔥');
       }
       return;
     }
@@ -9932,8 +10488,8 @@ class Game {
 
       // Super Reel: Magnetic port snap from +120px away!
       if (this.player.hasSuperReel && this.activeCable && !this.activeCable.isConnected) {
-        const targetRack = this.activeCable instanceof MultiHopCable 
-          ? this.activeCable.getCurrentTargetRack() 
+        const targetRack = this.activeCable instanceof MultiHopCable
+          ? this.activeCable.getCurrentTargetRack()
           : this.activeCable.targetRack;
         if (targetRack) {
           const tDist = Math.hypot(this.player.x - (targetRack.x + targetRack.width / 2), this.player.y - (targetRack.y + targetRack.height / 2));
@@ -9946,7 +10502,7 @@ class Game {
       // Hitbox Collisions against Server Racks
       for (const rack of this.racks) {
         if (Math.abs(this.player.x - (rack.x + rack.width / 2)) < 110 &&
-            Math.abs(this.player.y - (rack.y + rack.height / 2)) < 110) {
+          Math.abs(this.player.y - (rack.y + rack.height / 2)) < 110) {
           this.player.resolveAABBCollision(
             rack.x, rack.y, rack.width, rack.height,
             this.sound, this.particles, this.activeBuffs, isCannonPuck
@@ -9977,9 +10533,9 @@ class Game {
         );
       }
 
-      // Hold-to-Reboot / Shake / Disinfect Processing
+      // Hold-to-Reboot / Shake / Disinfect / Extinguish Processing
       if (this.keys['KeyE']) {
-        if (!this.rebootingRack && !this.shakingRack && !this.disinfectingRack && !this.coolingRack && !this.wormRack) {
+        if (!this.rebootingRack && !this.shakingRack && !this.disinfectingRack && !this.coolingRack && !this.wormRack && !this.extinguishingRack) {
           const near = this.getNearestRack(105);
           if (near && near.isFailing) {
             if (near.error?.type === CONFIG.ERRORS.RESTART_REQUIRED && near.isShutdown) {
@@ -9994,6 +10550,11 @@ class Game {
             } else if (near.error?.type === CONFIG.ERRORS.HARD_REBOOT) {
               this.rebootingRack = near;
               this.rebootHoldTime = 0;
+            } else if (near.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) {
+              if (this.hasFireExtinguisher || this.hasCryoCanister) {
+                this.extinguishingRack = near;
+                this.extinguishHoldTime = 0;
+              }
             } else if (near.error?.type === CONFIG.ERRORS.COOLANT_LEAK) {
               this.coolingRack = near;
               this.coolantHoldTime = 0;
@@ -10169,6 +10730,44 @@ class Game {
             this.wormHoldTime = 0;
           }
         }
+        // Fire Extinguishing with Fire Extinguisher (2.0s hold)
+        if (this.extinguishingRack) {
+          const rackCenter = { x: this.extinguishingRack.x + this.extinguishingRack.width / 2, y: this.extinguishingRack.y + this.extinguishingRack.height / 2 };
+          const dist = this.getDistanceToRack(this.extinguishingRack);
+          if (dist <= 120 && !this.extinguishingRack.isDestroyed && this.extinguishingRack.isFailing && (this.hasFireExtinguisher || this.hasCryoCanister)) {
+            this.extinguishHoldTime = (this.extinguishHoldTime || 0) + dt;
+
+            // Spray fire extinguisher chemical foam stream from player to burning rack
+            const toRack = Math.atan2(rackCenter.y - this.player.y, rackCenter.x - this.player.x);
+            const sprayX = this.player.x + Math.cos(toRack) * 20;
+            const sprayY = this.player.y + Math.sin(toRack) * 20;
+            this.particles.spawnSparks(sprayX, sprayY, 3, '#ffffff');
+            this.particles.spawnSparks(rackCenter.x + (Math.random() - 0.5) * 40, rackCenter.y + (Math.random() - 0.5) * 40, 3, '#ffffff');
+            this.particles.spawnSparks(rackCenter.x + (Math.random() - 0.5) * 40, rackCenter.y + (Math.random() - 0.5) * 40, 2, '#cbd5e1');
+
+            if (Math.random() < 0.35) {
+              this.sound.playCryoSpray();
+              this.camera.shake(3, 0.1);
+            }
+
+            if (this.extinguishHoldTime >= 2.0) {
+              this.sound.playIceShatter();
+              this.sound.playPlugSuccess();
+              this.particles.spawnSparks(rackCenter.x, rackCenter.y, 45, '#38bdf8');
+              this.particles.spawnSparks(rackCenter.x, rackCenter.y, 45, '#ffffff');
+              this.extinguishingRack.resolveError();
+              const bonus = (this.activeSynergies.netops >= 1) ? 30 : 0;
+              this.addCredits(80 + bonus, `+${80 + bonus} ⚡ FIRE EXTINGUISHED`);
+              this.showTemporaryToast(`🧯 FLAMES EXTINGUISHED AT ${this.extinguishingRack.id}! SERVER SAVED!`, '🧯');
+              this.extinguishingRack = null;
+              this.extinguishHoldTime = 0;
+              this.updateObjectiveUI();
+            }
+          } else {
+            this.extinguishingRack = null;
+            this.extinguishHoldTime = 0;
+          }
+        }
       } else {
         if (this.rebootingRack) {
           if (this.rebootHoldTime > 0.3) this.sound.playRebootCancel();
@@ -10192,6 +10791,10 @@ class Game {
         if (this.wormRack) {
           this.wormRack = null;
           this.wormHoldTime = 0;
+        }
+        if (this.extinguishingRack) {
+          this.extinguishingRack = null;
+          this.extinguishHoldTime = 0;
         }
       }
 
@@ -10389,7 +10992,7 @@ class Game {
     const currentOptionValues = Array.from(this.terminalSelect?.options || []).map(o => o.value);
     const activeIds = actionableRacks.map(r => r.id);
     const optionsNeedSync = activeIds.length !== currentOptionValues.filter(v => v && v !== 'NO ACTIVE TERMINAL FAULTS').length ||
-                            !activeIds.every(id => currentOptionValues.includes(id));
+      !activeIds.every(id => currentOptionValues.includes(id));
 
     if (optionsNeedSync && this.terminalSelect) {
       const prevVal = this.terminalSelect.value;
@@ -10419,7 +11022,7 @@ class Game {
 
           if (!r.isShutdown) {
             if (t === CONFIG.ERRORS.SERVER_OVERHEAT) {
-              opt.textContent = `${r.id} // ${tag} [ON FIRE - CANNOT SCAN ON-FOOT]`;
+              opt.textContent = `${r.id} // ${tag} [ON FIRE - USE FIRE EXTINGUISHER]`;
             } else {
               opt.textContent = r.error?.hasBeenInspected ? `${r.id} // ${tag} [PIN: ${r.code}]` : `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`;
             }
@@ -10462,11 +11065,11 @@ class Game {
         }
       } else {
         const maxTime = (targetRack.error?.type === CONFIG.ERRORS.CHAIN_WIRES) ? (CONFIG.ERRORS.CHAIN_WIRES_TIME ?? 90.0) :
-                        (targetRack.error?.type === CONFIG.ERRORS.SERVER_BUG) ? (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0) :
-                        (targetRack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS ? 60.0 : (CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 45.0));
+          (targetRack.error?.type === CONFIG.ERRORS.SERVER_BUG) ? (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0) :
+            (targetRack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS ? 60.0 : (CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 45.0));
         const timeLeft = (targetRack.error?.type === CONFIG.ERRORS.SERVER_BUG && typeof targetRack.error?.bugTimer === 'number') ?
-                         Math.max(0, targetRack.error.bugTimer) :
-                         Math.max(0, maxTime - targetRack.failDuration);
+          Math.max(0, targetRack.error.bugTimer) :
+          Math.max(0, maxTime - targetRack.failDuration);
         const pct = Math.max(0, Math.min(100, (timeLeft / maxTime) * 100));
 
         if (this.terminalCountdownVal) {
@@ -10685,15 +11288,20 @@ class Game {
       let needsGear = false;
       let gearName = 'DEFCON SUPPLIES';
       let gearColor = '#38bdf8';
+      const hasFireFaults = !this.hasFireExtinguisher && this.racks.some(r => r.isFailing && !r.isDestroyed && r.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT);
       if (activeBoss instanceof BugBoss && !(this.activeCable instanceof RestraintRope)) {
         needsGear = true;
         gearName = 'HEAVY ROPE';
         gearColor = '#f59e0b';
-      } else if (activeBoss instanceof ThermalGolemBoss && !this.hasCryoCanister) {
+      } else if (activeBoss instanceof ThermalGolemBoss && !this.hasFireExtinguisher) {
         needsGear = true;
-        gearName = 'CRYO CANISTER';
-        gearColor = '#00f3ff';
-      } else if (!(this.activeCable instanceof ContainmentWire)) {
+        gearName = 'FIRE EXTINGUISHER';
+        gearColor = '#ff5500';
+      } else if (hasFireFaults) {
+        needsGear = true;
+        gearName = 'FIRE EXTINGUISHER';
+        gearColor = '#ff5500';
+      } else if (activeBoss && !(this.activeCable instanceof ContainmentWire)) {
         needsGear = true;
         gearName = activeBoss.restraintName || 'GEAR';
         gearColor = activeBoss.restraintColor || '#00ff9d';
@@ -10743,7 +11351,8 @@ class Game {
 
   renderDefconHUDNavigator(ctx, cam) {
     const activeBoss = this.activeBoss || this.bugBoss;
-    if (!activeBoss || !activeBoss.isAlive) return;
+    const hasFireFaults = !this.hasFireExtinguisher && this.racks.some(r => r.isFailing && !r.isDestroyed && r.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT);
+    if (!activeBoss?.isAlive && !hasFireFaults) return;
 
     // Show persistent HUD navigation tracker at bottom-center of screen
     const items = [];
@@ -10754,9 +11363,10 @@ class Game {
       const arrow = Math.abs(dy) > Math.abs(dx) ? (dy > 0 ? '▼' : '▲') : (dx > 0 ? '▶' : '◀');
       items.push({ text: `👾 BUG BOSS [${arrow} ${Math.round(d / 32)}m] (WRAP COILS)`, color: '#f59e0b' });
     } else if (this.suppliesCloset) {
-      let needsGear = (activeBoss instanceof BugBoss && !(this.activeCable instanceof RestraintRope)) ||
-                      (activeBoss instanceof ThermalGolemBoss && !this.hasCryoCanister) ||
-                      (!(this.activeCable instanceof ContainmentWire));
+      let needsGear = (activeBoss?.isAlive && activeBoss instanceof BugBoss && !(this.activeCable instanceof RestraintRope)) ||
+        (activeBoss?.isAlive && activeBoss instanceof ThermalGolemBoss && !this.hasFireExtinguisher) ||
+        hasFireFaults ||
+        (activeBoss?.isAlive && !(this.activeCable instanceof ContainmentWire));
       if (needsGear) {
         const closetCenterX = this.suppliesCloset.x + this.suppliesCloset.width / 2;
         const closetCenterY = this.suppliesCloset.y + this.suppliesCloset.height / 2;
@@ -10764,7 +11374,9 @@ class Game {
         const dy = closetCenterY - this.player.y;
         const dx = closetCenterX - this.player.x;
         const arrow = Math.abs(dy) > Math.abs(dx) ? (dy > 0 ? '▼' : '▲') : (dx > 0 ? '▶' : '◀');
-        items.push({ text: `📦 SOUTH SUPPLIES CLOSET [${arrow} ${Math.round(d / 32)}m] (HEAVY ROPE)`, color: '#38bdf8' });
+        const gearText = (hasFireFaults || (activeBoss instanceof ThermalGolemBoss)) ? 'FIRE EXTINGUISHER' : (activeBoss instanceof BugBoss ? 'HEAVY ROPE' : 'DEFCON GEAR');
+        const gearColor = (hasFireFaults || (activeBoss instanceof ThermalGolemBoss)) ? '#ff5500' : '#38bdf8';
+        items.push({ text: `🧯 SOUTH SUPPLIES CLOSET [${arrow} ${Math.round(d / 32)}m] (${gearText})`, color: gearColor });
       }
     }
 
@@ -11082,41 +11694,81 @@ class Game {
       ctx.strokeRect(pos.x - 4, pos.y - 18, rack.width + 8, 8);
     }
 
+    // Fire Extinguishing Live Meter
+    if (this.extinguishingRack === rack && (this.extinguishHoldTime || 0) > 0) {
+      const p = Math.min(1.0, this.extinguishHoldTime / 2.0);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+      ctx.fillRect(pos.x - 4, pos.y - 18, rack.width + 8, 8);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(pos.x - 4, pos.y - 18, (rack.width + 8) * p, 8);
+      ctx.strokeStyle = '#ff5500';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(pos.x - 4, pos.y - 18, rack.width + 8, 8);
+    }
+
     // Rack ID & Countdown Timer label
     ctx.font = '600 9px "JetBrains Mono", monospace';
     if (rack.isFailing) {
+      let lblColor = '#ff2a55';
       if (rack.isShutdown) {
-        ctx.fillStyle = '#00f3ff';
+        lblColor = '#00f3ff';
+        ctx.fillStyle = lblColor;
         ctx.textAlign = 'center';
         let actTag = 'OFFLINE';
         if (rack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED) actTag = 'REBOOT [E]';
         else if (rack.error?.type === CONFIG.ERRORS.SERVER_BUG) actTag = 'SHAKE [E]';
-        else if (rack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) actTag = 'COOLING';
+        else if (rack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) actTag = 'EXTINGUISH [E]';
         else if (rack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS) actTag = 'DISINFECT [E]';
         ctx.fillText(`${rack.id} [${actTag}]`, pos.x + rack.width / 2, pos.y - 4);
       } else {
         const isGoldNetOps = Boolean(this.activeSynergies?.netops >= 3);
         const maxFailTime = (rack.error?.type === CONFIG.ERRORS.CHAIN_WIRES ? (CONFIG.ERRORS.CHAIN_WIRES_TIME ?? 90.0) :
-                            (rack.error?.type === CONFIG.ERRORS.SERVER_BUG ? (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0) :
-                            (rack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS ? (CONFIG.ERRORS.SMALL_VIRUS_TIME ?? 60.0) :
-                            ((CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 45.0) + (isGoldNetOps ? 15 : 0)))));
+          (rack.error?.type === CONFIG.ERRORS.SERVER_BUG ? (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0) :
+            (rack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS ? (CONFIG.ERRORS.SMALL_VIRUS_TIME ?? 60.0) :
+              ((CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 45.0) + (isGoldNetOps ? 15 : 0)))));
         const timeLeft = (rack.error?.type === CONFIG.ERRORS.SERVER_BUG && typeof rack.error?.bugTimer === 'number')
           ? Math.max(0, Math.ceil(rack.error.bugTimer))
           : Math.max(0, Math.ceil(maxFailTime - rack.failDuration));
-        let lblColor = '#ff2a55';
         let tag = '';
-        if (isChainError) { lblColor = '#e879f9'; tag = ' BUS'; }
+        if (rack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) { lblColor = '#ff5500'; tag = ' FIRE'; }
+        else if (isChainError) { lblColor = '#e879f9'; tag = ' BUS'; }
         else if (isRebootError) { lblColor = '#00f3ff'; tag = ' REBOOT'; }
         else if (isCoolantError) { lblColor = '#00f3ff'; tag = ' CRYO'; }
         else if (isGlitchError) { lblColor = '#c084fc'; tag = ' GLITCH'; }
         else if (isWormError) { lblColor = '#ff0055'; tag = ' WORM'; }
         else if (rack.error?.type === CONFIG.ERRORS.SERVER_BUG) { lblColor = '#ffaa00'; tag = ' BUG'; }
-        else if (rack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) { lblColor = '#ff5500'; tag = ' FIRE'; }
         else if (rack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS) { lblColor = '#10b981'; tag = ' VIRUS'; }
         ctx.fillStyle = lblColor;
         ctx.textAlign = 'center';
         ctx.fillText(`${rack.id} [${timeLeft}s!${tag}]`, pos.x + rack.width / 2, pos.y - 4);
       }
+
+      // Smaller on-screen directional alert arrow pointing down at this failing rack
+      const bob = Math.sin(performance.now() * 0.008 + rack.id.charCodeAt(0)) * 3;
+      const arrowX = pos.x + rack.width / 2;
+      const arrowY = pos.y - 24 + bob;
+
+      ctx.save();
+      ctx.translate(arrowX, arrowY);
+      ctx.rotate(Math.PI / 2); // Point straight DOWN at the rack!
+      ctx.scale(0.55, 0.55); // Smaller than the offscreen indicator arrow
+
+      ctx.fillStyle = lblColor;
+      ctx.beginPath();
+      ctx.moveTo(14, 0);
+      ctx.lineTo(-8, -10);
+      ctx.lineTo(-3, 0);
+      ctx.lineTo(-8, 10);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 18, 0, Math.PI * 2);
+      ctx.strokeStyle = lblColor;
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+
+      ctx.restore();
     } else if (isDecoy) {
       ctx.fillStyle = '#c084fc';
       ctx.textAlign = 'center';
@@ -11139,8 +11791,8 @@ class Game {
         label = `⚠️ EMERGENCE POINT ➔ GET ROPE AT SUPPLIES CLOSET`;
         badgeColor = '#f59e0b';
       } else if (activeBoss instanceof ThermalGolemBoss) {
-        label = `⚠️ EMERGENCE POINT ➔ GET CRYO AT SUPPLIES CLOSET`;
-        badgeColor = '#00f3ff';
+        label = `⚠️ EMERGENCE POINT ➔ GET EXTINGUISHER AT SUPPLIES CLOSET`;
+        badgeColor = '#ff5500';
       } else {
         label = `[E] GRAB ${activeBoss.restraintName?.toUpperCase() || 'CONTAINMENT WIRE'}`;
         badgeColor = activeBoss.restraintColor || '#00ff9d';
@@ -11188,9 +11840,9 @@ class Game {
     } else if (rack.isFailing) {
       const isGoldNetOps = Boolean(this.activeSynergies?.netops >= 3);
       const maxFailTime = (rack.error?.type === CONFIG.ERRORS.CHAIN_WIRES ? (CONFIG.ERRORS.CHAIN_WIRES_TIME ?? 90.0) :
-                          (rack.error?.type === CONFIG.ERRORS.SERVER_BUG ? (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0) :
-                          (rack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS ? (CONFIG.ERRORS.SMALL_VIRUS_TIME ?? 60.0) :
-                          ((CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 45.0) + (isGoldNetOps ? 15 : 0)))));
+        (rack.error?.type === CONFIG.ERRORS.SERVER_BUG ? (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0) :
+          (rack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS ? (CONFIG.ERRORS.SMALL_VIRUS_TIME ?? 60.0) :
+            ((CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 45.0) + (isGoldNetOps ? 15 : 0)))));
       const timeLeft = (rack.error?.type === CONFIG.ERRORS.SERVER_BUG && typeof rack.error?.bugTimer === 'number')
         ? Math.max(0, Math.ceil(rack.error.bugTimer))
         : Math.max(0, Math.ceil(maxFailTime - rack.failDuration));
@@ -11245,11 +11897,15 @@ class Game {
           }
         }
       } else if (errType === CONFIG.ERRORS.SERVER_OVERHEAT) {
-        if (rack.isShutdown) {
-          label = `❄️ OFFLINE // RESTORING COOLANT RESERVES...`;
-          badgeColor = '#00f3ff';
+        if (this.extinguishingRack === rack && (this.extinguishHoldTime || 0) > 0) {
+          const prog = Math.min(2.0, this.extinguishHoldTime).toFixed(1);
+          label = `🧯 EXTINGUISHING FLAMES: ${prog}s / 2.0s (HOLD [E])`;
+          badgeColor = '#38bdf8';
+        } else if (this.hasFireExtinguisher || this.hasCryoCanister) {
+          label = `🧯 HOLD [E] TO SPRAY FIRE EXTINGUISHER (${timeLeft}s!)`;
+          badgeColor = '#ff5500';
         } else {
-          label = `🔥 ${rack.id} ON FIRE // SENSORS OVERHEATED [CANNOT SCAN] (${timeLeft}s!)`;
+          label = `🔥 ${rack.id} ON FIRE ➔ RETRIEVE EXTINGUISHER FROM SUPPLIES CLOSET [CANNOT SCAN] (${timeLeft}s!)`;
           badgeColor = '#ff3b30';
         }
       } else if (errType === CONFIG.ERRORS.SERVER_SMALL_VIRUS) {
@@ -11400,12 +12056,15 @@ class Game {
           badgeColor = '#f59e0b';
         }
       } else if (boss instanceof ThermalGolemBoss) {
-        label = this.hasCryoCanister ? '[E] OPEN SUPPLIES CLOSET' : '[E] RETRIEVE CRYO CANISTER';
-        badgeColor = '#00f3ff';
+        label = (this.hasFireExtinguisher || this.hasCryoCanister) ? '[E] OPEN SUPPLIES CLOSET' : '[E] RETRIEVE FIRE EXTINGUISHER';
+        badgeColor = '#ff5500';
       } else {
         label = `[E] RETRIEVE ${boss.restraintName?.toUpperCase() || 'DEFCON GEAR'}`;
         badgeColor = '#00ff9d';
       }
+    } else if (!this.hasFireExtinguisher && this.racks.some(r => r.isFailing && !r.isDestroyed && r.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT)) {
+      label = '[E] RETRIEVE FIRE EXTINGUISHER';
+      badgeColor = '#ff5500';
     }
 
     ctx.save();
@@ -11597,7 +12256,10 @@ class Game {
         const timeLeft = Math.max(0, Math.ceil(maxFailTime - rack.failDuration));
         let indicatorColor = CONFIG.COLORS.RACK_LED_RED;
         let suffix = 'CABLE';
-        if (rack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT) {
+        if (rack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) {
+          indicatorColor = '#ff5500';
+          suffix = 'FIRE';
+        } else if (rack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT) {
           indicatorColor = CONFIG.COLORS.CONSOLE_AMBER;
           suffix = 'PIN';
         } else if (rack.error?.type === CONFIG.ERRORS.MULTI_CABLE_CHAIN) {
@@ -11615,6 +12277,12 @@ class Game {
         } else if (rack.error?.type === CONFIG.ERRORS.NETWORK_WORM) {
           indicatorColor = '#ff0055';
           suffix = 'WORM';
+        } else if (rack.error?.type === CONFIG.ERRORS.SERVER_BUG) {
+          indicatorColor = '#ffaa00';
+          suffix = 'BUG';
+        } else if (rack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS) {
+          indicatorColor = '#10b981';
+          suffix = 'VIRUS';
         }
 
         drawIndicator(
@@ -11680,17 +12348,24 @@ class Game {
 
 
 
-    // 5b. Offscreen Supplies Closet Beacon (when boss is alive and gear is needed)
-    if (this.suppliesCloset && activeBoss?.isAlive && !cam.isBoundingBoxVisible(this.suppliesCloset.x, this.suppliesCloset.y, this.suppliesCloset.width, this.suppliesCloset.height)) {
+    // 5b. Offscreen Supplies Closet Beacon (when boss is alive and gear is needed, or active fire errors require extinguisher)
+    const hasFireFaults = !this.hasFireExtinguisher && this.racks.some(r => r.isFailing && !r.isDestroyed && r.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT);
+    if (this.suppliesCloset && (activeBoss?.isAlive || hasFireFaults) && !cam.isBoundingBoxVisible(this.suppliesCloset.x, this.suppliesCloset.y, this.suppliesCloset.width, this.suppliesCloset.height)) {
       let needsGear = false;
       let closetLabel = 'SUPPLIES CLOSET';
+      let beaconColor = '#f59e0b';
       if (activeBoss instanceof BugBoss && !(this.activeCable instanceof RestraintRope)) {
         needsGear = true;
         closetLabel = '🪢 SUPPLIES CLOSET (ROPE)';
-      } else if (activeBoss instanceof ThermalGolemBoss && !this.hasCryoCanister) {
+      } else if (activeBoss instanceof ThermalGolemBoss && !this.hasFireExtinguisher) {
         needsGear = true;
-        closetLabel = '❄️ SUPPLIES CLOSET (CRYO)';
-      } else if (!(this.activeCable instanceof ContainmentWire)) {
+        closetLabel = '🧯 SUPPLIES CLOSET (EXTINGUISHER)';
+        beaconColor = '#ff5500';
+      } else if (hasFireFaults) {
+        needsGear = true;
+        closetLabel = '🧯 SUPPLIES CLOSET (EXTINGUISHER)';
+        beaconColor = '#ff5500';
+      } else if (activeBoss && !(this.activeCable instanceof ContainmentWire)) {
         needsGear = true;
         closetLabel = `👑 SUPPLIES CLOSET (${activeBoss.restraintName?.toUpperCase() || 'GEAR'})`;
       }
@@ -11699,7 +12374,7 @@ class Game {
         drawIndicator(
           this.suppliesCloset.x + this.suppliesCloset.width / 2,
           this.suppliesCloset.y + this.suppliesCloset.height / 2,
-          '#f59e0b',
+          beaconColor,
           closetLabel
         );
       }
