@@ -227,6 +227,37 @@ class SoundFX {
     this.playPowerup();
   }
 
+  playGlitchHit() {
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      // Dual oscillator square/sawtooth bitcrush glitch impact
+      const osc1 = this.ctx.createOscillator();
+      const gain1 = this.ctx.createGain();
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(740, now);
+      osc1.frequency.exponentialRampToValueAtTime(120, now + 0.18);
+      gain1.gain.setValueAtTime(0.35, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc1.connect(gain1);
+      gain1.connect(this.ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.22);
+
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = 'square';
+      osc2.frequency.setValueAtTime(180, now);
+      osc2.frequency.exponentialRampToValueAtTime(45, now + 0.35);
+      gain2.gain.setValueAtTime(0.3, now);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+      osc2.connect(gain2);
+      gain2.connect(this.ctx.destination);
+      osc2.start(now);
+      osc2.stop(now + 0.4);
+    } catch (e) { }
+  }
+
   playRebootCharge(progress) {
     if (!this.ctx) return;
     try {
@@ -743,6 +774,35 @@ class SoundFX {
     } catch (e) { }
   }
 
+  playSwitchToggle(isOn = true) {
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(isOn ? 180 : 340, now);
+      osc.frequency.exponentialRampToValueAtTime(isOn ? 520 : 130, now + 0.08);
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.13);
+
+      const sub = this.ctx.createOscillator();
+      const subGain = this.ctx.createGain();
+      sub.type = 'sawtooth';
+      sub.frequency.setValueAtTime(isOn ? 65 : 45, now + 0.04);
+      subGain.gain.setValueAtTime(0.18, now + 0.04);
+      subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+      sub.connect(subGain);
+      subGain.connect(this.ctx.destination);
+      sub.start(now + 0.04);
+      sub.stop(now + 0.23);
+    } catch (e) { }
+  }
+
   playTeleportDeploy(nodeIndex = 0) {
     if (!this.ctx) return;
     try {
@@ -1040,6 +1100,7 @@ const CONFIG = {
   BRAKE_FRICTION: 0.88,      // Friction when holding [SPACE] to anchor/brake (lower = stops faster)
   INTERACT_RADIUS: 90,       // Distance in pixels to interact with racks or the console
   RESTITUTION: 0.45,         // Bounciness when colliding with server rack hitboxes (0.0 = thud, 0.5 = energetic bounce)
+  WALL_RESTITUTION: 0.60,    // Bounciness when bouncing off facility perimeter walls
 
   // Kinetic Cannon Slingshot & Air Hockey Puck Physics
   CANNON: {
@@ -1050,6 +1111,7 @@ const CONFIG = {
     TRAJECTORY_MAX_DIST: 440,  // Length of dotted aiming trajectory line in world pixels
     DOT_SPACING: 20,           // Distance between dots
     COST: 150,                 // Credit cost in shop (set price)
+    EMERGENCY_COOLDOWN: 30.0,  // Cooldown in seconds before supplies closet can dispense another emergency charge
   },
 
   // Unique Quantum Teleporter Pair (Boss Defeat Reward)
@@ -1077,16 +1139,18 @@ const CONFIG = {
     LERP_SPEED: 0.08,        // Camera follow dampening factor
     LOOKAHEAD_FACTOR: 0.35,  // Camera lead based on player momentum
     CULL_MARGIN: 140,        // Frustum culling buffer in world units
+    MAX_VIEW_WIDTH: 1500,    // Hard cap on visible world width (prevents zooming out to see full map)
+    MAX_VIEW_HEIGHT: 860,    // Hard cap on visible world height (prevents zooming out to see full map)
   },
   DIFFICULTY: {
-    INITIAL_SPAWN_INTERVAL: 14.0, // Fault interval at start (seconds - slowed down)
-    MIN_SPAWN_INTERVAL: 4.5,     // Fastest fault rate at peak escalation (seconds)
-    RAMP_DURATION: 600,          // Duration to reach peak threat (600s = 10 minutes)
+    INITIAL_SPAWN_INTERVAL: 12.0, // Fault interval at start (seconds)
+    MIN_SPAWN_INTERVAL: 3.5,     // Fastest fault rate at peak escalation (seconds)
+    RAMP_DURATION: 360,          // Duration to reach peak threat (360s = 6 minutes for average runs)
     INITIAL_MAX_ERRORS: 1,       // Max concurrent faults at start
-    PEAK_MAX_ERRORS: 5,          // Max concurrent faults at peak threat
+    PEAK_MAX_ERRORS: 6,          // Max concurrent faults at peak threat
   },
   BOSS: {
-    TRIGGER_TIME: 600,           // 10 minutes (600 seconds)
+    TRIGGER_TIME: 180,           // 3 minutes (180 seconds between boss breaches)
     MIN_WRAPS: 3,                // Minimum cable wraps to defeat
     MAX_WRAPS: 5,                // Maximum cable wraps to defeat
     RADIUS: 46,                  // Collision circle radius
@@ -1127,7 +1191,7 @@ const CONFIG = {
     REPLACEMENT_COST: 1000,      // Cost in credits (⚡) to replace an exploded server
     SMALL_BUG_SPEED: 180,        // Speed of scuttling rogue bugs across warehouse
   },
-  // Modular Boss Catalog (3 Core Bosses with cycling variants; more can be added here)
+  // Modular Boss Catalog (3 Core Bosses with cycling variants, every 3 minutes)
   BOSS_CATALOG: [
     {
       id: 'BUG_BOSS',
@@ -1135,7 +1199,7 @@ const CONFIG = {
       baseTitle: 'DEFCON 1 ANOMALY // MASSIVE GLITCH BUG',
       icon: '👾',
       restraintName: 'CONTAINMENT WIRE',
-      triggerTime: 600, // 10 minutes
+      triggerTime: 180, // 3 minutes (Wave 1)
       minWraps: 3,
       maxWraps: 5,
       rewardCredits: 500,
@@ -1149,7 +1213,7 @@ const CONFIG = {
       baseTitle: 'DEFCON 1 OVERHEAT // OVERHEAT DAEMON',
       icon: '🔥',
       restraintName: 'FIRE EXTINGUISHER',
-      triggerTime: 1200, // 20 minutes
+      triggerTime: 360, // 6 minutes (Wave 2)
       minWraps: 4,
       maxWraps: 6,
       rewardCredits: 750,
@@ -1158,18 +1222,18 @@ const CONFIG = {
       color: '#ff5500',
     },
     {
-      id: 'MAJOR_VIRUS',
-      name: 'MAJOR VIRUS',
-      baseTitle: 'DEFCON 1 BIOLOGICAL // MAJOR VIRUS',
-      icon: '🦠',
-      restraintName: 'QUARANTINE CONTAINMENT BARRIER',
-      triggerTime: 1800, // 30 minutes
-      minWraps: 4,
+      id: 'GLITCHED_SPRITE',
+      name: 'GLITCHED SPRITE',
+      baseTitle: 'DEFCON 1 CORRUPTION // GLITCHED SPRITE',
+      icon: '👾',
+      restraintName: 'KINETIC CANNON CHARGES',
+      triggerTime: 540, // 9 minutes (Wave 3)
+      minWraps: 6,
       maxWraps: 6,
       rewardCredits: 1000,
       rewardItem: 'Antivirus Purge Field',
-      unlockedError: 'SERVER_SMALL_VIRUS',
-      color: '#10b981',
+      unlockedError: 'SERVER_BUG',
+      color: '#00f3ff',
     },
   ],
   getBossForWave(waveNumber) {
@@ -1239,19 +1303,20 @@ const CONFIG = {
       description: 'A compact server room with fewer racks. Perfect for learning the ropes before tackling the full warehouse.',
       serverCount: 50,
       locked: false,
-      world: { WIDTH: 2600, HEIGHT: 2100, TILE_SIZE: 64 },
-      racks: { WIDTH: 58, HEIGHT: 92, ROW_SPACING_X: 300, RACK_SPACING_Y: 155, AISLE_BREAK_EVERY: 6 },
+      world: { WIDTH: 2600, HEIGHT: 2300, TILE_SIZE: 64 },
+      racks: { WIDTH: 58, HEIGHT: 92, ROW_SPACING_X: 300, RACK_SPACING_Y: 150, AISLE_BREAK_EVERY: 6 },
       difficulty: {
-        INITIAL_SPAWN_INTERVAL: 16.0,
-        MIN_SPAWN_INTERVAL: 5.5,
-        RAMP_DURATION: 720,
+        INITIAL_SPAWN_INTERVAL: 14.0,
+        MIN_SPAWN_INTERVAL: 4.5,
+        RAMP_DURATION: 360,
         INITIAL_MAX_ERRORS: 1,
-        PEAK_MAX_ERRORS: 4,
+        PEAK_MAX_ERRORS: 5,
       },
-      boss: { TRIGGER_TIME: 600 },
+      boss: { TRIGGER_TIME: 180 },
+      maxDestroyedAllowed: 10,
       icon: '🖥️',
       accentColor: '#00f3ff',
-      tags: ['50 SERVERS', 'SMALL MAP', 'TRAINING'],
+      tags: ['50 SERVERS', '10 LOSS LIMIT', '3m BOSSES'],
     },
     classic: {
       id: 'classic',
@@ -1263,16 +1328,17 @@ const CONFIG = {
       world: { WIDTH: 4200, HEIGHT: 3200, TILE_SIZE: 64 },
       racks: { WIDTH: 58, HEIGHT: 92, ROW_SPACING_X: 300, RACK_SPACING_Y: 155, AISLE_BREAK_EVERY: 5 },
       difficulty: {
-        INITIAL_SPAWN_INTERVAL: 14.0,
-        MIN_SPAWN_INTERVAL: 4.5,
-        RAMP_DURATION: 600,
-        INITIAL_MAX_ERRORS: 1,
-        PEAK_MAX_ERRORS: 5,
+        INITIAL_SPAWN_INTERVAL: 12.0,
+        MIN_SPAWN_INTERVAL: 3.5,
+        RAMP_DURATION: 360,
+        INITIAL_MAX_ERRORS: 2,
+        PEAK_MAX_ERRORS: 6,
       },
-      boss: { TRIGGER_TIME: 600 },
+      boss: { TRIGGER_TIME: 180 },
+      maxDestroyedAllowed: 20,
       icon: '🏭',
       accentColor: '#ffb800',
-      tags: ['100+ SERVERS', 'FULL MAP', 'ORIGINAL'],
+      tags: ['100+ SERVERS', '20 LOSS LIMIT', '3m BOSSES'],
     },
     scenario_3: {
       id: 'scenario_3',
@@ -2332,6 +2398,9 @@ class Player {
     this.hasHexDecoder = false;
     this.hasPatchDrone = false;
     this.adrenalineTimer = 0;
+    this.lastWallBounceTime = 0;
+    this.lastWallBounceX = 0;
+    this.lastWallBounceY = 0;
   }
 
   takeDamage(amount, knockX = 0, knockY = 0, sound = null, particles = null) {
@@ -2440,41 +2509,72 @@ class Player {
     this.y += this.vy * dt;
 
     // Clamp / Bounce inside world borders (Air hockey table cushions!)
-    if (isCannonPuck) {
-      const minX = this.radius;
-      const maxX = CONFIG.WORLD.WIDTH - this.radius;
-      const minY = this.radius;
-      const maxY = CONFIG.WORLD.HEIGHT - this.radius;
-      let bounced = false;
-      const restitution = CONFIG.CANNON.PUCK_RESTITUTION ?? 0.92;
+    const minX = this.radius;
+    const maxX = CONFIG.WORLD.WIDTH - this.radius;
+    const minY = this.radius;
+    const maxY = CONFIG.WORLD.HEIGHT - this.radius;
+    let bounced = false;
+    let impactSpeed = 0;
 
-      if (this.x < minX) {
-        this.x = minX;
-        this.vx = Math.abs(this.vx) * restitution;
-        bounced = true;
-      } else if (this.x > maxX) {
-        this.x = maxX;
-        this.vx = -Math.abs(this.vx) * restitution;
-        bounced = true;
+    const restitution = isCannonPuck
+      ? (CONFIG.CANNON.PUCK_RESTITUTION ?? 0.92)
+      : Math.max(0.35, (CONFIG.WALL_RESTITUTION ?? 0.60) - (this.permanentFrictionBonus * 3));
+
+    if (this.x < minX) {
+      this.x = minX;
+      impactSpeed = Math.max(impactSpeed, Math.abs(this.vx));
+      this.vx = Math.abs(this.vx) * restitution;
+      bounced = true;
+    } else if (this.x > maxX) {
+      this.x = maxX;
+      impactSpeed = Math.max(impactSpeed, Math.abs(this.vx));
+      this.vx = -Math.abs(this.vx) * restitution;
+      bounced = true;
+    }
+
+    if (this.y < minY) {
+      this.y = minY;
+      impactSpeed = Math.max(impactSpeed, Math.abs(this.vy));
+      this.vy = Math.abs(this.vy) * restitution;
+      bounced = true;
+    } else if (this.y > maxY) {
+      this.y = maxY;
+      impactSpeed = Math.max(impactSpeed, Math.abs(this.vy));
+      this.vy = -Math.abs(this.vy) * restitution;
+      bounced = true;
+    }
+
+    if (bounced) {
+      this.lastWallBounceTime = performance.now();
+      this.lastWallBounceX = this.x;
+      this.lastWallBounceY = this.y;
+
+      // Slalom Precision Springs: +25% instantaneous speed burst on bounce!
+      if (this.hasSlalomSprings && Math.hypot(this.vx, this.vy) > 220) {
+        this.vx *= 1.25;
+        this.vy *= 1.25;
+        if (particles) particles.spawnSparks(this.x, this.y, 8, '#00ff9d');
       }
 
-      if (this.y < minY) {
-        this.y = minY;
-        this.vy = Math.abs(this.vy) * restitution;
-        bounced = true;
-      } else if (this.y > maxY) {
-        this.y = maxY;
-        this.vy = -Math.abs(this.vy) * restitution;
-        bounced = true;
-      }
-
-      if (bounced) {
+      if (isCannonPuck) {
         if (sound) sound.playAirHockeyClack();
         if (particles) particles.spawnSparks(this.x, this.y, 14, '#00f3ff');
+      } else {
+        const curSpd = Math.hypot(this.vx, this.vy);
+        if (impactSpeed > 60 || curSpd > 80) {
+          if (sound) {
+            if (impactSpeed > 350) {
+              sound.playAirHockeyClack();
+            } else {
+              sound.playBump();
+            }
+          }
+          if (particles) {
+            const count = Math.min(12, Math.max(4, Math.floor(impactSpeed / 35)));
+            particles.spawnSparks(this.x, this.y, count, '#00f3ff');
+          }
+        }
       }
-    } else {
-      this.x = Math.max(this.radius, Math.min(CONFIG.WORLD.WIDTH - this.radius, this.x));
-      this.y = Math.max(this.radius, Math.min(CONFIG.WORLD.HEIGHT - this.radius, this.y));
     }
 
     this.trail.push({
@@ -2631,11 +2731,14 @@ class ServerRack {
     if (this.isDestroyed) return;
     this.isFailing = true;
     this.failDuration = 0;
+    this.isShutdown = false;
+    this.rebootAllowed = false;
     this.error = {
       type: CONFIG.ERRORS.RESTART_REQUIRED,
       isShutdown: false,
+      rebootAllowed: false,
       rebootProgress: 0,
-      description: 'RESTART REQUIRED ➔ SHUT DOWN AT TERMINAL, THEN TURN ON',
+      description: 'RESTART REQUIRED ➔ TYPE PIN & FLIP SWITCH AT TERMINAL, THEN TURN ON',
     };
   }
 
@@ -2710,6 +2813,7 @@ class ServerRack {
   resolveError() {
     this.isFailing = false;
     this.isShutdown = false;
+    this.rebootAllowed = false;
     this.isVirusInfected = false;
     if (this.error?.partnerRack) {
       this.error.partnerRack.isTargetDestination = false;
@@ -2947,10 +3051,16 @@ class ServerRack {
         game.showTemporaryToast(`💥 CRITICAL EXPLOSION AT ${this.id}! PERMANENT UPTIME DAMAGE!`, '💥');
       }
 
-      // Check Game Over condition: if all racks in warehouse exploded!
-      if (game.racks.length > 0 && game.racks.every(r => r.isDestroyed)) {
-        game.triggerGameOver();
+      // Check Game Over condition: if lost servers reaches the limit (10 in 50-server map, 20 in main)
+      const destroyedCount = game.racks.filter(r => r.isDestroyed).length;
+      const maxAllowed = game.getMaxAllowedServerLoss ? game.getMaxAllowedServerLoss() : 20;
+      if (destroyedCount >= maxAllowed) {
+        game.triggerGameOver('SERVER_LOSS_LIMIT');
       } else {
+        const remaining = maxAllowed - destroyedCount;
+        if (remaining <= 3) {
+          game.showTemporaryToast(`🚨 CRITICAL SERVER CASUALTIES: ${destroyedCount}/${maxAllowed} LOST! (${remaining} LEFT BEFORE TOTAL FAILURE!)`, '💥');
+        }
         game.updateObjectiveUI();
       }
     }
@@ -4747,195 +4857,189 @@ class ThermalGolemBoss {
 }
 
 // ============================================================================
-// Major Virus Boss Entity (Wave 3 - 30:00; Overtakes Computers; Quarantine Containment Zone)
+// Glitched Sprite Boss Entity (Wave 3 - 9:00; 6 Kinetic Cannon Charges Required)
 // ============================================================================
-class MajorVirusBoss {
+class GlitchedSpriteBoss {
   constructor(x, y, hostRack, variantLevel = 0) {
     this.x = x;
     this.y = y;
     this.hostRack = hostRack;
     this.variantLevel = variantLevel;
     this.isAlive = true;
-    this.radius = 50;
-    this.speed = 120 + variantLevel * 20;
-    this.color = variantLevel === 0 ? '#10b981' : (variantLevel === 1 ? '#a855f7' : '#e11d48');
-    this.name = variantLevel === 0 ? 'MAJOR VIRUS' : `MAJOR VIRUS [V${variantLevel + 1}]`;
-    this.title = 'DEFCON 1 BIOLOGICAL // ' + (variantLevel === 0 ? 'MAJOR VIRUS' : 'MAJOR VIRUS // APEX MUTANT STRAIN');
-    this.icon = '🦠';
-    this.restraintName = 'QUARANTINE CONTAINMENT BARRIER';
+    this.radius = 52;
+    this.speed = 165 + variantLevel * 25;
+    this.color = '#00f3ff';
+    this.glitchColor = '#ff0055';
+    this.name = variantLevel === 0 ? 'GLITCHED SPRITE' : `GLITCHED SPRITE [V${variantLevel + 1}]`;
+    this.title = 'DEFCON 1 CORRUPTION // ' + (variantLevel === 0 ? 'GLITCHED SPRITE' : 'GLITCHED SPRITE // APEX ENTITY');
+    this.icon = '👾';
+    this.restraintName = 'KINETIC CANNON CHARGES';
 
-    this.infectedRacks = [hostRack];
-    hostRack.isVirusInfected = true;
-    this.infectionInterval = Math.max(8.0, 14.0 - variantLevel * 2.5);
-    this.infectionTimer = this.infectionInterval;
+    // 6 kinetic cannon ram charges to defeat
+    this.hitsRequired = 6;
+    this.hitsTaken = 0;
+    this.hitInvuln = 0; // Brief invulnerability cooldown after a hit so 1 launch = 1 hit
 
-    this.pulseAnim = 0;
-    this.tentacles = [];
-    for (let i = 0; i < 10; i++) {
-      this.tentacles.push({ angle: (i / 10) * Math.PI * 2, length: 32 + Math.random() * 28, phase: Math.random() * Math.PI * 2 });
-    }
-    this.isQuarantined = false;
-    this.quarantineProgress = 0;
-    this.attackCooldown = 2.5;
-    this.quarantineTrail = [];
+    // Movement & AI
+    this.animPhase = 0;
+    this.glitchTimer = 0;
+    this.teleportCooldown = 3.0;
+    this.teleportTimer = this.teleportCooldown;
+    this.targetAisleX = x;
+    this.targetAisleY = y;
+
+    // Visual Glitch Generator
+    this.sliceOffsets = [0, 0, 0, 0, 0, 0, 0, 0];
+    this.matrixSymbols = ['0', '1', '§', '¿', 'Ø', '404', 'NaN', 'ERR', '0xFF', 'SYS', 'NULL', 'EOF'];
   }
 
   update(player, activeCable, dt, game) {
     if (!this.isAlive) return;
-    this.pulseAnim += dt * 3.5;
 
-    this.tentacles.forEach(t => {
-      t.phase += dt * 4.0;
-    });
-
-    // Slowly drift around infected cluster center
-    let avgX = 0, avgY = 0;
-    this.infectedRacks.forEach(r => {
-      avgX += r.x + r.width / 2;
-      avgY += r.y + r.height / 2;
-    });
-    avgX /= this.infectedRacks.length;
-    avgY /= this.infectedRacks.length;
-
-    const dx = avgX - this.x;
-    const dy = avgY - this.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist > 15) {
-      this.x += (dx / dist) * this.speed * 0.45 * dt;
-      this.y += (dy / dist) * this.speed * 0.45 * dt;
+    this.animPhase += dt * 5.0;
+    this.glitchTimer += dt;
+    if (this.hitInvuln > 0) {
+      this.hitInvuln = Math.max(0, this.hitInvuln - dt);
     }
 
-    // Spawn toxic slime droplets
+    // Jitter glitch slice offsets every ~60ms
+    if (this.glitchTimer > 0.06) {
+      this.glitchTimer = 0;
+      for (let i = 0; i < this.sliceOffsets.length; i++) {
+        this.sliceOffsets[i] = (Math.random() - 0.5) * (14 + this.hitsTaken * 3.5);
+      }
+    }
+
+    // Erratic Digital Stalking AI: Periodically glitch-leap to keep player on their toes
+    this.teleportTimer -= dt;
+    if (this.teleportTimer <= 0) {
+      this.teleportTimer = Math.max(2.0, this.teleportCooldown - this.variantLevel * 0.25);
+      const angle = Math.random() * Math.PI * 2;
+      const jumpDist = 130 + Math.random() * 160;
+      this.targetAisleX = Math.max(160, Math.min(CONFIG.WORLD.WIDTH - 160, player.x + Math.cos(angle) * jumpDist));
+      this.targetAisleY = Math.max(160, Math.min(CONFIG.WORLD.HEIGHT - 160, player.y + Math.sin(angle) * jumpDist));
+
+      // Glitch teleport artifacts
+      if (game && game.particles) {
+        game.particles.spawnSparks(this.x, this.y, 25, this.glitchColor);
+        game.particles.spawnSparks(this.targetAisleX, this.targetAisleY, 25, this.color);
+      }
+    }
+
+    // Smooth movement towards target waypoint with sinusoidal drift
+    const dx = this.targetAisleX - this.x;
+    const dy = this.targetAisleY - this.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 15) {
+      const moveSpeed = this.speed * (1.0 + (this.hitsTaken / this.hitsRequired) * 0.35); // Enrages as damaged!
+      this.x += (dx / dist) * moveSpeed * dt;
+      this.y += (dy / dist) * moveSpeed * dt;
+    } else {
+      // Float towards player directly
+      const pdx = player.x - this.x;
+      const pdy = player.y - this.y;
+      const pdist = Math.hypot(pdx, pdy);
+      if (pdist > 160) {
+        this.x += (pdx / pdist) * this.speed * 0.7 * dt;
+        this.y += (pdy / pdist) * this.speed * 0.7 * dt;
+      }
+    }
+
+    // Bound within warehouse walls
+    this.x = Math.max(120, Math.min(CONFIG.WORLD.WIDTH - 120, this.x));
+    this.y = Math.max(120, Math.min(CONFIG.WORLD.HEIGHT - 120, this.y));
+
+    // Spawn ambient glitch trail particles
     if (game && Math.random() < 0.4) {
       game.particles.particles.push({
-        x: this.x + (Math.random() - 0.5) * this.radius * 1.5,
-        y: this.y + (Math.random() - 0.5) * this.radius * 1.5,
-        vx: (Math.random() - 0.5) * 30,
-        vy: (Math.random() - 0.5) * 30,
-        life: 0.8,
-        decay: 1.2,
-        color: Math.random() < 0.5 ? this.color : '#a855f7',
-        size: 3 + Math.random() * 3
+        x: this.x + (Math.random() - 0.5) * this.radius * 1.4,
+        y: this.y + (Math.random() - 0.5) * this.radius * 1.4,
+        vx: (Math.random() - 0.5) * 40,
+        vy: (Math.random() - 0.5) * 40,
+        size: 3 + Math.random() * 4,
+        color: Math.random() < 0.5 ? this.color : this.glitchColor,
+        life: 0.6,
+        decay: 1.6
       });
     }
 
-    // Spread infection to adjacent living uninfected computers
-    this.infectionTimer -= dt;
-    if (this.infectionTimer <= 0) {
-      this.infectionTimer = this.infectionInterval;
-      this.spreadInfection(game);
-    }
-
-    // Damage player on direct contact
+    // ========================================================================
+    // PLAYER COLLISION & KINETIC CANNON CHARGE HIT DETECTION
+    // ========================================================================
     if (game && game.player) {
       const pDist = Math.hypot(this.x - game.player.x, this.y - game.player.y);
-      if (pDist < this.radius + 20) {
-        game.damagePlayer(15, 'VIRUS SLIME CONTACT');
-      }
-    }
+      const isCannonPuck = (game.cannonPuckTimer > 0);
 
-    // If player is holding quarantine barrier line, record trail points
-    if (game && game.hasQuarantineBarrier && game.player) {
-      const trail = this.quarantineTrail;
-      const p = { x: game.player.x, y: game.player.y };
-      if (trail.length === 0 || Math.hypot(p.x - trail[trail.length - 1].x, p.y - trail[trail.length - 1].y) > 25) {
-        trail.push(p);
-        if (trail.length > 200) trail.shift();
-      }
+      if (pDist < this.radius + game.player.radius) {
+        if (isCannonPuck) {
+          // Player rammed the Glitched Sprite while in Kinetic Cannon puck launch!
+          if (this.hitInvuln <= 0) {
+            this.hitsTaken++;
+            this.hitInvuln = 0.75; // Invulnerability window so 1 cannon launch = 1 clean hit
 
-      // Check if loop has encircled the infected racks
-      this.checkQuarantineLoop(game);
-    }
-  }
+            // Heavy audiovisual impact
+            if (game.camera) game.camera.shake(34, 0.75);
+            if (game.sound) {
+              if (game.sound.playGlitchHit) game.sound.playGlitchHit();
+              else game.sound.playExplosion();
+            }
 
-  spreadInfection(game) {
-    if (!game) return;
-    const uninfected = game.racks.filter(r => !r.isDestroyed && !this.infectedRacks.some(ir => ir.id === r.id));
-    if (uninfected.length === 0) return;
+            // Massive burst of glitch sparks & cyber particles
+            if (game.particles) {
+              game.particles.spawnSparks(this.x, this.y, 65, this.color);
+              game.particles.spawnSparks(this.x, this.y, 45, this.glitchColor);
+              game.particles.spawnSparks(game.player.x, game.player.y, 35, '#ffffff');
+            }
 
-    let closest = null;
-    let minDist = Infinity;
-    for (const r of uninfected) {
-      for (const ir of this.infectedRacks) {
-        const d = Math.hypot(r.x - ir.x, r.y - ir.y);
-        if (d < minDist) {
-          minDist = d;
-          closest = r;
+            // Puck Ricochet Reflection: bounce player back with energetic elastic deflection
+            const bounceAngle = Math.atan2(game.player.y - this.y, game.player.x - this.x);
+            const curSpeed = Math.hypot(game.player.vx, game.player.vy) || 1600;
+            game.player.vx = Math.cos(bounceAngle) * curSpeed * 0.75;
+            game.player.vy = Math.sin(bounceAngle) * curSpeed * 0.75;
+
+            // Knock boss back in opposite direction
+            this.x -= Math.cos(bounceAngle) * 90;
+            this.y -= Math.sin(bounceAngle) * 90;
+
+            const remaining = Math.max(0, this.hitsRequired - this.hitsTaken);
+            game.showTemporaryToast(
+              `💥 KINETIC CANNON HIT LANDED! [${this.hitsTaken}/${this.hitsRequired} HITS] — ${remaining > 0 ? remaining + ' MORE NEEDED!' : 'CORRUPTED ENTITY SHATTERING!'}`,
+              '🎯'
+            );
+            game.updateBossHUD();
+
+            // 6 hits taken: DEFEAT!
+            if (this.hitsTaken >= this.hitsRequired) {
+              this.isAlive = false;
+              if (game.particles) {
+                game.particles.spawnExplosion(this.x, this.y);
+                game.particles.spawnSparks(this.x, this.y, 100, this.color);
+                game.particles.spawnSparks(this.x, this.y, 80, this.glitchColor);
+                game.particles.spawnSparks(this.x, this.y, 80, '#ffffff');
+              }
+              game.defeatBoss(this);
+              game.showTemporaryToast('🏆 GLITCHED SPRITE ANNIHILATED BY KINETIC CANNON! FACILITY RESTORED!', '👾');
+              return;
+            }
+          }
+        } else {
+          // Regular cart collision (without cannon launch): Glitched Sprite shocks the player!
+          if (game.player.invulnerableTimer <= 0) {
+            const pushX = (game.player.x - this.x) * 4;
+            const pushY = (game.player.y - this.y) * 4;
+            game.player.takeDamage(20, pushX, pushY, game.sound, game.particles);
+            game.triggerDamageFlash();
+            game.showTemporaryToast('⚠️ GLITCH DISCHARGE CONTACT (-20 HP)! USE KINETIC CANNON [F] TO RAM IT!', '⚡');
+
+            // "Make the way you die that if you die from a boss you lose"
+            if (game.player.hp <= 0) {
+              game.triggerGameOver('BOSS_DEFEAT');
+              return;
+            }
+          }
         }
       }
     }
-
-    if (closest && minDist < 650) {
-      this.infectedRacks.push(closest);
-      closest.isVirusInfected = true;
-      if (game.sound) game.sound.playError();
-      if (game.particles) {
-        game.particles.spawnSparks(closest.x + closest.width / 2, closest.y + closest.height / 2, 30, this.color);
-      }
-      game.showTemporaryToast(`🦠 VIRUS OVERTOOK RACK ${closest.id}! (${this.infectedRacks.length} INFECTED NODES)`, '🦠');
-      game.updateBossHUD();
-    }
-  }
-
-  checkQuarantineLoop(game) {
-    if (!this.isAlive || this.isQuarantined || !this.quarantineTrail || this.quarantineTrail.length < 15) return false;
-
-    // Check if the quarantine trail bounds all infected racks
-    const trail = this.quarantineTrail;
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    trail.forEach(pt => {
-      if (pt.x < minX) minX = pt.x;
-      if (pt.x > maxX) maxX = pt.x;
-      if (pt.y < minY) minY = pt.y;
-      if (pt.y > maxY) maxY = pt.y;
-    });
-
-    // Check if loop closure is near
-    const first = trail[0];
-    const last = trail[trail.length - 1];
-    const loopClosed = Math.hypot(last.x - first.x, last.y - first.y) < 120 && trail.length > 20;
-
-    // Verify all infected racks lie within the boundary
-    const allEnclosed = this.infectedRacks.every(rack => {
-      const rx = rack.x + rack.width / 2;
-      const ry = rack.y + rack.height / 2;
-      return rx >= minX - 40 && rx <= maxX + 40 && ry >= minY - 40 && ry <= maxY + 40;
-    });
-
-    if (loopClosed && allEnclosed) {
-      this.sealQuarantine(game);
-      return true;
-    }
-    return false;
-  }
-
-  sealQuarantine(game) {
-    this.isQuarantined = true;
-    this.isAlive = false;
-    if (game.sound && game.sound.playQuarantineSeal) game.sound.playQuarantineSeal();
-    if (game.sound) game.sound.playPlugSuccess();
-
-    if (game.camera) game.camera.shake(28, 0.9);
-
-    // Cleanse all infected racks
-    this.infectedRacks.forEach(r => {
-      r.isVirusInfected = false;
-      r.uptime = 100;
-      if (game.particles) {
-        game.particles.spawnSparks(r.x + r.width / 2, r.y + r.height / 2, 45, '#00ff9d');
-        game.particles.spawnSparks(r.x + r.width / 2, r.y + r.height / 2, 25, '#00f3ff');
-      }
-    });
-
-    if (game.particles) {
-      game.particles.spawnExplosion(this.x, this.y);
-      game.particles.spawnSparks(this.x, this.y, 90, this.color);
-    }
-
-    game.hasQuarantineBarrier = false;
-    this.quarantineTrail = [];
-    game.defeatBoss();
-    game.showTemporaryToast('🛡️ QUARANTINE ZONE SEALED! MAJOR VIRUS PURGED & ALL NODES DISINFECTED!', '🦠');
   }
 
   render(ctx, cam) {
@@ -4945,89 +5049,144 @@ class MajorVirusBoss {
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
-    // Pulsing virus aura
-    const pulse = 1.0 + Math.sin(this.pulseAnim) * 0.12;
-    const grad = ctx.createRadialGradient(0, 0, 8, 0, 0, this.radius * pulse * 1.4);
-    grad.addColorStop(0, this.color);
-    grad.addColorStop(0.6, 'rgba(168, 85, 247, 0.6)');
-    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    const isHitFlashing = this.hitInvuln > 0.4;
+    const pulse = 1.0 + Math.sin(this.animPhase) * 0.08;
+    const size = this.radius * pulse;
 
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(0, 0, this.radius * pulse * 1.4, 0, Math.PI * 2);
-    ctx.fill();
+    // 1. Digital Matrix Cyber Bounding Box / Corner Brackets
+    ctx.strokeStyle = isHitFlashing ? '#ffffff' : this.color;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-size * 1.15, -size * 1.15, size * 2.3, size * 2.3);
 
-    // Wiggling slime tentacles
-    this.tentacles.forEach(t => {
-      const len = t.length * pulse;
-      const angle = t.angle + Math.sin(t.phase) * 0.35;
-      const tx = Math.cos(angle) * len;
-      const ty = Math.sin(angle) * len;
-      const cpx = Math.cos(angle + 0.3) * (len * 0.6);
-      const cpy = Math.sin(angle + 0.3) * (len * 0.6);
+    // Corner targeting reticles
+    const bLen = 14;
+    ctx.strokeStyle = this.glitchColor;
+    ctx.lineWidth = 2.5;
+    // Top-left
+    ctx.beginPath(); ctx.moveTo(-size * 1.15, -size * 1.15 + bLen); ctx.lineTo(-size * 1.15, -size * 1.15); ctx.lineTo(-size * 1.15 + bLen, -size * 1.15); ctx.stroke();
+    // Top-right
+    ctx.beginPath(); ctx.moveTo(size * 1.15 - bLen, -size * 1.15); ctx.lineTo(size * 1.15, -size * 1.15); ctx.lineTo(size * 1.15, -size * 1.15 + bLen); ctx.stroke();
+    // Bottom-left
+    ctx.beginPath(); ctx.moveTo(-size * 1.15, size * 1.15 - bLen); ctx.lineTo(-size * 1.15, size * 1.15); ctx.lineTo(-size * 1.15 + bLen, size * 1.15); ctx.stroke();
+    // Bottom-right
+    ctx.beginPath(); ctx.moveTo(size * 1.15 - bLen, size * 1.15); ctx.lineTo(size * 1.15, size * 1.15); ctx.lineTo(size * 1.15, size * 1.15 - bLen); ctx.stroke();
 
-      ctx.strokeStyle = this.color;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(cpx, cpy, tx, ty);
-      ctx.stroke();
+    // 2. Pixelated 12x12 Corrupted Glitch Invader Matrix
+    // 1 = solid pixel, 2 = glowing eye, 0 = transparent
+    const spriteMatrix = [
+      [0,0,0,1,1,0,0,1,1,0,0,0],
+      [0,0,1,1,1,1,1,1,1,1,0,0],
+      [0,1,1,1,1,1,1,1,1,1,1,0],
+      [1,1,2,2,1,1,1,1,2,2,1,1],
+      [1,1,2,2,1,1,1,1,2,2,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [0,1,1,0,1,1,1,1,0,1,1,0],
+      [0,0,1,1,0,0,0,0,1,1,0,0],
+      [0,1,1,0,0,1,1,0,0,1,1,0],
+      [1,1,0,1,1,0,0,1,1,0,1,1],
+      [1,0,0,1,0,0,0,0,1,0,0,1],
+      [0,1,1,0,0,0,0,0,0,1,1,0]
+    ];
 
-      // Droplet at tentacle tip
-      ctx.fillStyle = '#a855f7';
-      ctx.beginPath();
-      ctx.arc(tx, ty, 3.5, 0, Math.PI * 2);
-      ctx.fill();
+    const pixelSize = (size * 1.8) / 12;
+    const startOffset = -(size * 1.8) / 2;
+    const numSlices = this.sliceOffsets.length;
+
+    // Multi-pass Chromatic Aberration (Cyan / Magenta offset rendering)
+    const passes = [
+      { color: this.glitchColor, offsetX: 3.5, offsetY: -2.0, alpha: 0.75 },
+      { color: this.color, offsetX: -3.5, offsetY: 2.0, alpha: 0.8 },
+      { color: isHitFlashing ? '#ffffff' : '#00f3ff', eyeColor: '#ffffff', offsetX: 0, offsetY: 0, alpha: 1.0 }
+    ];
+
+    passes.forEach(pass => {
+      ctx.save();
+      ctx.globalAlpha = pass.alpha;
+      ctx.translate(pass.offsetX, pass.offsetY);
+
+      for (let r = 0; r < 12; r++) {
+        const sliceIndex = Math.floor((r / 12) * numSlices);
+        const sliceShift = this.sliceOffsets[sliceIndex] || 0;
+
+        for (let c = 0; c < 12; c++) {
+          const val = spriteMatrix[r][c];
+          if (val === 0) continue;
+
+          const px = startOffset + c * pixelSize + sliceShift;
+          const py = startOffset + r * pixelSize;
+
+          if (val === 2) {
+            ctx.fillStyle = pass.eyeColor || (isHitFlashing ? '#ffffff' : '#ffff00');
+          } else {
+            ctx.fillStyle = pass.color;
+          }
+          ctx.fillRect(px, py, pixelSize - 1, pixelSize - 1);
+        }
+      }
+      ctx.restore();
     });
 
-    // Core bio-cyber nucleus
-    ctx.fillStyle = '#062817';
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(0, 0, this.radius * 0.75 * pulse, 0, Math.PI * 2);
+    // 3. CRT Scanlines across sprite body
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    for (let sy = -size; sy < size; sy += 4) {
+      ctx.fillRect(-size, sy, size * 2, 2);
+    }
+
+    // 4. Floating Glitch Artifact Symbols (Hex & Binary)
+    ctx.font = 'bold 9px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    for (let i = 0; i < 4; i++) {
+      const symAngle = this.animPhase + (i * Math.PI / 2);
+      const symDist = size * 1.35;
+      const symX = Math.cos(symAngle) * symDist;
+      const symY = Math.sin(symAngle) * symDist;
+      const sym = this.matrixSymbols[(Math.floor(this.animPhase * 3) + i) % this.matrixSymbols.length];
+      ctx.fillStyle = i % 2 === 0 ? this.color : this.glitchColor;
+      ctx.fillText(sym, symX, symY);
+    }
+
+    // 5. Overhead Hits / Health Segment HUD
+    const barWidth = 72;
+    const barHeight = 8;
+    const barY = -size - 22;
+    const segWidth = (barWidth - (this.hitsRequired - 1) * 2) / this.hitsRequired;
+
+    // Background pill
+    ctx.fillStyle = 'rgba(6, 11, 20, 0.88)';
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.roundRect(-barWidth / 2 - 3, barY - 2, barWidth + 6, barHeight + 4, 3);
     ctx.fill();
     ctx.stroke();
 
-    // Glowing biohazard eyes / nodes
-    const eyeAngles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
-    eyeAngles.forEach(ea => {
-      const ex = Math.cos(ea) * (this.radius * 0.4);
-      const ey = Math.sin(ea) * (this.radius * 0.4);
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.arc(ex, ey, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    });
+    for (let i = 0; i < this.hitsRequired; i++) {
+      const segX = -barWidth / 2 + i * (segWidth + 2);
+      const isDamaged = i < this.hitsTaken;
+      if (isDamaged) {
+        // Red X or dark red damaged segment
+        ctx.fillStyle = '#ff0055';
+        ctx.fillRect(segX, barY, segWidth, barHeight);
+      } else {
+        // Active bright cyan segment
+        ctx.fillStyle = '#00f3ff';
+        ctx.fillRect(segX, barY, segWidth, barHeight);
+      }
+    }
+
+    // Segment text readout
+    ctx.font = 'bold 8.5px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText(`KINETIC IMPACTS: ${this.hitsTaken}/${this.hitsRequired}`, 0, barY - 5);
 
     ctx.restore();
-
-    // Render quarantine trail if player is drawing it
-    if (this.quarantineTrail && this.quarantineTrail.length > 1) {
-      ctx.save();
-      ctx.strokeStyle = '#facc15';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([12, 8]);
-      ctx.shadowColor = '#facc15';
-      ctx.shadowBlur = 12;
-
-      ctx.beginPath();
-      const firstPt = cam.toScreen(this.quarantineTrail[0].x, this.quarantineTrail[0].y);
-      ctx.moveTo(firstPt.x, firstPt.y);
-      for (let i = 1; i < this.quarantineTrail.length; i++) {
-        const pt = cam.toScreen(this.quarantineTrail[i].x, this.quarantineTrail[i].y);
-        ctx.lineTo(pt.x, pt.y);
-      }
-      ctx.stroke();
-      ctx.restore();
-    }
   }
 }
 
-// Canonical 3 Boss Entities: BugBoss, ThermalGolemBoss (Overheat Daemon), MajorVirusBoss
+// Backward compatibility alias
+class MajorVirusBoss extends GlitchedSpriteBoss {}
+
+// Canonical 3 Boss Entities: BugBoss, ThermalGolemBoss (Overheat Daemon), GlitchedSpriteBoss
 
 // ============================================================================
 class PatchDroneEntity {
@@ -5173,6 +5332,14 @@ class Game {
     this.btnTerminalShutdown = document.getElementById('btn-terminal-shutdown');
     this.terminalKeypad = document.getElementById('terminal-keypad');
 
+    // Terminal Reboot Breaker Switch & Grant Access Controls
+    this.terminalRebootControls = document.getElementById('terminal-reboot-controls');
+    this.btnRebootToggleSwitch = document.getElementById('btn-reboot-toggle-switch');
+    this.rebootSwitchStatus = document.getElementById('reboot-switch-status');
+    this.rebootSwitchLabel = document.getElementById('reboot-switch-label');
+    this.btnTerminalGrantAccess = document.getElementById('btn-terminal-grant-access');
+    this.terminalGrantAccessText = document.getElementById('terminal-grant-access-text');
+
     // Shop Modal Elements
     this.shopModal = document.getElementById('shop-modal');
     this.shopCreditsDisplay = document.getElementById('shop-credits-display');
@@ -5284,31 +5451,34 @@ class Game {
 
     // Kinetic Cannon Slingshot & Air Hockey Puck State
     this.cannonCharges = 1; // 1 Free starter charge for testing/delight!
+    this.emergencyCannonCooldown = 0; // 30s cooldown between emergency closet refills
     this.isCannonAiming = false;
     this.aimAngle = 0;
     this.aimAnimOffset = 0;
     this.cannonPuckTimer = 0;
     this.mouseScreenX = window.innerWidth / 2;
     this.mouseScreenY = window.innerHeight / 2;
+    this.renderScale = 1.0;
 
     // Bottom Stations: Master NOC Console, IT Supply Kiosk, and Facility Supplies Closet
+    const initialStationY = CONFIG.WORLD.HEIGHT - 260;
     this.nocDesk = new NOCTerminalStation(
       CONFIG.WORLD.WIDTH / 2 - 120,
-      CONFIG.WORLD.HEIGHT - 170,
+      initialStationY,
       240,
       74
     );
 
     this.shopKiosk = new ShopKioskStation(
       CONFIG.WORLD.WIDTH / 2 + 420,
-      CONFIG.WORLD.HEIGHT - 170,
+      initialStationY,
       180,
       74
     );
 
     this.suppliesCloset = new SuppliesClosetStation(
       CONFIG.WORLD.WIDTH / 2 - 600,
-      CONFIG.WORLD.HEIGHT - 170,
+      initialStationY,
       180,
       74
     );
@@ -5415,19 +5585,21 @@ class Game {
       const startX = (CONFIG.WORLD.WIDTH - totalColSpan) / 2; // (2600 - 1200) / 2 = 700
 
       // 5 racks in upper half, central cross-aisle walkway, 5 racks in lower half
-      const topStartY = 240;
-      const bottomStartY = topStartY + 5 * RACK_SPACING_Y + 110; // 240 + 775 + 110 = 1125
+      const topStartY = 220;
+      const aisleSpacing = 150;
+      const centralWalkwayGap = 140;
+      const bottomStartY = topStartY + 4 * aisleSpacing + HEIGHT + centralWalkwayGap; // 1052
 
       for (let c = 0; c < numCols; c++) {
         const x = startX + c * colSpacing;
-        // Upper 5 racks
+        // Upper 5 racks (ends at y = 912)
         for (let r = 0; r < 5; r++) {
-          const y = topStartY + r * RACK_SPACING_Y;
+          const y = topStartY + r * aisleSpacing;
           this.racks.push(new ServerRack(`RACK-${String(idCounter++).padStart(2, '0')}`, x, y, WIDTH, HEIGHT));
         }
-        // Lower 5 racks
+        // Lower 5 racks (ends at y = 1744)
         for (let r = 0; r < 5; r++) {
-          const y = bottomStartY + r * RACK_SPACING_Y;
+          const y = bottomStartY + r * aisleSpacing;
           this.racks.push(new ServerRack(`RACK-${String(idCounter++).padStart(2, '0')}`, x, y, WIDTH, HEIGHT));
         }
       }
@@ -5454,18 +5626,22 @@ class Game {
       }
     }
 
-    // Reposition bottom stations to match new world dimensions
+    // Reposition bottom stations to match new world dimensions (balanced ~296px clearance from server racks)
+    const stationY = (scenario.id === 'beginner' || scenario.serverCount === 50)
+      ? CONFIG.WORLD.HEIGHT - 260
+      : CONFIG.WORLD.HEIGHT - 170;
+
     if (this.nocDesk) {
       this.nocDesk.x = CONFIG.WORLD.WIDTH / 2 - 120;
-      this.nocDesk.y = CONFIG.WORLD.HEIGHT - 170;
+      this.nocDesk.y = stationY;
     }
     if (this.shopKiosk) {
       this.shopKiosk.x = CONFIG.WORLD.WIDTH / 2 + 420;
-      this.shopKiosk.y = CONFIG.WORLD.HEIGHT - 170;
+      this.shopKiosk.y = stationY;
     }
     if (this.suppliesCloset) {
       this.suppliesCloset.x = CONFIG.WORLD.WIDTH / 2 - 600;
-      this.suppliesCloset.y = CONFIG.WORLD.HEIGHT - 170;
+      this.suppliesCloset.y = stationY;
     }
 
     if (!skipInitialErrors) {
@@ -5575,12 +5751,15 @@ class Game {
     } else if (coreIndex === 1) {
       boss = new ThermalGolemBoss(spawnX, spawnY, hostRack, variantLevel);
     } else {
-      boss = new MajorVirusBoss(spawnX, spawnY, hostRack, variantLevel);
+      boss = new GlitchedSpriteBoss(spawnX, spawnY, hostRack, variantLevel);
     }
 
     this.activeBoss = boss;
     this.bugBoss = boss; // Backward compatibility
     this.bossSpawned = true;
+    if (boss instanceof GlitchedSpriteBoss) {
+      this.emergencyCannonCooldown = 0;
+    }
 
     // Dramatic spawn audio & visual feedback
     this.sound.playBossAlarm();
@@ -5599,13 +5778,13 @@ class Game {
       if (rLabel) {
         if (boss instanceof BugBoss) rLabel.textContent = 'HEAVY ROPE WRAPS';
         else if (boss instanceof ThermalGolemBoss) rLabel.textContent = 'CORE TEMPERATURE';
-        else if (boss instanceof MajorVirusBoss) rLabel.textContent = 'INFECTED NODES';
+        else if (boss instanceof GlitchedSpriteBoss) rLabel.textContent = 'KINETIC HITS';
         else rLabel.textContent = boss.restraintName || 'RESTRAINT COILS';
       }
 
       if (this.bossCoilsTrack) {
         this.bossCoilsTrack.innerHTML = '';
-        const dotCount = (boss instanceof ThermalGolemBoss || boss instanceof MajorVirusBoss) ? 0 : boss.maxWraps;
+        const dotCount = (boss instanceof GlitchedSpriteBoss) ? boss.hitsRequired : ((boss instanceof ThermalGolemBoss) ? 0 : boss.maxWraps);
         for (let i = 0; i < dotCount; i++) {
           const dot = document.createElement('div');
           dot.className = 'boss-coil-dot';
@@ -5620,7 +5799,7 @@ class Game {
     let objectiveHint = '';
     if (boss instanceof BugBoss) objectiveHint = 'RETRIEVE HEAVY ROPE FROM SUPPLIES CLOSET!';
     else if (boss instanceof ThermalGolemBoss) objectiveHint = 'RETRIEVE FIRE EXTINGUISHER FROM SUPPLIES CLOSET TO EXTINGUISH & SHATTER!';
-    else if (boss instanceof MajorVirusBoss) objectiveHint = 'RETRIEVE QUARANTINE BARRIER FROM SUPPLIES CLOSET TO ENCLOSE ALL INFECTED NODES!';
+    else if (boss instanceof GlitchedSpriteBoss) objectiveHint = 'GET EMERGENCY CANNON CHARGES FROM SUPPLIES CLOSET & RAM BOSS WITH [F]!';
     else objectiveHint = `RETRIEVE ${boss.restraintName} FROM SUPPLIES CLOSET!`;
 
     this.showTemporaryToast(`${devTag}${boss.title} ACTIVE! ${objectiveHint}`, boss.icon);
@@ -5659,20 +5838,33 @@ class Game {
       return;
     }
 
-    if (boss instanceof MajorVirusBoss) {
-      const infCount = boss.infectedRacks ? boss.infectedRacks.length : 1;
+    if (boss instanceof GlitchedSpriteBoss) {
+      const remainingHits = Math.max(0, boss.hitsRequired - boss.hitsTaken);
+      const remainingPct = Math.max(0, Math.min(100, (remainingHits / boss.hitsRequired) * 100));
       if (this.bossHpFill) {
-        this.bossHpFill.style.width = `${Math.min(100, infCount * 10)}%`;
-        this.bossHpFill.style.backgroundColor = boss.color || '#10b981';
+        this.bossHpFill.style.width = `${remainingPct.toFixed(1)}%`;
+        this.bossHpFill.style.backgroundColor = '#00f3ff';
       }
       if (this.bossCoilsCount) {
-        this.bossCoilsCount.textContent = `${infCount} INFECTED`;
+        this.bossCoilsCount.textContent = `${boss.hitsTaken} / ${boss.hitsRequired} HITS`;
+      }
+      if (this.bossCoilsTrack) {
+        const dots = this.bossCoilsTrack.querySelectorAll('.boss-coil-dot');
+        dots.forEach((dot, idx) => {
+          if (idx < boss.hitsTaken) {
+            dot.classList.add('completed');
+            dot.style.backgroundColor = '#ff0055';
+          } else {
+            dot.classList.remove('completed');
+            dot.style.backgroundColor = '';
+          }
+        });
       }
       if (this.bossStatusText) {
-        if (!this.hasQuarantineBarrier) {
-          this.bossStatusText.textContent = '🦠 RETRIEVE QUARANTINE BARRIER FROM SOUTH SUPPLIES CLOSET!';
+        if ((this.cannonCharges || 0) <= 0) {
+          this.bossStatusText.textContent = '🎯 OUT OF AMMO! GET EMERGENCY CANNON CHARGES FROM SOUTH SUPPLIES CLOSET!';
         } else {
-          this.bossStatusText.textContent = '🛡️ BARRIER READY! DRIVE IN A COMPLETE LOOP ENCLOSING ALL INFECTED COMPUTERS!';
+          this.bossStatusText.textContent = `🎯 PRESS [F] TO LAUNCH KINETIC CANNON & RAM GLITCH! (${boss.hitsTaken}/${boss.hitsRequired} HITS LANDED)`;
         }
       }
       return;
@@ -6160,33 +6352,37 @@ class Game {
       });
     } else if (boss instanceof ThermalGolemBoss) {
       gearGrid.appendChild(createExtinguisherCard());
-    } else if (boss instanceof MajorVirusBoss) {
-      const isEquipped = Boolean(this.hasQuarantineBarrier && this.activeCable instanceof ContainmentWire);
+    } else if (boss instanceof GlitchedSpriteBoss) {
       const card = document.createElement('div');
       card.className = 'shop-card';
+      const isCooling = (this.emergencyCannonCooldown || 0) > 0;
+      const secs = Math.ceil(this.emergencyCannonCooldown || 0);
       card.innerHTML = `
-        <div class="card-icon">🟡</div>
+        <div class="card-icon">🎯</div>
         <div class="card-info">
-          <div class="card-name">Quarantine Containment Barrier <span style="font-size: 0.68rem; color: #10b981;">[DEFCON 1 QUARANTINE]</span></div>
-          <div class="card-desc">Deploy a closed perimeter around all virus-infected computers to sterilize and isolate the Major Virus!</div>
+          <div class="card-name">Emergency Kinetic Cannon Ammo <span style="font-size: 0.68rem; color: #00f3ff;">[DEFCON 1 EMERGENCY]</span></div>
+          <div class="card-desc">High-density kinetic propulsion charge from emergency reserve. Dispenser cycle: 1 charge every 30s. Arm with [F] and ram into the Glitched Sprite! (${boss.hitsTaken}/${boss.hitsRequired} hits landed)</div>
         </div>
-        <button type="button" class="btn-buy" id="btn-retrieve-barrier" style="background: ${isEquipped ? '#334155' : 'linear-gradient(135deg, #059669, #10b981)'}; color: #000; font-weight: 700;">
-          ${isEquipped ? '✓ IN HAND' : 'FREE RETRIEVE'}
+        <button type="button" class="btn-buy" id="btn-retrieve-cannon" style="background: ${isCooling ? '#334155' : 'linear-gradient(135deg, #0284c7, #00f3ff)'}; color: ${isCooling ? '#94a3b8' : '#000'}; font-weight: 700; ${isCooling ? 'cursor: not-allowed; opacity: 0.8;' : ''}">
+          ${isCooling ? `⏳ RECHARGING (${secs}s)` : 'FREE RETRIEVE (+1 CHARGE)'}
         </button>`;
       gearGrid.appendChild(card);
-      card.querySelector('#btn-retrieve-barrier')?.addEventListener('click', () => {
-        this.hasQuarantineBarrier = true;
-        if (this.activeCable && !(this.activeCable instanceof ContainmentWire)) {
-          this.dropActiveCable();
+      card.querySelector('#btn-retrieve-cannon')?.addEventListener('click', () => {
+        if (this.emergencyCannonCooldown > 0) {
+          const s = Math.ceil(this.emergencyCannonCooldown);
+          this.sound.playTerminalFail();
+          this.showTemporaryToast(`⏳ EMERGENCY AMMO DISPENSER RECHARGING: ${s}s REMAINING!`, '⏳');
+          return;
         }
-        this.activeCable = new ContainmentWire(this.suppliesCloset, boss);
+        this.cannonCharges = (this.cannonCharges || 0) + 1;
+        this.emergencyCannonCooldown = CONFIG.CANNON.EMERGENCY_COOLDOWN ?? 30.0;
         this.sound.playCabinetOpen();
-        this.sound.playGrab();
-        this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 45, '#10b981');
-        this.showTemporaryToast('🟡 QUARANTINE CONTAINMENT BARRIER RETRIEVED! DRIVE IN A COMPLETE CLOSED LOOP ENCLOSING ALL INFECTED COMPUTERS!', '🟡');
-        this.updateObjectiveUI();
+        this.sound.playPowerup();
+        this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 45, '#00f3ff');
+        this.showTemporaryToast(`🎯 EMERGENCY CANNON CHARGE RETRIEVED! (${this.cannonCharges} ARMED) // NEXT AVAILABLE IN 30s!`, '🎯');
+        this.updateBuffDisplay();
+        this.updateSuppliesModalUI();
         this.updateBossHUD();
-        this.closeSuppliesModal();
       });
     } else {
       // Wave 4+ Endless Bosses
@@ -6926,6 +7122,18 @@ class Game {
       this.submitTerminalCode();
     });
 
+    // Terminal Reboot Breaker Switch
+    this.btnRebootToggleSwitch?.addEventListener('click', () => {
+      this.sound.init();
+      this.toggleRebootSwitch();
+    });
+
+    // Terminal Grant Access for PIN Error Button
+    this.btnTerminalGrantAccess?.addEventListener('click', () => {
+      this.sound.init();
+      this.grantAccessForPinErrorServer();
+    });
+
     // Tab buttons
     document.querySelectorAll('.tut-tab[data-step]').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -7111,7 +7319,7 @@ class Game {
       if (this.player.defibrillatorCharges > 0) items.push(`Defibrillator (x${this.player.defibrillatorCharges})`);
       charUpgradesSummary.textContent = items.length > 0
         ? `Purchased Powerups: ${items.join(', ')}`
-        : 'Purchased Powerups: None (Visit IT Supply Depot [K])';
+        : 'Purchased Powerups: None (Visit South IT Supply Depot)';
     }
   }
 
@@ -7423,18 +7631,19 @@ class Game {
       const colSpacing = 300;
       const totalColSpan = (numCols - 1) * colSpacing;
       const startX = (worldW - totalColSpan) / 2;
-      const topStartY = 240;
-      const bottomStartY = topStartY + 5 * 155 + 110;
+      const topStartY = 220;
+      const aisleSpacing = 150;
+      const bottomStartY = topStartY + 4 * aisleSpacing + 92 + 140; // 1052
 
       for (let c = 0; c < numCols; c++) {
         const wx = startX + c * colSpacing;
         for (let r = 0; r < 5; r++) {
-          const wy = topStartY + r * 155;
+          const wy = topStartY + r * aisleSpacing;
           ctx.fillRect(toCanvasX(wx), toCanvasY(wy), rackW, rackH);
           serverCountDrawn++;
         }
         for (let r = 0; r < 5; r++) {
-          const wy = bottomStartY + r * 155;
+          const wy = bottomStartY + r * aisleSpacing;
           ctx.fillRect(toCanvasX(wx), toCanvasY(wy), rackW, rackH);
           serverCountDrawn++;
         }
@@ -7451,10 +7660,12 @@ class Game {
       }
     }
 
-    // Stations along the South wall
+    // Stations along the South wall (balanced clearance)
+    const stationWY = (scenarioId === 'beginner') ? (worldH - 260) : (worldH - 170);
+
     // 1. NOC Terminal (South Center)
     const nocWX = worldW / 2 - 120;
-    const nocWY = worldH - 170;
+    const nocWY = stationWY;
     const nocW = Math.max(16, 240 * scale);
     const nocH = Math.max(7, 74 * scale);
     ctx.fillStyle = '#00f3ff';
@@ -7471,7 +7682,7 @@ class Game {
 
     // 2. IT Shop Kiosk (South Right / East)
     const shopWX = worldW / 2 + 420;
-    const shopWY = worldH - 170;
+    const shopWY = stationWY;
     const shopW = Math.max(13, 180 * scale);
     const shopH = Math.max(7, 74 * scale);
     ctx.fillStyle = '#ffaa00';
@@ -7486,7 +7697,7 @@ class Game {
 
     // 3. Facility Supplies Closet (South Left / West)
     const supWX = worldW / 2 - 600;
-    const supWY = worldH - 170;
+    const supWY = stationWY;
     const supW = Math.max(13, 180 * scale);
     const supH = Math.max(7, 74 * scale);
     ctx.fillStyle = '#00ff9d';
@@ -7499,9 +7710,9 @@ class Game {
     ctx.fillStyle = '#00ff9d';
     ctx.fillText('SUPPLY', toCanvasX(supWX) + supW / 2, toCanvasY(supWY) - 3);
 
-    // Player Start Location (Center of Warehouse)
+    // Player Start Location (Walkway cross-aisle)
     const pStartX = toCanvasX(worldW / 2);
-    const pStartY = toCanvasY(worldH / 2);
+    const pStartY = toCanvasY(scenarioId === 'beginner' ? 982 : worldH / 2);
     ctx.fillStyle = '#00ff9d';
     ctx.beginPath();
     ctx.arc(pStartX, pStartY, 3, 0, Math.PI * 2);
@@ -7609,9 +7820,11 @@ class Game {
     this.initWarehouseMap(this.activeScenarioId);
     this.floorPattern = null; // Force floor pattern rebuild for new dimensions
 
-    // Place player at warehouse center
+    // Place player at warehouse center / central cross-aisle walkway
     this.player.x = CONFIG.WORLD.WIDTH / 2;
-    this.player.y = CONFIG.WORLD.HEIGHT / 2;
+    this.player.y = (this.activeScenarioId === 'beginner' || this.racks.length === 50)
+      ? 982
+      : CONFIG.WORLD.HEIGHT / 2;
     this.player.vx = 0;
     this.player.vy = 0;
     this.camera.x = this.player.x;
@@ -7854,6 +8067,7 @@ class Game {
         energyDrinkPurchases: this.energyDrinkPurchases || 0,
         magnetPurchases: this.magnetPurchases || 0,
         cannonCharges: this.cannonCharges || 0,
+        emergencyCannonCooldown: this.emergencyCannonCooldown || 0,
         cannonPuckTimer: this.cannonPuckTimer || 0,
         hasPortableTerminal: Boolean(this.hasPortableTerminal),
         portableTerminal: this.portableTerminal ? { x: this.portableTerminal.x, y: this.portableTerminal.y } : null,
@@ -8115,6 +8329,7 @@ class Game {
     this.energyDrinkPurchases = uData.energyDrinkPurchases ?? 0;
     this.magnetPurchases = 0; // Magnet deprecated
     this.cannonCharges = uData.cannonCharges ?? 1;
+    this.emergencyCannonCooldown = uData.emergencyCannonCooldown ?? 0;
     this.cannonPuckTimer = uData.cannonPuckTimer ?? 0;
     this.hasTeleporterItem = Boolean(uData.hasTeleporterItem);
     this.teleportCooldown = uData.teleportCooldown ?? 0;
@@ -8276,11 +8491,40 @@ class Game {
   // ==========================================================================
   // Endless Leaderboard Records & Game Over Handling
   // ==========================================================================
-  triggerGameOver() {
+  getMaxAllowedServerLoss() {
+    const is50ServerMap = (
+      this.activeScenarioId === 'beginner' ||
+      (this.racks && this.racks.length === 50) ||
+      CONFIG.SCENARIOS[this.activeScenarioId]?.serverCount === 50
+    );
+    return is50ServerMap ? 10 : 20;
+  }
+
+  triggerGameOver(reason = 'SERVER_LOSS_LIMIT') {
     this.isGameOver = true;
     this.gameState = 'GAME_OVER';
     if (this.isCannonAiming) this.cancelCannonAim();
     this.sound.playExplosion();
+
+    // Dynamic Game Over messaging based on loss condition
+    const titleEl = document.getElementById('go-title');
+    const headlineEl = document.getElementById('go-headline') || this.gameOverModal?.querySelector('.game-over-headline');
+    const descEl = document.getElementById('go-desc') || this.gameOverModal?.querySelector('.game-over-desc');
+
+    if (reason === 'BOSS_DEFEAT') {
+      const boss = this.activeBoss || this.bugBoss;
+      const bossName = boss?.name || 'DEFCON 1 BOSS';
+      if (titleEl) titleEl.textContent = 'COMBAT CASUALTY // OPERATOR DOWN';
+      if (headlineEl) headlineEl.innerHTML = `☠️ MAINTENANCE CART DESTROYED BY ${bossName}`;
+      if (descEl) descEl.textContent = 'Your cart sustained critical chassis failure during combat against the boss entity. Shift terminated.';
+    } else {
+      const destroyedCount = this.racks ? this.racks.filter(r => r.isDestroyed).length : 0;
+      const maxAllowed = this.getMaxAllowedServerLoss();
+      const is50Server = (this.activeScenarioId === 'beginner' || (this.racks && this.racks.length === 50) || CONFIG.SCENARIOS[this.activeScenarioId]?.serverCount === 50);
+      if (titleEl) titleEl.textContent = 'CASCADE TERMINATION // DATA CENTER OFFLINE';
+      if (headlineEl) headlineEl.innerHTML = `💥 CRITICAL SERVER LOSS LIMIT REACHED (${destroyedCount}/${maxAllowed} DESTROYED)`;
+      if (descEl) descEl.textContent = `The facility reached the critical threshold of ${maxAllowed} destroyed server racks (${is50Server ? '50-Server Training Facility' : 'Main Warehouse'}). Cascade collapse is irreversible.`;
+    }
 
     // Calculate run statistics
     const totalSec = Math.floor(this.gameTime || 0);
@@ -8382,7 +8626,7 @@ class Game {
   armCannon() {
     if (this.cannonCharges <= 0) {
       this.sound.playError();
-      this.showTemporaryToast('❌ NO CANNON CHARGES // PURCHASE AT IT SUPPLY DEPOT [K]');
+      this.showTemporaryToast('❌ NO CANNON CHARGES // PURCHASE AT SOUTH IT SUPPLY DEPOT');
       return;
     }
     if (this.isShopOpen) this.closeShop();
@@ -9036,10 +9280,18 @@ class Game {
   initEventListeners() {
     window.addEventListener('resize', () => this.resizeCanvas());
 
+    // Scale mouse aiming coordinates by virtual canvas renderScale
     window.addEventListener('mousemove', (e) => {
-      this.mouseScreenX = e.clientX;
-      this.mouseScreenY = e.clientY;
+      this.mouseScreenX = e.clientX / (this.renderScale || 1.0);
+      this.mouseScreenY = e.clientY / (this.renderScale || 1.0);
     });
+
+    // Block accidental browser zoom shortcuts (Ctrl + Wheel)
+    window.addEventListener('wheel', (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    }, { passive: false });
 
     window.addEventListener('mousedown', (e) => {
       this.sound.init();
@@ -9051,6 +9303,11 @@ class Game {
 
     window.addEventListener('keydown', (e) => {
       this.sound.init();
+
+      // Block browser zoom key combinations (Ctrl + Plus, Minus, Zero)
+      if (e.ctrlKey && (e.key === '-' || e.key === '=' || e.key === '+' || e.key === '_' || e.key === '0' || e.code === 'NumpadSubtract' || e.code === 'NumpadAdd')) {
+        e.preventDefault();
+      }
 
       if (this.isStatsOpen) {
         if (e.code === 'Escape' || e.code === 'Tab' || e.code === 'KeyC') {
@@ -9126,6 +9383,10 @@ class Game {
           this.handleKeypadBackspace();
         } else if (e.key === 'Enter') {
           this.submitTerminalCode();
+        } else if (e.code === 'Space') {
+          if (this.terminalRebootControls && !this.terminalRebootControls.classList.contains('hidden')) {
+            this.toggleRebootSwitch();
+          }
         } else if (e.code === 'Escape') {
           this.closeTerminal();
         }
@@ -9146,14 +9407,7 @@ class Game {
 
       // Hardware Shop Modal Handling
       if (this.isShopOpen) {
-        if (e.code === 'Escape' || e.code === 'KeyK') this.closeShop();
-        return;
-      }
-
-      // Hardware Shop Modal Toggle [K]
-      if (e.code === 'KeyK') {
-        if (this.isCannonAiming) this.cancelCannonAim();
-        if (this.gameState === 'PLAYING') this.openShop();
+        if (e.code === 'Escape') this.closeShop();
         return;
       }
 
@@ -9165,7 +9419,7 @@ class Game {
             this.defeatBoss(this.activeBoss);
           } else {
             const nextWave = (this.currentBossWave || 0) + 1;
-            this.gameTime = Math.max(this.gameTime, nextWave * 600);
+            this.gameTime = Math.max(this.gameTime, nextWave * 180);
             this.spawnBoss(nextWave, true);
           }
           return;
@@ -9299,6 +9553,15 @@ class Game {
 
       this.keys[e.code] = true;
 
+      if (e.code === 'KeyG') {
+        const nearRack = this.getNearestRack(105);
+        const nearNoc = this.player && Math.hypot((this.player.x + this.player.width / 2) - (this.nocDesk.x + this.nocDesk.width / 2), (this.player.y + this.player.height / 2) - (this.nocDesk.y + this.nocDesk.height / 2)) < 115;
+        if ((nearRack && nearRack.isFailing && (nearRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED || nearRack.error?.type === CONFIG.ERRORS.HARD_REBOOT)) || nearNoc) {
+          this.grantAccessForPinErrorServer();
+          return;
+        }
+      }
+
       if (e.code === 'KeyE') {
         const nearRack = this.getNearestRack(105);
         if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED) {
@@ -9315,7 +9578,7 @@ class Game {
               this.terminalSelect.value = nearRack.id;
               this.updateTerminalSelectionFeedback();
             }
-            this.showTemporaryToast(`🛑 ${nearRack.id} PIN: [${nearRack.code}] SCANNED! TYPE AT MASTER TERMINAL TO SHUT DOWN FIRST!`, '🛑');
+            this.showTemporaryToast(`🛑 ${nearRack.id} PIN: [${nearRack.code}] SCANNED! TYPE AT MASTER TERMINAL & FLIP SWITCH TO ALLOW REBOOT!`, '🛑');
             this.sound.playKey();
           }
         } else if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.SERVER_BUG) {
@@ -9453,6 +9716,61 @@ class Game {
     }
     this.terminalDigits.textContent = formatted;
     this.updateKeypadHexHighlight();
+
+    // Check if entered PIN aligns with selected rack for reboot error switch reveal
+    const selectedRackId = this.terminalSelect?.value;
+    const rack = this.racks.find(r => r.id === selectedRackId);
+    const isRebootType = rack && rack.isFailing && (
+      rack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED ||
+      rack.error?.type === CONFIG.ERRORS.HARD_REBOOT
+    );
+
+    if (isRebootType) {
+      const pinAligned = (this.terminalInputBuffer === rack.code && rack.code.length === 4);
+      if (pinAligned || rack.rebootAllowed) {
+        if (this.terminalRebootControls?.classList.contains('hidden')) {
+          this.sound.playTerminalSuccess();
+          this.particles.spawnSparks(this.nocDesk.x + this.nocDesk.width / 2, this.nocDesk.y, 25, '#00f3ff');
+        }
+        this.terminalRebootControls?.classList.remove('hidden');
+        if (rack.rebootAllowed) {
+          this.btnRebootToggleSwitch?.classList.remove('off');
+          this.btnRebootToggleSwitch?.classList.add('on');
+          this.btnRebootToggleSwitch?.setAttribute('aria-checked', 'true');
+          if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'ARMED';
+          if (this.rebootSwitchStatus) {
+            this.rebootSwitchStatus.textContent = 'BREAKER ARMED ➔ VISIT RACK & HOLD [E] FOR 5s';
+            this.rebootSwitchStatus.style.color = '#00ff9d';
+          }
+          if (this.terminalFeedback) {
+            this.terminalFeedback.textContent = `BREAKER SWITCH ARMED: ${rack.id} REBOOT PERMITTED! VISIT RACK & HOLD [E] FOR 5s`;
+            this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+          }
+        } else {
+          this.btnRebootToggleSwitch?.classList.remove('on');
+          this.btnRebootToggleSwitch?.classList.add('off');
+          this.btnRebootToggleSwitch?.setAttribute('aria-checked', 'false');
+          if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'OFF';
+          if (this.rebootSwitchStatus) {
+            this.rebootSwitchStatus.textContent = 'PIN ALIGNED ➔ FLIP SWITCH TO ALLOW REBOOT';
+            this.rebootSwitchStatus.style.color = '#00f3ff';
+          }
+          if (this.terminalFeedback) {
+            this.terminalFeedback.textContent = `PIN [${rack.code}] VERIFIED! FLIP THE BREAKER SWITCH TO ALLOW REBOOT ➔`;
+            this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+          }
+        }
+        this.updateGrantAccessButtonState();
+      } else {
+        if (!rack.rebootAllowed) {
+          this.terminalRebootControls?.classList.add('hidden');
+        }
+      }
+    } else {
+      if (this.terminalRebootControls) {
+        this.terminalRebootControls.classList.add('hidden');
+      }
+    }
   }
 
   updateKeypadHexHighlight() {
@@ -9494,48 +9812,97 @@ class Game {
       this.terminalFeedback.textContent = 'AWAITING NODE SELECTION';
       this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
       if (promptElem) promptElem.textContent = '> ENTER PIN:';
+      if (this.terminalRebootControls) this.terminalRebootControls.classList.add('hidden');
       return;
     }
 
     const errType = rack.error?.type;
-    const isShutdownType = (
+    const isRebootType = (
       errType === CONFIG.ERRORS.RESTART_REQUIRED ||
+      errType === CONFIG.ERRORS.HARD_REBOOT
+    );
+    const isShutdownType = (
+      isRebootType ||
       errType === CONFIG.ERRORS.SERVER_BUG ||
       errType === CONFIG.ERRORS.SERVER_OVERHEAT ||
       errType === CONFIG.ERRORS.SERVER_SMALL_VIRUS
     );
 
-    if (isShutdownType) {
-      if (rack.isShutdown) {
-        if (promptElem) promptElem.textContent = '> NODE BREAKER IS OFF [ISOLATED]:';
-        this.terminalFeedback.textContent = `BREAKER POWER OFF: ${rack.id} SHUT DOWN // COMPLETE ON-FOOT ACTION`;
-        this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
-      } else if (errType === CONFIG.ERRORS.SERVER_OVERHEAT) {
-        if (promptElem) promptElem.textContent = '> OVERHEAT FLAME EMERGENCY:';
-        this.terminalFeedback.textContent = `🔥 SENSORS MELTED BY FLAMES // HEX DECODER CANNOT SCAN // RETRIEVE FIRE EXTINGUISHER FROM SUPPLIES CLOSET!`;
-        this.terminalFeedback.style.color = '#ff5500';
+    if (isRebootType) {
+      const pinAligned = (this.terminalInputBuffer === rack.code && rack.code.length === 4);
+      if (rack.rebootAllowed || pinAligned) {
+        this.terminalRebootControls?.classList.remove('hidden');
+        if (rack.rebootAllowed) {
+          this.btnRebootToggleSwitch?.classList.remove('off');
+          this.btnRebootToggleSwitch?.classList.add('on');
+          this.btnRebootToggleSwitch?.setAttribute('aria-checked', 'true');
+          if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'ARMED';
+          if (this.rebootSwitchStatus) {
+            this.rebootSwitchStatus.textContent = 'BREAKER ARMED ➔ VISIT RACK & HOLD [E] FOR 5s';
+            this.rebootSwitchStatus.style.color = '#00ff9d';
+          }
+          if (promptElem) promptElem.textContent = '> REBOOT PERMITTED [ARMED]:';
+          this.terminalFeedback.textContent = `BREAKER SWITCH ARMED: ${rack.id} COUNTDOWN FROZEN // VISIT RACK & HOLD [E] FOR 5s`;
+          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+        } else {
+          this.btnRebootToggleSwitch?.classList.remove('on');
+          this.btnRebootToggleSwitch?.classList.add('off');
+          this.btnRebootToggleSwitch?.setAttribute('aria-checked', 'false');
+          if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'OFF';
+          if (this.rebootSwitchStatus) {
+            this.rebootSwitchStatus.textContent = 'PIN ALIGNED ➔ FLIP SWITCH TO ALLOW REBOOT';
+            this.rebootSwitchStatus.style.color = '#00f3ff';
+          }
+          if (promptElem) promptElem.textContent = '> PIN ALIGNED // FLIP SWITCH:';
+          this.terminalFeedback.textContent = `PIN [${rack.code}] VERIFIED! FLIP THE BREAKER SWITCH TO ALLOW REBOOT ➔`;
+          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+        }
+        this.updateGrantAccessButtonState();
       } else {
-        if (promptElem) promptElem.textContent = '> ENTER RACK PIN TO SHUT DOWN BREAKER:';
+        this.terminalRebootControls?.classList.add('hidden');
+        if (promptElem) promptElem.textContent = '> ENTER PIN TO UNLOCK REBOOT SWITCH:';
         if (!rack.error?.hasBeenInspected) {
-          this.terminalFeedback.textContent = `PIN UNKNOWN ➔ VISIT ${rack.id} TO SCAN PIN FOR SHUTDOWN (OR USE HEX DECODER)`;
+          this.terminalFeedback.textContent = `PIN UNKNOWN ➔ VISIT ${rack.id} TO SCAN PIN (OR USE HEX DECODER)`;
           this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
         } else {
-          this.terminalFeedback.textContent = `SAVED PIN: [${rack.code}] ➔ TYPE 4-DIGIT PIN & PRESS [ENTER] TO SHUT DOWN`;
+          this.terminalFeedback.textContent = `SAVED PIN: [${rack.code}] ➔ ENTER PIN TO UNLOCK REBOOT BREAKER SWITCH`;
           this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
         }
       }
     } else {
-      // Keypad PIN entry types (Auth lockout, phantom glitch)
-      if (promptElem) promptElem.textContent = '> ENTER AUTH OVERRIDE PIN:';
-      if (!rack.error?.hasBeenInspected) {
-        this.terminalFeedback.textContent = `PIN UNKNOWN ➔ VISIT ${rack.id} TO RETRIEVE OVERRIDE CODE`;
-        this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
+      if (this.terminalRebootControls) this.terminalRebootControls.classList.add('hidden');
+      if (isShutdownType) {
+        if (rack.isShutdown) {
+          if (promptElem) promptElem.textContent = '> NODE BREAKER IS OFF [ISOLATED]:';
+          this.terminalFeedback.textContent = `BREAKER POWER OFF: ${rack.id} SHUT DOWN // COMPLETE ON-FOOT ACTION`;
+          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+        } else if (errType === CONFIG.ERRORS.SERVER_OVERHEAT) {
+          if (promptElem) promptElem.textContent = '> OVERHEAT FLAME EMERGENCY:';
+          this.terminalFeedback.textContent = `🔥 SENSORS MELTED BY FLAMES // HEX DECODER CANNOT SCAN // RETRIEVE FIRE EXTINGUISHER FROM SUPPLIES CLOSET!`;
+          this.terminalFeedback.style.color = '#ff5500';
+        } else {
+          if (promptElem) promptElem.textContent = '> ENTER RACK PIN TO SHUT DOWN BREAKER:';
+          if (!rack.error?.hasBeenInspected) {
+            this.terminalFeedback.textContent = `PIN UNKNOWN ➔ VISIT ${rack.id} TO SCAN PIN FOR SHUTDOWN (OR USE HEX DECODER)`;
+            this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
+          } else {
+            this.terminalFeedback.textContent = `SAVED PIN: [${rack.code}] ➔ TYPE 4-DIGIT PIN & PRESS [ENTER] TO SHUT DOWN`;
+            this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+          }
+        }
       } else {
-        const isGlitch = errType === CONFIG.ERRORS.PHANTOM_GLITCH;
-        this.terminalFeedback.textContent = isGlitch
-          ? `AUTHENTIC PIN: [${rack.code}] ➔ ENTER PIN TO DISPEL PHANTOM GLITCH`
-          : `SAVED PIN: [${rack.code}] ➔ ENTER PIN TO RESTORE NODE`;
-        this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+        // Keypad PIN entry types (Auth lockout, phantom glitch)
+        if (promptElem) promptElem.textContent = '> ENTER AUTH OVERRIDE PIN:';
+        if (!rack.error?.hasBeenInspected) {
+          this.terminalFeedback.textContent = `PIN UNKNOWN ➔ VISIT ${rack.id} TO RETRIEVE OVERRIDE CODE`;
+          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
+        } else {
+          const isGlitch = errType === CONFIG.ERRORS.PHANTOM_GLITCH;
+          this.terminalFeedback.textContent = isGlitch
+            ? `AUTHENTIC PIN: [${rack.code}] ➔ ENTER PIN TO DISPEL PHANTOM GLITCH`
+            : `SAVED PIN: [${rack.code}] ➔ ENTER PIN TO RESTORE NODE`;
+          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+        }
       }
     }
     this.updateKeypadHexHighlight();
@@ -9573,7 +9940,7 @@ class Game {
           opt.value = r.id;
           const t = r.error?.type;
           let tag = 'SEC-AUTH';
-          if (t === CONFIG.ERRORS.RESTART_REQUIRED) tag = r.isShutdown ? 'OFFLINE // READY FOR REBOOT' : 'REQ-SHUTDOWN';
+          if (t === CONFIG.ERRORS.RESTART_REQUIRED) tag = r.rebootAllowed ? 'ARMED // READY FOR REBOOT' : (r.isShutdown ? 'OFFLINE // READY FOR REBOOT' : 'REQ-REBOOT');
           else if (t === CONFIG.ERRORS.SERVER_BUG) tag = r.isShutdown ? 'OFFLINE // SHAKE BUG OUT' : 'BUG INFESTATION';
           else if (t === CONFIG.ERRORS.SERVER_OVERHEAT) tag = r.isShutdown ? 'OFFLINE // COOLING' : 'FIRE OVERHEAT';
           else if (t === CONFIG.ERRORS.SERVER_SMALL_VIRUS) tag = r.isShutdown ? 'OFFLINE // DISINFECT' : 'VIRUS SLIME';
@@ -9582,6 +9949,12 @@ class Game {
           if (!r.isShutdown) {
             if (t === CONFIG.ERRORS.SERVER_OVERHEAT) {
               opt.textContent = `${r.id} // ${tag} [ON FIRE - USE FIRE EXTINGUISHER]`;
+            } else if (t === CONFIG.ERRORS.RESTART_REQUIRED) {
+              opt.textContent = r.rebootAllowed
+                ? `${r.id} // ${tag} [BREAKER ARMED]`
+                : (r.error?.hasBeenInspected
+                  ? `${r.id} // ${tag} [PIN: ${r.code}]`
+                  : `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`);
             } else {
               opt.textContent = r.error?.hasBeenInspected
                 ? `${r.id} // ${tag} [PIN: ${r.code}]`
@@ -9670,12 +10043,154 @@ class Game {
   closeTerminal() {
     this.isTerminalOpen = false;
     this.terminalModal?.classList.add('hidden');
+    this.terminalRebootControls?.classList.add('hidden');
     this.keys = {};
     document.querySelectorAll('.numpad-btn[data-key]').forEach(btn => {
       btn.style.boxShadow = '';
       btn.style.borderColor = '';
       btn.style.color = '';
     });
+  }
+
+  toggleRebootSwitch() {
+    const selectedRackId = this.terminalSelect?.value;
+    const rack = this.racks.find(r => r.id === selectedRackId);
+    if (!rack || !rack.isFailing) {
+      this.sound.playTerminalFail();
+      return;
+    }
+
+    const isRebootType = (
+      rack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED ||
+      rack.error?.type === CONFIG.ERRORS.HARD_REBOOT
+    );
+
+    if (!isRebootType) {
+      this.sound.playTerminalFail();
+      return;
+    }
+
+    if (this.terminalInputBuffer !== rack.code && !rack.rebootAllowed) {
+      this.sound.playTerminalFail();
+      if (this.terminalFeedback) {
+        this.terminalFeedback.textContent = 'ENTER CORRECT 4-DIGIT PIN FIRST TO ENGAGE REBOOT SWITCH!';
+        this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_RED;
+      }
+      return;
+    }
+
+    if (!rack.rebootAllowed) {
+      rack.rebootAllowed = true;
+      rack.shutdownBreaker(); // Halts countdown and freezes timer!
+
+      if (typeof this.sound.playSwitchToggle === 'function') {
+        this.sound.playSwitchToggle(true);
+      } else {
+        this.sound.playPowerup();
+      }
+
+      this.particles.spawnSparks(this.nocDesk.x + this.nocDesk.width / 2, this.nocDesk.y, 45, '#00ff9d');
+      this.particles.spawnSparks(rack.x + rack.width / 2, rack.y + rack.height / 2, 50, '#00f3ff');
+
+      if (this.btnRebootToggleSwitch) {
+        this.btnRebootToggleSwitch.classList.remove('off');
+        this.btnRebootToggleSwitch.classList.add('on');
+        this.btnRebootToggleSwitch.setAttribute('aria-checked', 'true');
+      }
+      if (this.rebootSwitchLabel) {
+        this.rebootSwitchLabel.textContent = 'ARMED';
+      }
+      if (this.rebootSwitchStatus) {
+        this.rebootSwitchStatus.textContent = 'BREAKER ARMED ➔ REBOOT AUTHORIZED!';
+        this.rebootSwitchStatus.style.color = '#00ff9d';
+      }
+      if (this.terminalFeedback) {
+        this.terminalFeedback.textContent = `BREAKER SWITCH ENGAGED: ${rack.id} REBOOT PERMITTED! VISIT RACK & HOLD [E] FOR 5s`;
+        this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_GREEN;
+      }
+
+      this.showTemporaryToast(`⚡ ${rack.id} REBOOT PERMITTED! COUNTDOWN FROZEN ➔ VISIT RACK & HOLD [E] FOR 5s`, '⚡');
+      this.updateGrantAccessButtonState();
+      this.updateTerminalLiveCountdowns();
+      this.updateObjectiveUI();
+    } else {
+      this.sound.playKey();
+      this.showTemporaryToast(`ℹ️ ${rack.id} BREAKER IS ALREADY ARMED! VISIT RACK & HOLD [E] FOR 5s TO TURN ON`, 'ℹ️');
+    }
+  }
+
+  grantAccessForPinErrorServer() {
+    // Find server with PIN error (ACCESS_DENIED or AUTH_LOCKOUT)
+    const pinRack = this.racks.find(r =>
+      r.isFailing &&
+      !r.isDestroyed &&
+      (r.error?.type === CONFIG.ERRORS.ACCESS_DENIED || r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT)
+    );
+
+    if (!pinRack) {
+      this.sound.playTerminalFail();
+      if (this.terminalFeedback) {
+        this.terminalFeedback.textContent = 'NO ACTIVE SERVER WITH A PIN ERROR FOUND';
+        this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
+      }
+      this.showTemporaryToast('ℹ️ NO ACTIVE PIN ERROR SERVERS FOUND', 'ℹ️');
+      return;
+    }
+
+    // Grant access to this server!
+    pinRack.resolveError();
+    this.sound.playTerminalSuccess();
+    this.sound.playPlugSuccess?.();
+    this.particles.spawnSparks(this.nocDesk.x + this.nocDesk.width / 2, this.nocDesk.y, 40, '#00ff9d');
+    this.particles.spawnSparks(pinRack.x + pinRack.width / 2, pinRack.y + pinRack.height / 2, 45, '#00ff9d');
+
+    const bonus = (this.activeSynergies?.netops >= 1) ? 30 : 0;
+    const reward = 80 + bonus;
+    this.addCredits(reward, `+${reward} ⚡ ACCESS GRANTED FOR ${pinRack.id} (PIN ERROR RESOLVED)`);
+
+    if (this.activeCodeMemo?.rackId === pinRack.id) {
+      this.activeCodeMemo = null;
+      if (this.memoCodeVal) this.memoCodeVal.textContent = '--';
+    }
+
+    if (this.terminalFeedback) {
+      this.terminalFeedback.textContent = `🔓 ACCESS GRANTED: ${pinRack.id} PIN ERROR REMOTELY OVERRIDDEN & RESTORED!`;
+      this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_GREEN;
+    }
+
+    this.showTemporaryToast(`🔓 ACCESS GRANTED! SERVER ${pinRack.id} PIN ERROR RESOLVED!`, '🔓');
+
+    const optToRemove = this.terminalSelect?.querySelector(`option[value="${pinRack.id}"]`);
+    optToRemove?.remove();
+
+    this.updateGrantAccessButtonState();
+    this.updateTerminalLiveCountdowns();
+    this.updateObjectiveUI();
+  }
+
+  updateGrantAccessButtonState() {
+    if (!this.btnTerminalGrantAccess) return;
+    const pinRack = this.racks.find(r =>
+      r.isFailing &&
+      !r.isDestroyed &&
+      (r.error?.type === CONFIG.ERRORS.ACCESS_DENIED || r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT)
+    );
+
+    if (pinRack) {
+      this.btnTerminalGrantAccess.classList.remove('disabled');
+      if (this.terminalGrantAccessText) {
+        this.terminalGrantAccessText.textContent = `GRANT ACCESS: ${pinRack.id} (PIN ERROR)`;
+      }
+      this.btnTerminalGrantAccess.style.opacity = '1';
+      this.btnTerminalGrantAccess.title = `Grant remote access override to ${pinRack.id}`;
+    } else {
+      this.btnTerminalGrantAccess.classList.add('disabled');
+      if (this.terminalGrantAccessText) {
+        this.terminalGrantAccessText.textContent = 'NO ACTIVE PIN ERROR SERVERS';
+      }
+      this.btnTerminalGrantAccess.style.opacity = '0.55';
+      this.btnTerminalGrantAccess.title = 'No active servers with PIN errors';
+    }
   }
 
   submitTerminalCode() {
@@ -9710,8 +10225,13 @@ class Game {
       return;
     }
 
-    const isShutdownType = (
+    const isRebootType = (
       targetRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED ||
+      targetRack.error?.type === CONFIG.ERRORS.HARD_REBOOT
+    );
+
+    const isShutdownType = (
+      isRebootType ||
       targetRack.error?.type === CONFIG.ERRORS.SERVER_BUG ||
       targetRack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT ||
       targetRack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS
@@ -9732,7 +10252,7 @@ class Game {
       return;
     }
 
-    if (isShutdownType && targetRack.isShutdown) {
+    if (isShutdownType && targetRack.isShutdown && !isRebootType) {
       if (this.terminalFeedback) {
         this.terminalFeedback.textContent = `${targetRack.id} IS ALREADY SHUT DOWN // COMPLETE ON-FOOT ACTION`;
         this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
@@ -9742,6 +10262,31 @@ class Game {
     }
 
     if (this.terminalInputBuffer === targetRack.code) {
+      if (isRebootType) {
+        this.terminalRebootControls?.classList.remove('hidden');
+        this.updateGrantAccessButtonState();
+        if (!targetRack.rebootAllowed) {
+          this.sound.playTerminalSuccess();
+          this.particles.spawnSparks(this.nocDesk.x + this.nocDesk.width / 2, this.nocDesk.y, 25, '#00f3ff');
+          if (this.terminalFeedback) {
+            this.terminalFeedback.textContent = `PIN ALIGNED! FLIP THE BREAKER SWITCH BELOW TO ALLOW REBOOT ➔`;
+            this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+          }
+          if (this.rebootSwitchStatus) {
+            this.rebootSwitchStatus.textContent = 'PIN VERIFIED ➔ FLIP SWITCH TO ALLOW REBOOT';
+            this.rebootSwitchStatus.style.color = '#00ff9d';
+          }
+        } else {
+          this.sound.playKey();
+          if (this.terminalFeedback) {
+            this.terminalFeedback.textContent = `REBOOT ALREADY PERMITTED // VISIT ${targetRack.id} AND HOLD [E] FOR 5s`;
+            this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_GREEN;
+          }
+        }
+        this.updateTerminalDisplay();
+        return;
+      }
+
       if (isShutdownType) {
         this.sound.playTerminalSuccess();
         this.shutdownServerNode(targetRack.id, true);
@@ -9784,9 +10329,9 @@ class Game {
     } else {
       this.sound.playTerminalFail();
       if (this.terminalFeedback) {
-        this.terminalFeedback.textContent = isShutdownType
-          ? 'INVALID PIN // SHUTDOWN AUTHORIZATION REJECTED'
-          : 'INVALID OVERRIDE PIN // ACCESS DENIED';
+        this.terminalFeedback.textContent = isRebootType
+          ? 'INVALID PIN // REBOOT AUTHORIZATION REJECTED'
+          : (isShutdownType ? 'INVALID PIN // SHUTDOWN AUTHORIZATION REJECTED' : 'INVALID OVERRIDE PIN // ACCESS DENIED');
         this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_RED;
       }
       this.terminalInputBuffer = '';
@@ -9796,13 +10341,25 @@ class Game {
 
   resizeCanvas() {
     const dpr = this.isOptimizedMode ? 1.0 : Math.min(window.devicePixelRatio || 1, 2.0);
-    this.viewportWidth = window.innerWidth;
-    this.viewportHeight = window.innerHeight;
+    const winW = window.innerWidth;
+    const winH = window.innerHeight;
 
-    this.canvas.width = Math.floor(this.viewportWidth * dpr);
-    this.canvas.height = Math.floor(this.viewportHeight * dpr);
+    // Strict tactical viewport clamp: prevents zooming out of browser/game to reveal the full map
+    const maxWorldW = Math.min(CONFIG.CAMERA?.MAX_VIEW_WIDTH ?? 1500, (CONFIG.WORLD?.WIDTH || 2600) * 0.58);
+    const maxWorldH = Math.min(CONFIG.CAMERA?.MAX_VIEW_HEIGHT ?? 860, (CONFIG.WORLD?.HEIGHT || 2300) * 0.42);
+
+    const scaleX = winW / maxWorldW;
+    const scaleY = winH / maxWorldH;
+    const zoomScale = Math.max(1.0, Math.max(scaleX, scaleY));
+    this.renderScale = zoomScale;
+
+    this.viewportWidth = Math.floor(winW / zoomScale);
+    this.viewportHeight = Math.floor(winH / zoomScale);
+
+    this.canvas.width = Math.floor(winW * dpr);
+    this.canvas.height = Math.floor(winH * dpr);
     this.ctx.resetTransform();
-    this.ctx.scale(dpr, dpr);
+    this.ctx.scale(dpr * zoomScale, dpr * zoomScale);
 
     this.camera.resize(this.viewportWidth, this.viewportHeight);
     this.floorPattern = this.createFloorPattern();
@@ -9977,21 +10534,23 @@ class Game {
               this.updateBossHUD();
               return;
             }
-          } else if (boss instanceof MajorVirusBoss) {
-            this.hasQuarantineBarrier = true;
-            if (!(this.activeCable instanceof ContainmentWire)) {
-              if (this.activeCable && !(this.activeCable instanceof ContainmentWire)) {
-                this.dropActiveCable();
-              }
-              this.activeCable = new ContainmentWire(this.suppliesCloset, boss);
-              this.sound.playCabinetOpen();
-              this.sound.playGrab();
-              this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 45, '#10b981');
-              this.showTemporaryToast('🟡 QUARANTINE CONTAINMENT BARRIER RETRIEVED! RUN A FULL CLOSED LOOP AROUND ALL INFECTED COMPUTERS TO SEAL VIRUS!', '🟡');
-              this.updateObjectiveUI();
-              this.updateBossHUD();
+          } else if (boss instanceof GlitchedSpriteBoss) {
+            if (this.emergencyCannonCooldown > 0) {
+              const secs = Math.ceil(this.emergencyCannonCooldown);
+              this.sound.playTerminalFail();
+              this.showTemporaryToast(`⏳ EMERGENCY AMMO DISPENSER RECHARGING: ${secs}s REMAINING!`, '⏳');
               return;
             }
+            this.cannonCharges = (this.cannonCharges || 0) + 1;
+            this.emergencyCannonCooldown = CONFIG.CANNON.EMERGENCY_COOLDOWN ?? 30.0;
+            this.sound.playCabinetOpen();
+            this.sound.playPowerup();
+            this.particles.spawnSparks(this.suppliesCloset.x + this.suppliesCloset.width / 2, this.suppliesCloset.y + this.suppliesCloset.height / 2, 45, '#00f3ff');
+            this.showTemporaryToast(`🎯 EMERGENCY KINETIC CANNON CHARGE RETRIEVED! (${this.cannonCharges} ARMED) // NEXT AVAILABLE IN 30s!`, '🎯');
+            this.updateBuffDisplay();
+            this.updateObjectiveUI();
+            this.updateBossHUD();
+            return;
           } else {
             // Extensible Catalog Boss
             if (!(this.activeCable instanceof ContainmentWire)) {
@@ -10034,8 +10593,8 @@ class Game {
         } else if (activeBoss instanceof ThermalGolemBoss) {
           this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE FIRE EXTINGUISHER FROM THE SOUTH SUPPLIES CLOSET!', '🧯');
           return;
-        } else if (activeBoss instanceof MajorVirusBoss) {
-          this.showTemporaryToast('⚠️ VIRUS EPICENTER! RETRIEVE QUARANTINE BARRIER AT THE SOUTH SUPPLIES CLOSET!', '🟡');
+        } else if (activeBoss instanceof GlitchedSpriteBoss) {
+          this.showTemporaryToast('⚠️ GLITCH CORRUPTION EPICENTER! GET EMERGENCY CANNON CHARGES AT THE SOUTH SUPPLIES CLOSET!', '🎯');
           return;
         } else {
           this.showTemporaryToast(`⚠️ ANOMALY EPICENTER! RETRIEVE ${activeBoss.restraintName?.toUpperCase() || 'CONTAINMENT WIRE'} AT THE SUPPLIES CLOSET!`, '👑');
@@ -10056,8 +10615,8 @@ class Game {
         } else if (boss instanceof ThermalGolemBoss) {
           this.showTemporaryToast('⚠️ BOSS EMERGENCE POINT! RETRIEVE FIRE EXTINGUISHER FROM THE SOUTH SUPPLIES CLOSET!', '🧯');
           return;
-        } else if (boss instanceof MajorVirusBoss) {
-          this.showTemporaryToast('⚠️ VIRUS EPICENTER! RETRIEVE QUARANTINE BARRIER AT THE SOUTH SUPPLIES CLOSET!', '🟡');
+        } else if (boss instanceof GlitchedSpriteBoss) {
+          this.showTemporaryToast('⚠️ GLITCH CORRUPTION EPICENTER! GET EMERGENCY CANNON CHARGES AT THE SOUTH SUPPLIES CLOSET!', '🎯');
           return;
         } else {
           this.showTemporaryToast(`⚠️ ANOMALY EPICENTER! RETRIEVE ${boss.restraintName?.toUpperCase() || 'CONTAINMENT WIRE'} AT THE SUPPLIES CLOSET!`, '👑');
@@ -10174,7 +10733,7 @@ class Game {
           this.terminalSelect.value = nearRack.id;
           this.updateTerminalSelectionFeedback();
         }
-        this.showTemporaryToast(`🛑 RESTART REQUIRED: PIN [${nearRack.code}] SCANNED ➔ TYPE AT TERMINAL TO SHUT DOWN!`, '🛑');
+        this.showTemporaryToast(`🛑 RESTART REQUIRED: PIN [${nearRack.code}] SCANNED ➔ TYPE AT TERMINAL & FLIP SWITCH TO ALLOW REBOOT!`, '🛑');
       }
       this.sound.playKey();
       return;
@@ -10563,8 +11122,8 @@ class Game {
     const currentSpawnInterval = diffCfg.INITIAL_SPAWN_INTERVAL - (diffCfg.INITIAL_SPAWN_INTERVAL - diffCfg.MIN_SPAWN_INTERVAL) * ramp;
     const maxActiveErrors = Math.floor(diffCfg.INITIAL_MAX_ERRORS + (diffCfg.PEAK_MAX_ERRORS - diffCfg.INITIAL_MAX_ERRORS) * ramp);
 
-    // 10-Minute Progressive Boss Encounter Trigger (Every 10 minutes: 10:00, 20:00, 30:00, 40:00, 50:00...)
-    const expectedWave = Math.floor(this.gameTime / 600);
+    // 3-Minute Progressive Boss Encounter Trigger (Every 3 minutes: 3:00, 6:00, 9:00, 12:00, 15:00...)
+    const expectedWave = Math.floor(this.gameTime / 180);
     if (expectedWave > (this.currentBossWave || 0) && (!this.activeBoss || !this.activeBoss.isAlive) && this.gameState === 'PLAYING') {
       this.spawnBoss(expectedWave);
     }
@@ -10965,6 +11524,16 @@ class Game {
         this.updateBuffDisplay();
       }
     }
+
+    // Update Emergency Cannon Charge Dispenser Cooldown (1 charge per 30s)
+    if (this.emergencyCannonCooldown > 0) {
+      const prevSecs = Math.ceil(this.emergencyCannonCooldown);
+      this.emergencyCannonCooldown = Math.max(0, this.emergencyCannonCooldown - dt);
+      const currSecs = Math.ceil(this.emergencyCannonCooldown);
+      if (this.isSuppliesModalOpen && prevSecs !== currSecs) {
+        this.updateSuppliesModalUI();
+      }
+    }
     for (const node of this.teleporterNodes) {
       node.update(dt);
     }
@@ -10995,6 +11564,12 @@ class Game {
 
     // Check Player Health Defeat & Defibrillator Auto-Revive
     if (this.player.hp <= 0) {
+      const isBossActive = Boolean((this.activeBoss && this.activeBoss.isAlive) || (this.bugBoss && this.bugBoss.isAlive));
+      if (isBossActive) {
+        // "if you die from a boss you lose"
+        this.triggerGameOver('BOSS_DEFEAT');
+        return;
+      }
       if (this.player.defibrillatorCharges > 0) {
         this.player.defibrillatorCharges--;
         this.player.hp = 100;
@@ -11024,7 +11599,8 @@ class Game {
     }
 
     // Incident Timer with Dynamic Escalation (Halted during Boss Battle)
-    if (!this.bugBoss || !this.bugBoss.isAlive) {
+    const currentBossActive = Boolean((this.activeBoss && this.activeBoss.isAlive) || (this.bugBoss && this.bugBoss.isAlive));
+    if (!currentBossActive) {
       this.incidentTimer += dt;
       if (this.incidentTimer >= currentSpawnInterval) {
         this.incidentTimer = 0;
@@ -11046,7 +11622,7 @@ class Game {
       }
     }
 
-    // Update Server Racks & Check 30s Overheat Timers
+    // Update Server Racks & Check Overheat Timers
     let failingCount = 0;
     let destroyedCount = 0;
     let totalUptime = 0;
@@ -11058,10 +11634,17 @@ class Game {
       totalUptime += rack.uptime;
     }
 
-    // Loss condition: All server racks exploded
-    if (this.racks.length > 0 && destroyedCount >= this.racks.length && !this.isGameOver && this.gameState === 'PLAYING') {
-      this.triggerGameOver();
+    // Loss condition: Server racks destroyed reaches limit (10 in 50-server map, 20 in main map)
+    const maxAllowedLoss = this.getMaxAllowedServerLoss();
+    if (this.racks.length > 0 && destroyedCount >= maxAllowedLoss && !this.isGameOver && this.gameState === 'PLAYING') {
+      this.triggerGameOver('SERVER_LOSS_LIMIT');
       return;
+    }
+
+    const statsDestroyedEl = document.getElementById('stats-destroyed-val');
+    if (statsDestroyedEl) {
+      statsDestroyedEl.textContent = `${destroyedCount} / ${maxAllowedLoss}`;
+      statsDestroyedEl.style.color = destroyedCount >= (maxAllowedLoss - 3) ? '#ff2a55' : (destroyedCount > 0 ? '#ffb800' : '#00ff9d');
     }
 
     // Global Warehouse Uptime Integrity (destroyed racks permanently drag down uptime to 0%!)
@@ -11136,7 +11719,7 @@ class Game {
           opt.value = r.id;
           const t = r.error?.type;
           let tag = 'SEC-AUTH';
-          if (t === CONFIG.ERRORS.RESTART_REQUIRED) tag = r.isShutdown ? 'OFFLINE // READY FOR REBOOT' : 'REQ-SHUTDOWN';
+          if (t === CONFIG.ERRORS.RESTART_REQUIRED) tag = r.rebootAllowed ? 'ARMED // READY FOR REBOOT' : (r.isShutdown ? 'OFFLINE // READY FOR REBOOT' : 'REQ-REBOOT');
           else if (t === CONFIG.ERRORS.SERVER_BUG) tag = r.isShutdown ? 'OFFLINE // SHAKE BUG OUT' : 'BUG INFESTATION';
           else if (t === CONFIG.ERRORS.SERVER_OVERHEAT) tag = r.isShutdown ? 'OFFLINE // COOLING' : 'FIRE OVERHEAT';
           else if (t === CONFIG.ERRORS.SERVER_SMALL_VIRUS) tag = r.isShutdown ? 'OFFLINE // DISINFECT' : 'VIRUS SLIME';
@@ -11145,6 +11728,12 @@ class Game {
           if (!r.isShutdown) {
             if (t === CONFIG.ERRORS.SERVER_OVERHEAT) {
               opt.textContent = `${r.id} // ${tag} [ON FIRE - USE FIRE EXTINGUISHER]`;
+            } else if (t === CONFIG.ERRORS.RESTART_REQUIRED) {
+              opt.textContent = r.rebootAllowed
+                ? `${r.id} // ${tag} [BREAKER ARMED]`
+                : (r.error?.hasBeenInspected
+                  ? `${r.id} // ${tag} [PIN: ${r.code}]`
+                  : `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`);
             } else {
               opt.textContent = r.error?.hasBeenInspected ? `${r.id} // ${tag} [PIN: ${r.code}]` : `${r.id} // ${tag} [PIN UNKNOWN - SCAN RACK]`;
             }
@@ -11178,7 +11767,10 @@ class Game {
     } else if (targetRack && targetRack.isFailing) {
       if (targetRack.isShutdown) {
         if (this.terminalCountdownVal) {
-          this.terminalCountdownVal.textContent = '🛑 BREAKER OFF [TIMER PAUSED]';
+          const isRebootType = (targetRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED || targetRack.error?.type === CONFIG.ERRORS.HARD_REBOOT);
+          this.terminalCountdownVal.textContent = isRebootType && targetRack.rebootAllowed
+            ? '⚡ BREAKER ARMED [TIMER PAUSED] - READY FOR REBOOT'
+            : '🛑 BREAKER OFF [TIMER PAUSED]';
           this.terminalCountdownVal.style.color = '#00f3ff';
         }
         if (this.terminalCountdownFill) {
@@ -11543,7 +12135,13 @@ class Game {
       const offsetX = -((left % patternSize) + patternSize) % patternSize;
       const offsetY = -((top % patternSize) + patternSize) % patternSize;
 
+      const topLeft = cam.toScreen(0, 0);
       ctx.save();
+      // Clip floor tiles strictly to the facility world boundary
+      ctx.beginPath();
+      ctx.rect(topLeft.x, topLeft.y, CONFIG.WORLD.WIDTH, CONFIG.WORLD.HEIGHT);
+      ctx.clip();
+
       ctx.translate(offsetX, offsetY);
       ctx.fillStyle = this.floorPattern;
       ctx.fillRect(-patternSize, -patternSize, this.viewportWidth + patternSize * 2, this.viewportHeight + patternSize * 2);
@@ -11831,7 +12429,7 @@ class Game {
     // Rack ID & Countdown Timer label
     ctx.font = '600 9px "JetBrains Mono", monospace';
     if (rack.isFailing) {
-      let lblColor = '#ff2a55';
+      let lblColor = isTarget ? CONFIG.COLORS.TARGET_BEACON : '#ff2a55';
       if (rack.isShutdown) {
         lblColor = '#00f3ff';
         ctx.fillStyle = lblColor;
@@ -11852,7 +12450,10 @@ class Game {
           ? Math.max(0, Math.ceil(rack.error.bugTimer))
           : Math.max(0, Math.ceil(maxFailTime - rack.failDuration));
         let tag = '';
-        if (rack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) { lblColor = '#ff5500'; tag = ' FIRE'; }
+        if (isTarget) {
+          tag = ' TARGET';
+          lblColor = CONFIG.COLORS.TARGET_BEACON;
+        } else if (rack.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) { lblColor = '#ff5500'; tag = ' FIRE'; }
         else if (isChainError) { lblColor = '#e879f9'; tag = ' BUS'; }
         else if (isRebootError) { lblColor = '#00f3ff'; tag = ' REBOOT'; }
         else if (isCoolantError) { lblColor = '#00f3ff'; tag = ' CRYO'; }
@@ -11980,13 +12581,16 @@ class Game {
         badgeColor = '#e879f9';
       } else if (errType === CONFIG.ERRORS.RESTART_REQUIRED || errType === CONFIG.ERRORS.HARD_REBOOT) {
         const req = (this.activeSynergies?.netops >= 2) ? 3.0 : (CONFIG.ERRORS.REBOOT_HOLD_TIME ?? 5.0);
+        const hasPinError = this.racks.some(r => r.isFailing && !r.isDestroyed && (r.error?.type === CONFIG.ERRORS.ACCESS_DENIED || r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT));
         if (rack.isShutdown) {
           if (this.rebootingRack === rack && this.rebootHoldTime > 0) {
             const prog = Math.min(req, this.rebootHoldTime).toFixed(1);
             label = `⚡ REBOOTING: ${prog}s / ${req.toFixed(1)}s (HOLD [E])`;
             badgeColor = '#00f3ff';
           } else {
-            label = `⚡ HOLD [E] TO TURN ON (${req.toFixed(1)}s)`;
+            label = hasPinError
+              ? `⚡ HOLD [E] TO TURN ON (${req.toFixed(1)}s) | [G] GRANT PIN ACCESS`
+              : `⚡ HOLD [E] TO TURN ON (${req.toFixed(1)}s)`;
             badgeColor = '#00f3ff';
           }
         } else {
@@ -11994,7 +12598,7 @@ class Game {
             label = `[E] SCAN PIN [${rack.code}] ➔ TYPE AT TERMINAL [${timeLeft}s!]`;
             badgeColor = '#ff2a55';
           } else {
-            label = `PIN: ${rack.code} ➔ TYPE AT TERMINAL TO SHUT DOWN [${timeLeft}s!]`;
+            label = `PIN: ${rack.code} ➔ TYPE AT TERMINAL & FLIP SWITCH [${timeLeft}s!]`;
             badgeColor = '#00f3ff';
           }
         }
@@ -12180,6 +12784,15 @@ class Game {
       } else if (boss instanceof ThermalGolemBoss) {
         label = (this.hasFireExtinguisher || this.hasCryoCanister) ? '[E] OPEN SUPPLIES CLOSET' : '[E] RETRIEVE FIRE EXTINGUISHER';
         badgeColor = '#ff5500';
+      } else if (boss instanceof GlitchedSpriteBoss) {
+        if (this.emergencyCannonCooldown > 0) {
+          const secs = Math.ceil(this.emergencyCannonCooldown);
+          label = `[E] AMMO RECHARGING (${secs}s)`;
+          badgeColor = '#f59e0b';
+        } else {
+          label = `[E] GET EMERGENCY CANNON CHARGE (${this.cannonCharges || 0} ARMED)`;
+          badgeColor = '#00f3ff';
+        }
       } else {
         label = `[E] RETRIEVE ${boss.restraintName?.toUpperCase() || 'DEFCON GEAR'}`;
         badgeColor = '#00ff9d';
@@ -12303,9 +12916,46 @@ class Game {
 
   renderWorldBounds(ctx, cam) {
     const topLeft = cam.toScreen(0, 0);
-    ctx.strokeStyle = '#ff2a55';
+    const w = CONFIG.WORLD.WIDTH;
+    const h = CONFIG.WORLD.HEIGHT;
+
+    ctx.save();
+    // Glowing cushioned outer barrier - bright neon electric cyan/blue
+    ctx.strokeStyle = '#00f3ff';
     ctx.lineWidth = 4;
-    ctx.strokeRect(topLeft.x, topLeft.y, CONFIG.WORLD.WIDTH, CONFIG.WORLD.HEIGHT);
+    ctx.shadowColor = 'rgba(0, 243, 255, 0.75)';
+    ctx.shadowBlur = 12;
+    ctx.strokeRect(topLeft.x, topLeft.y, w, h);
+    ctx.shadowBlur = 0;
+
+    // Inner energetic cushion rail - vibrant bright sky blue
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(topLeft.x + 3, topLeft.y + 3, w - 6, h - 6);
+
+    // Wall bounce visual feedback pulse
+    if (this.player && this.player.lastWallBounceTime) {
+      const elapsed = performance.now() - this.player.lastWallBounceTime;
+      if (elapsed < 350) {
+        const progress = elapsed / 350;
+        const ringRadius = 14 + progress * 40;
+        const alpha = Math.max(0, 1.0 - progress);
+        const hitScreen = cam.toScreen(this.player.lastWallBounceX, this.player.lastWallBounceY);
+
+        ctx.beginPath();
+        ctx.arc(hitScreen.x, hitScreen.y, ringRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(0, 243, 255, ${alpha.toFixed(2)})`;
+        ctx.lineWidth = 3 * (1 - progress);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(hitScreen.x, hitScreen.y, ringRadius * 0.45, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${(alpha * 0.7).toFixed(2)})`;
+        ctx.fill();
+      }
+    }
+
+    ctx.restore();
   }
 
   renderOffscreenAlerts(ctx, cam, alertRacks) {
@@ -12370,9 +13020,24 @@ class Game {
       ctx.fillText(`${labelText} (${Math.round(distance / 10)}m)`, edgeX, edgeY + 28);
     };
 
+    // Identify current cable destination target to avoid duplicate/overlapping radar arrows
+    let cableTargetId = null;
+    if (this.activeCable) {
+      if (this.activeCable instanceof MultiHopCable) {
+        cableTargetId = this.activeCable.getCurrentTargetRack()?.id;
+      } else if (this.activeCable.targetRack) {
+        cableTargetId = this.activeCable.targetRack.id;
+      }
+    }
+
     // 1. Active Failing Racks (Destroyed racks are omitted to eliminate HUD radar clutter)
     for (const rack of alertRacks) {
       if (rack.isFailing && !rack.isDestroyed) {
+        // If this failing rack is the active cable's target server, omit the red alert arrow
+        // so it doesn't render directly on top of the green target destination arrow
+        if (cableTargetId && rack.id === cableTargetId) {
+          continue;
+        }
         const isGoldNetOps = Boolean(this.activeSynergies?.netops >= 3);
         const maxFailTime = (CONFIG.ERRORS.CRITICAL_FAIL_TIME ?? 30) + (isGoldNetOps ? 15 : 0);
         const timeLeft = Math.max(0, Math.ceil(maxFailTime - rack.failDuration));

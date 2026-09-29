@@ -2786,6 +2786,144 @@ body.perf-optimized .settings-window {
 }
 
 /* ============================================================================
+   Terminal Reboot Controls: Breaker Toggle Switch & Grant Access Button
+   ============================================================================ */
+.terminal-reboot-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(0, 243, 255, 0.05);
+  border: 1.5px solid rgba(0, 243, 255, 0.35);
+  border-radius: 6px;
+  margin-top: 14px;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.12);
+}
+
+.terminal-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(0, 243, 255, 0.25);
+  border-radius: 6px;
+}
+
+.switch-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.switch-title {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #00f3ff;
+  letter-spacing: 0.05em;
+}
+
+.switch-sub {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.reboot-toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.reboot-toggle-switch .switch-housing {
+  position: relative;
+  width: 58px;
+  height: 30px;
+  background: #1e293b;
+  border: 1.5px solid #475569;
+  border-radius: 15px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reboot-toggle-switch .switch-handle {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  background: #94a3b8;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s;
+}
+
+.reboot-toggle-switch.on .switch-housing {
+  background: rgba(0, 255, 157, 0.2);
+  border-color: #00ff9d;
+  box-shadow: 0 0 16px rgba(0, 255, 157, 0.5);
+}
+
+.reboot-toggle-switch.on .switch-handle {
+  transform: translateX(28px);
+  background: #00ff9d;
+  box-shadow: 0 0 10px #00ff9d;
+}
+
+.reboot-toggle-switch .switch-label-text {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  min-width: 48px;
+}
+
+.reboot-toggle-switch.on .switch-label-text {
+  color: #00ff9d;
+}
+
+.terminal-grant-access-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.15), rgba(0, 255, 157, 0.2));
+  border: 1.5px solid #00f3ff;
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #00ff9d;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 0 16px rgba(0, 243, 255, 0.2);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.terminal-grant-access-btn:hover:not(.disabled) {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.35), rgba(0, 255, 157, 0.4));
+  box-shadow: 0 0 24px rgba(0, 255, 157, 0.5);
+  transform: translateY(-1px);
+}
+
+.terminal-grant-access-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #475569;
+  color: #64748b;
+  background: rgba(15, 23, 42, 0.6);
+  box-shadow: none;
+}
+
+/* ============================================================================
    Run Archive Preview Modal (For Uploading Save Files)
    ============================================================================ */
 .run-preview-modal {

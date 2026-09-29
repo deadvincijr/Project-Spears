@@ -38,10 +38,12 @@
    - Live Emergency Countdowns in Keypad: Overheat timers across the warehouse—including the target node's 30s critical countdown—continue ticking live while inside the keypad modal, featuring a real-time countdown readout and depleting danger bar to maintain high-stakes tension.
    - Entering the correct PIN restores the rack's uptime and clears the alarm.
 
-6. **Hitbox Obstacle Slalom & Cross-Aisle Walkways**:
+6. **Hitbox Obstacle Slalom & Cushioned Perimeter Wall Bouncing**:
    - Server racks have solid AABB hitboxes with elastic bounce and momentum deflection (`restitution: 0.45`).
-   - Racks are spaced with ~63px gaps (player diameter is 32px), creating a fast, chaotic slalom drift experience.
-   - Cross-Aisle Corridors: Every 5th vertical rack slot is omitted to provide open transit breaks across the warehouse.
+   - World Perimeter Walls feature energetic cushioned boundary reflections (`WALL_RESTITUTION: 0.60`, jumps to `0.92` during Cannon puck launches) with authentic impact sparks, acoustic collision feedback, and Slalom Precision Springs rebound compatibility.
+   - Racks are spaced with open gaps (player diameter is 32px), creating a fast, chaotic slalom drift experience.
+   - Cross-Aisle Corridors: Clear transit breaks across the warehouse.
+   - Scenario 1 (Beginner Deployment) features a dedicated 640px+ South Operations Concourse, giving massive clearance between the bottom server row and the NOC Terminal, Supplies Closet, and IT Shop Kiosk.
 
 7. **Configurable Movement Parameters (`CONFIG`)**:
    - `CONFIG.SPEED`: Maximum top velocity (e.g. 650).
@@ -239,4 +241,49 @@
           - *Silver (3 items)*: Hold-to-reboot time reduced from 5.0s to 3.0s.
           - *Gold (4 items)*: Critical server overheat explosion timer extended from 30s to 45s.
 
+21. **End-Phase Difficulty Escalation, Server Loss Limits & Glitched Sprite Boss**:
+    - **Difficulty Scaling & Run Pacing (6-min Average / 10-15 min Master Run)**:
+      - **3-Minute Boss Cadence**: Boss encounters now trigger every 3 minutes of elapsed shift time (`CONFIG.BOSS.TRIGGER_TIME: 180s`, `360s`, `540s`, `720s`...).
+      - **Threat Ramp Curve**: `CONFIG.DIFFICULTY.RAMP_DURATION: 360s` (threat reaches peak intensity at the 6-minute mark). Spawn interval drops from 12.0s down to 3.5s, and peak concurrent faults scale to 6 active errors.
+      - **Developer Shortcut (`[B]`)**: Pressing `[B]` advances the shift clock to the next 3-minute boundary (`nextWave * 180s`) to immediately spawn the next boss wave for testing.
+    - **Definitive Loss & Game Over Conditions**:
+      - **Boss Combat Permadeath**: If player cart integrity drops to 0 HP while any boss is alive (`activeBoss?.isAlive`), emergency defibrillator revives are disabled and the game ends in an immediate loss (`BOSS_DEFEAT` Game Over: *"☠️ MAINTENANCE CART DESTROYED BY [BOSS NAME]"*).
+      - **Server Loss Limits**:
+        - **Beginner Deployment (50 servers)**: Losing **10 servers** to thermal explosions triggers an immediate catastrophic facility collapse (`SERVER_LOSS_LIMIT` Game Over).
+        - **Classic Main Warehouse**: Losing **20 servers** triggers an immediate catastrophic facility collapse (`SERVER_LOSS_LIMIT` Game Over).
+      - **Telemetry & HUD Tracking**: Live telemetry modal displays destroyed server tracking (`SERVERS LOST: X / MAX`), and Game Over modals dynamically articulate the exact cause of defeat.
+    - **Glitched Sprite Boss (Kinetic Cannon Ram Mechanic)**:
+      - **Entity & Visuals**: A hyper-corrupted, chromatic aberration glitch entity rendered across multi-pass cyan, magenta, and white channels with a flickering 12x12 matrix core, CRT scanlines, and floating hex/binary runes.
+      - **Kinetic Cannon Ramming (6 Hits Required)**:
+        - The boss cannot be wrapped or damaged by standard tools. Defeating it requires ramming directly into it with the **Kinetic Cannon air-hockey puck launch** (`[F]`, `cannonPuckTimer > 0`) **6 separate times** (`hitsRequired: 6`).
+        - Each direct ram hit triggers dynamic camera shake, electrical glitch blast sounds (`playGlitchHit()`), ricochets the player backward, and decrements the boss's 6-segment health track.
+        - Colliding with the boss without active cannon puck glide inflicts 20 HP contact glitch damage (which can trigger lethal boss defeat).
+      - **Emergency Supplies Closet Cannon Charges (30s Dispenser Cooldown)**:
+        - While the Glitched Sprite Boss is present in the warehouse, the player can resupply Kinetic Cannon ammo directly at the Facility Supplies Closet.
+        - **30-Second Recharge Cycle**: Dispenser is limited to **1 emergency charge every 30 seconds** (`CONFIG.CANNON.EMERGENCY_COOLDOWN: 30.0`).
+        - Attempting to draw before the 30-second cycle elapses plays an acoustic terminal denial tone and displays a toast with the remaining seconds (`⏳ EMERGENCY AMMO DISPENSER RECHARGING: Xs REMAINING!`).
+        - When cooling down, the floating closet prompt updates to `[E] AMMO RECHARGING (Xs)` in amber, and the Supplies Depot modal card reflects the real-time recharge countdown on a disabled button (`⏳ RECHARGING (Xs)`).
+    - **Bright Blue World Perimeter Wall (`#00f3ff` & `#38bdf8`)**:
+      - Replaced the crimson red world barrier with vibrant high-visibility neon electric cyan (`#00f3ff`) and bright sky blue inner cushion rails (`rgba(56, 189, 248, 0.85)`), featuring cyan glow shadows (`rgba(0, 243, 255, 0.75)`).
+      - Harmonies seamlessly with the cart's electric cyan wall bounce rings, laser trajectory aiming dots, and cyber HUD accents.
+    - **Anti-Zoom Full-Map Revelation Prevention (Tactical Viewport Lock)**:
+      - **Maximum Tactical Viewport Hard Cap**: Hard-limited the maximum visible world area to `CONFIG.CAMERA.MAX_VIEW_WIDTH: 1500px` and `MAX_VIEW_HEIGHT: 860px` (or at most 58% / 42% of map dimensions).
+      - **Dynamic Canvas Scaling (`renderScale`)**: If the browser is zoomed out (e.g. 50%, 33%, 25%) or if the window resolution is very large, `resizeCanvas()` dynamically calculates a scaling factor (`zoomScale`) and scales the 2D canvas context proportionally (`ctx.scale(dpr * zoomScale, dpr * zoomScale)`), locking the player to a focused local tactical bubble and making it physically impossible to reveal the whole map.
+      - **Mouse Aiming Parity**: Cannon aiming coordinates from mouse events are automatically scaled by `1 / renderScale` to maintain pixel-perfect precision at any browser zoom level.
+      - **Floor Grid Boundary Clipping**: Floor pattern drawing is strictly clipped to the facility's world rectangle, keeping exterior space deep dark void.
+    - **Cable Destination Indicator De-duplication (Clean Green Target Beacon)**:
+      - When picking up a patch cable on a standard cable error (`RUN_WIRE` / `CABLE_DISCONNECT`) or multi-hop bus, the redundant red fault arrow pointing toward the connected target server is automatically suppressed on the HUD edge radar.
+      - Eliminates overlapping/stacked red and green radar indicators pointing to the exact same coordinates, displaying solely the clean emerald green target beacon (`TARGET: RACK_ID`).
+      - On-screen, the target server's overhead directional arrow and countdown label dynamically turn emerald green (`#00ff9d` / `[TARGET]`), giving the player an unambiguous visual beacon to plug into.
 
+22. **Standard Reboot Errors: Terminal Breaker Toggle Switch & PIN Error Remote Access Grant**:
+    - **Reboot PIN Alignment & Breaker Permit Switch**:
+      - For reboot errors (`RESTART_REQUIRED` / `HARD_REBOOT`), players must enter the server's 4-digit PIN at the Master NOC Terminal.
+      - As soon as the entered PIN aligns with the target server (or on pressing [Enter] / clicking Remote Shutdown), the terminal reveals an interactive breaker toggle switch (`#terminal-reboot-controls`).
+      - Flipping this physical-style toggle switch arms the reboot permit (`rebootAllowed = true`), shuts down the breaker (`isShutdown = true`), halts the thermal explosion countdown timer, and plays mechanical dual-click breaker clack and power hum sound effects.
+      - Once armed, the player can visit the physical server rack on foot and hold `[E]` for 5 continuous seconds to complete the manual power-on cycle.
+      - Keyboard ergonomic shortcut: Pressing `[Space]` while inside the terminal when the switch is visible immediately flips the breaker toggle switch.
+    - **Grant Access Button for PIN Error Servers**:
+      - For standard reboot errors, a dedicated action button (`#btn-terminal-grant-access`) appears in the terminal: `GRANT ACCESS: [RACK_ID] (PIN ERROR)`.
+      - Clicking this button immediately authorizes and resolves any active server with a PIN error (`ACCESS_DENIED` / `AUTH_LOCKOUT`) across the data center, granting credits, spawning green celebratory sparks, and notifying the player.
+      - On-Foot Synergy (`[G]`): When near a reboot server or the NOC desk, pressing `[G]` also triggers the remote PIN access grant, allowing fast on-foot workflow without needing to re-open the terminal.

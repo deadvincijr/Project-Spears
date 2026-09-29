@@ -143,7 +143,7 @@
               <button type="button" class="numpad-btn action-enter" id="numpad-enter">ENTER</button>
             </div>
 
-            <!-- Remote Shutdown Panel (for Restart Required, Bug, Overheat, Small Virus) -->
+            <!-- Remote Shutdown Panel (for Bug, Overheat, Small Virus) -->
             <div id="terminal-shutdown-panel" class="terminal-shutdown-panel hidden">
               <button type="button" id="btn-terminal-shutdown" class="terminal-shutdown-btn">
                 <span class="shutdown-btn-icon">🛑</span>
@@ -151,6 +151,28 @@
               </button>
               <div id="terminal-shutdown-info" class="terminal-shutdown-info">
                 Cuts breaker power immediately. Halts explosion countdown and isolates node fault.
+              </div>
+            </div>
+
+            <!-- Reboot Breaker Switch & Grant Access Controls (For Standard Reboot Errors) -->
+            <div id="terminal-reboot-controls" class="terminal-reboot-controls hidden">
+              <div class="terminal-switch-row">
+                <div class="switch-meta">
+                  <div class="switch-title">BREAKER REBOOT PERMIT</div>
+                  <div class="switch-sub" id="reboot-switch-status">PIN VERIFIED ➔ FLIP SWITCH TO ALLOW REBOOT</div>
+                </div>
+                <button type="button" id="btn-reboot-toggle-switch" class="reboot-toggle-switch off" role="switch" aria-checked="false" aria-label="Toggle Breaker Reboot Switch">
+                  <span class="switch-housing">
+                    <span class="switch-handle"></span>
+                  </span>
+                  <span class="switch-label-text" id="reboot-switch-label">OFF</span>
+                </button>
+              </div>
+              <div class="terminal-grant-row" id="terminal-grant-row">
+                <button type="button" id="btn-terminal-grant-access" class="terminal-grant-access-btn">
+                  <span class="grant-icon">🔓</span>
+                  <span id="terminal-grant-access-text">GRANT ACCESS FOR PIN ERROR</span>
+                </button>
               </div>
             </div>
           </div>
@@ -456,7 +478,7 @@
         style="color: #00f3ff; border-color: rgba(0, 243, 255, 0.4);" aria-label="Open Operations Manual">MANUAL
         [H]</button>
       <button type="button" id="btn-open-shop" class="hud-btn"
-        style="color: #ffb800; border-color: rgba(255, 184, 0, 0.4);" aria-label="Open Hardware Shop">SHOP [K]</button>
+        style="color: #ffb800; border-color: rgba(255, 184, 0, 0.4);" aria-label="Open Hardware Shop">SHOP</button>
       <button type="button" id="btn-toggle-pause" class="hud-btn" aria-label="Pause Game">PAUSE [ESC]</button>
     </div>
   </footer>
@@ -538,6 +560,14 @@
             <div class="stats-tile-content">
               <span class="stats-tile-label">ACTIVE FAULTS</span>
               <span class="stats-tile-value text-faults" id="stats-faults-val">0 FAULTS</span>
+            </div>
+          </div>
+
+          <div class="stats-metric-tile">
+            <span class="stats-tile-icon">💥</span>
+            <div class="stats-tile-content">
+              <span class="stats-tile-label">SERVERS LOST</span>
+              <span class="stats-tile-value" id="stats-destroyed-val" style="color: #ff2a55;">0 / 20</span>
             </div>
           </div>
         </div>
@@ -1371,9 +1401,8 @@
         <span id="go-title" class="game-over-title">CASCADE TERMINATION // DATA CENTER OFFLINE</span>
       </div>
       <div class="game-over-body">
-        <div class="game-over-headline">💥 ALL SERVER RACKS IN WAREHOUSE HAVE EXPLODED</div>
-        <p class="game-over-desc">The data center has collapsed into irreversible catastrophic cascade failure. All
-          servers offline.</p>
+        <div id="go-headline" class="game-over-headline">💥 ALL SERVER RACKS IN WAREHOUSE HAVE EXPLODED</div>
+        <p id="go-desc" class="game-over-desc">The data center has collapsed into irreversible catastrophic cascade failure. All servers offline.</p>
         <div class="game-over-stats-grid">
           <div class="game-over-stat">
             <span class="go-lbl">FINAL SHIFT DURATION</span>
