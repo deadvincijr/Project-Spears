@@ -2733,6 +2733,7 @@ class ServerRack {
     this.failDuration = 0;
     this.isShutdown = false;
     this.rebootAllowed = false;
+    this.pinVerified = false;
     this.error = {
       type: CONFIG.ERRORS.RESTART_REQUIRED,
       isShutdown: false,
@@ -2814,6 +2815,7 @@ class ServerRack {
     this.isFailing = false;
     this.isShutdown = false;
     this.rebootAllowed = false;
+    this.pinVerified = false;
     this.isVirusInfected = false;
     if (this.error?.partnerRack) {
       this.error.partnerRack.isTargetDestination = false;
@@ -3360,6 +3362,13 @@ class SuppliesClosetStation {
 // ============================================================================
 // Quantum Teleporter Node Entity (Permanent Post-Boss Reward Pad)
 // ============================================================================
+const TELEPORTER_PAIRS = [
+  { nameA: 'NODE α', nameB: 'NODE β', colorA: '#00f3ff', colorB: '#e024c3', secA: '#00ff9d', secB: '#ff007f' },
+  { nameA: 'NODE γ', nameB: 'NODE δ', colorA: '#ffaa00', colorB: '#a855f7', secA: '#ffd700', secB: '#ec4899' },
+  { nameA: 'NODE ε', nameB: 'NODE ζ', colorA: '#10b981', colorB: '#3b82f6', secA: '#34d399', secB: '#60a5fa' },
+  { nameA: 'NODE η', nameB: 'NODE θ', colorA: '#f43f5e', colorB: '#06b6d4', secA: '#fb7185', secB: '#22d3ee' }
+];
+
 class TeleporterNode {
   constructor(id, x, y, name, color, secondaryColor) {
     this.id = id; // 'alpha' or 'beta'
@@ -4482,7 +4491,10 @@ class ThermalGolemBoss {
 
     this.slamCooldown = 5.0 + Math.random() * 2;
     this.flameCooldown = 4.0 + Math.random() * 2;
-    this.projectiles = []; // Flame jet embers
+    this.machineGunCooldown = 1.5 + Math.random() * 1.5;
+    this.machineGunShotsLeft = 0;
+    this.machineGunShotInterval = 0;
+    this.projectiles = []; // Flame jet embers & machine-gun fireballs
     this.shockwaves = [];  // Expanding molten slam rings
   }
 
@@ -4523,59 +4535,81 @@ class ThermalGolemBoss {
           player.y = this.y + Math.sin(ang) * (this.radius + player.radius + 3);
           player.vx *= -0.5;
           player.vy *= -0.5;
-          game.showTemporaryToast('🧯 DAEMON IS EXTINGUISHED SOLID! SLIDE AT HIGH SPEED TO SHATTER IT!', '🧯');
+          game.showTemporaryToast('🧯 DAEMON IS EXTINGUISHED SOLID! SLIDE AT HIGH SPEED (>260px/s) TO SHATTER IT!', '🧯');
         }
       }
       return;
     }
 
-    // 2. Active Fire Extinguisher Spray Injection Check
+    // 2. Active Fire Extinguisher Spray Injection Check (with Pressure Gauge drain)
     const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
-    if ((game.hasFireExtinguisher || game.hasCryoCanister) && distToPlayer < 195 && (game.keys['KeyE'] || game.keys['Space'])) {
-      this.temperature = Math.max(0, this.temperature - 260 * dt);
-      this.flinchTimer = 0.25;
+    const isHoldingSpray = (game.keys['KeyE'] || game.keys['Space']);
+    if ((game.hasFireExtinguisher || game.hasCryoCanister) && distToPlayer < 240 && isHoldingSpray) {
+      if ((game.extinguisherPressure ?? 100) > 0) {
+        game.isExtinguisherSpraying = true;
+        game.extinguisherPressure = Math.max(0, (game.extinguisherPressure ?? 100) - 32 * dt);
+        this.temperature = Math.max(0, this.temperature - 280 * dt);
+        this.flinchTimer = 0.25;
 
-      if (Math.random() < 0.35) {
-        game.sound.playCryoSpray();
-        game.camera.shake(4, 0.1);
-      }
+        if (Math.random() < 0.35) {
+          game.sound.playCryoSpray();
+          game.camera.shake(4, 0.1);
+        }
 
-      // Spray chemical fire extinguisher foam stream from player to daemon
-      const toGolem = Math.atan2(this.y - player.y, this.x - player.x);
-      const sprayX = player.x + Math.cos(toGolem) * 20;
-      const sprayY = player.y + Math.sin(toGolem) * 20;
-      game.particles.spawnSparks(sprayX, sprayY, 3, '#ffffff');
-      game.particles.spawnSparks(this.x + (Math.random() - 0.5) * 45, this.y + (Math.random() - 0.5) * 45, 3, '#e2e8f0');
-      game.particles.spawnSparks(this.x + (Math.random() - 0.5) * 45, this.y + (Math.random() - 0.5) * 45, 1, '#94a3b8');
-      game.updateBossHUD();
-
-      if (this.temperature <= 0 && !this.isFrozen) {
-        this.isFrozen = true;
-        this.state = 'FROZEN_SOLID';
-        this.vx = 0;
-        this.vy = 0;
-        game.sound.playIceShatter();
-        game.camera.shake(24, 0.6);
-        game.showTemporaryToast('🧯 FIERY DAEMON EXTINGUISHED SOLID AT 0°C! RAM CART AT SPEED TO SHATTER!', '🧯');
+        // Spray chemical fire extinguisher foam stream from player to daemon
+        const toGolem = Math.atan2(this.y - player.y, this.x - player.x);
+        const sprayX = player.x + Math.cos(toGolem) * 20;
+        const sprayY = player.y + Math.sin(toGolem) * 20;
+        game.particles.spawnSparks(sprayX, sprayY, 3, '#ffffff');
+        game.particles.spawnSparks(this.x + (Math.random() - 0.5) * 45, this.y + (Math.random() - 0.5) * 45, 3, '#e2e8f0');
+        game.particles.spawnSparks(this.x + (Math.random() - 0.5) * 45, this.y + (Math.random() - 0.5) * 45, 1, '#94a3b8');
         game.updateBossHUD();
-        return;
+
+        if (this.temperature <= 0 && !this.isFrozen) {
+          this.isFrozen = true;
+          this.state = 'FROZEN_SOLID';
+          this.vx = 0;
+          this.vy = 0;
+          game.sound.playIceShatter();
+          game.camera.shake(24, 0.6);
+          game.showTemporaryToast('🧯 FIERY DAEMON EXTINGUISHED SOLID AT 0°C! RAM CART AT SPEED (>260px/s) TO SHATTER!', '🧯');
+          game.updateBossHUD();
+          return;
+        }
+      } else {
+        if (Math.random() < 0.04) {
+          game.sound?.playTerminalFail?.();
+          game.showTemporaryToast('⚠️ EXTINGUISHER DEPRESSURIZED (0%)! RELEASE TRIGGER TO REPRESSURIZE!', '🧯');
+        }
       }
     }
 
-    // Update Flame Jet Embers
+    // Update Flame Jet & Machine-Gun Fireball Embers
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.life -= dt;
 
+      // Check collision with solid server racks (server racks provide cover!)
+      for (const rack of game.racks) {
+        if (!rack.isDestroyed &&
+          p.x >= rack.x && p.x <= rack.x + rack.width &&
+          p.y >= rack.y && p.y <= rack.y + rack.height) {
+          p.life = 0;
+          game.particles.spawnSparks(p.x, p.y, 6, '#ff5500');
+          game.particles.spawnSparks(p.x, p.y, 4, '#ffaa00');
+          break;
+        }
+      }
+
       const pDist = Math.hypot(player.x - p.x, player.y - p.y);
-      if (pDist < player.radius + p.radius) {
+      if (pDist < player.radius + p.radius && p.life > 0) {
         if (player.takeDamage(18, p.vx * 0.35, p.vy * 0.35, game.sound, game.particles)) {
           game.triggerDamageFlash();
           game.updatePlayerHealthUI();
           game.camera.shake(12, 0.3);
-          game.showTemporaryToast('🔥 HIT BY MOLTEN FLAME JET! [-18 HP]');
+          game.showTemporaryToast('🔥 HIT BY MOLTEN FIREBALL! [-18 HP]');
         }
         p.life = 0;
       }
@@ -4631,6 +4665,25 @@ class ThermalGolemBoss {
 
       this.x = Math.max(this.radius + 20, Math.min(CONFIG.WORLD.WIDTH - this.radius - 20, this.x));
       this.y = Math.max(this.radius + 20, Math.min(CONFIG.WORLD.HEIGHT - this.radius - 20, this.y));
+
+      // Machine-gun fireball burst logic when player approaches within 750px
+      this.machineGunCooldown -= dt;
+      if (this.machineGunCooldown <= 0 && distToPlayer <= 750 && this.machineGunShotsLeft <= 0) {
+        this.machineGunShotsLeft = 8;
+        this.machineGunShotInterval = 0.11;
+        this.machineGunCooldown = 3.6 + Math.random() * 1.6;
+        game.sound?.playBossAlarm?.();
+        game.showTemporaryToast('🔥 OVERHEAT DAEMON FIRING MACHINE-GUN FIREBALLS! TAKE COVER BEHIND RACKS!', '🔥');
+      }
+
+      if (this.machineGunShotsLeft > 0) {
+        this.machineGunShotInterval -= dt;
+        if (this.machineGunShotInterval <= 0) {
+          this.machineGunShotInterval = 0.11;
+          this.machineGunShotsLeft--;
+          this.fireSingleFireball(game, player);
+        }
+      }
 
       this.slamCooldown -= dt;
       if (this.slamCooldown <= 0 && distToPlayer < 450) {
@@ -4696,6 +4749,24 @@ class ThermalGolemBoss {
     game.particles.spawnSparks(this.x, this.y, 45, '#ff4500');
     game.particles.spawnSparks(this.x, this.y, 30, '#ffaa00');
     game.showTemporaryToast('💥 THERMAL GOLEM EXECUTED MOLTEN SLAM! DODGE THE SHOCKWAVE!');
+  }
+
+  fireSingleFireball(game, player) {
+    if (game.sound?.playNitrousBurn) game.sound.playNitrousBurn();
+    const toPlayer = Math.atan2(player.y - this.y, player.x - this.x);
+    const spread = (Math.random() - 0.5) * 0.24;
+    const ang = toPlayer + spread;
+    const spd = 370 + Math.random() * 60;
+    this.projectiles.push({
+      x: this.x + Math.cos(ang) * (this.radius + 12),
+      y: this.y + Math.sin(ang) * (this.radius + 12),
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd,
+      radius: 9,
+      life: 2.5,
+      isFireball: true
+    });
+    game.particles.spawnSparks(this.x + Math.cos(ang) * this.radius, this.y + Math.sin(ang) * this.radius, 4, '#ff5500');
   }
 
   fireFlameJet(game) {
@@ -4891,6 +4962,7 @@ class GlitchedSpriteBoss {
     // Visual Glitch Generator
     this.sliceOffsets = [0, 0, 0, 0, 0, 0, 0, 0];
     this.matrixSymbols = ['0', '1', '§', '¿', 'Ø', '404', 'NaN', 'ERR', '0xFF', 'SYS', 'NULL', 'EOF'];
+    this.hasDodgedCurrentLaunch = false;
   }
 
   update(player, activeCable, dt, game) {
@@ -4969,6 +5041,34 @@ class GlitchedSpriteBoss {
     if (game && game.player) {
       const pDist = Math.hypot(this.x - game.player.x, this.y - game.player.y);
       const isCannonPuck = (game.cannonPuckTimer > 0);
+
+      // Distance-Based Teleport Dodge:
+      // If player launched from far away (>= 460px, ~4 server racks), Sprite has an 80% chance to teleport away upon approach!
+      // Players must slalom close (<300px) to land guaranteed hits.
+      if (isCannonPuck && (game.cannonLaunchDistance >= 460) && !this.hasDodgedCurrentLaunch) {
+        if (pDist < 260) {
+          this.hasDodgedCurrentLaunch = true;
+          if (Math.random() < 0.8) {
+            const angle = Math.random() * Math.PI * 2;
+            const jumpDist = 280 + Math.random() * 180;
+            this.x = Math.max(160, Math.min(CONFIG.WORLD.WIDTH - 160, this.x + Math.cos(angle) * jumpDist));
+            this.y = Math.max(160, Math.min(CONFIG.WORLD.HEIGHT - 160, this.y + Math.sin(angle) * jumpDist));
+            this.targetAisleX = this.x;
+            this.targetAisleY = this.y;
+            if (game.sound?.playTeleportWarp) game.sound.playTeleportWarp();
+            if (game.camera) game.camera.shake(14, 0.35);
+            if (game.particles) {
+              game.particles.spawnSparks(this.x, this.y, 45, this.glitchColor);
+              game.particles.spawnSparks(this.x, this.y, 30, this.color);
+            }
+            game.showTemporaryToast('👾 TELEPORT DODGE! GLITCHED SPRITE EVADED LONG-RANGE LAUNCH! SLALOM CLOSER (<300px)!', '👾');
+            return;
+          }
+        }
+      }
+      if (!isCannonPuck) {
+        this.hasDodgedCurrentLaunch = false;
+      }
 
       if (pDist < this.radius + game.player.radius) {
         if (isCannonPuck) {
@@ -5221,6 +5321,54 @@ class PatchDroneEntity {
         game.particles.spawnSparks(game.rebootingRack.x + 29, game.rebootingRack.y + 46, 2, '#00f3ff');
       }
     }
+
+    // Auto-patch carried cables when player or drone is within ~140px of target rack
+    if (game.activeCable) {
+      if (game.activeCable instanceof MultiHopCable) {
+        const target = game.activeCable.getCurrentTargetRack();
+        if (target) {
+          const rCenter = { x: target.x + target.width / 2, y: target.y + target.height / 2 };
+          const distToPlayer = Math.hypot(this.player.x - rCenter.x, this.player.y - rCenter.y);
+          const distToDrone = Math.hypot(this.x - rCenter.x, this.y - rCenter.y);
+          if (distToPlayer <= 140 || distToDrone <= 140) {
+            const isDone = game.activeCable.advanceHop(target);
+            if (!isDone) {
+              game.sound?.playBusHop?.();
+              game.particles?.spawnSparks?.(rCenter.x, rCenter.y, 22, '#00ff9d');
+              const nextTarget = game.activeCable.getCurrentTargetRack();
+              game.showTemporaryToast(`🛸 DRONE AUTO-PATCHED HOP! NEXT: ${nextTarget?.id || 'COMPLETE'}`);
+              game.updateObjectiveUI?.();
+            } else {
+              game.connectedCables.push(game.activeCable);
+              game.activeCable.sourceRack.resolveError();
+              game.sound?.playPlugSuccess?.();
+              game.particles?.spawnSparks?.(rCenter.x, rCenter.y, 45, '#00ff9d');
+              const totalNodes = game.activeCable.hops.length;
+              const reward = 30 + (totalNodes * 20);
+              game.addCredits(reward, `+${reward} ⚡ AUTO-PATCH RESTORED BY DRONE (${totalNodes} NODES)`);
+              game.activeCable = null;
+              game.updateObjectiveUI?.();
+            }
+          }
+        }
+      } else if (game.activeCable instanceof PatchCable && game.activeCable.targetRack) {
+        const target = game.activeCable.targetRack;
+        const rCenter = { x: target.x + target.width / 2, y: target.y + target.height / 2 };
+        const distToPlayer = Math.hypot(this.player.x - rCenter.x, this.player.y - rCenter.y);
+        const distToDrone = Math.hypot(this.x - rCenter.x, this.y - rCenter.y);
+        if (distToPlayer <= 140 || distToDrone <= 140) {
+          game.activeCable.connect(target);
+          game.connectedCables.push(game.activeCable);
+          game.activeCable.sourceRack.resolveError();
+          target.isTargetDestination = false;
+          game.sound?.playPlugSuccess?.();
+          game.particles?.spawnSparks?.(rCenter.x, rCenter.y, 35, '#00ff9d');
+          game.addCredits(60, '+60 ⚡ DRONE AUTO-PATCHED WIRE LINK');
+          game.activeCable = null;
+          game.updateObjectiveUI?.();
+        }
+      }
+    }
   }
 
   render(ctx, cam) {
@@ -5332,13 +5480,19 @@ class Game {
     this.btnTerminalShutdown = document.getElementById('btn-terminal-shutdown');
     this.terminalKeypad = document.getElementById('terminal-keypad');
 
-    // Terminal Reboot Breaker Switch & Grant Access Controls
+    // Terminal Reboot Breaker Switch & Redirect Power Controls
     this.terminalRebootControls = document.getElementById('terminal-reboot-controls');
     this.btnRebootToggleSwitch = document.getElementById('btn-reboot-toggle-switch');
     this.rebootSwitchStatus = document.getElementById('reboot-switch-status');
     this.rebootSwitchLabel = document.getElementById('reboot-switch-label');
-    this.btnTerminalGrantAccess = document.getElementById('btn-terminal-grant-access');
+    this.knifeSwitchApparatus = document.getElementById('knife-switch-apparatus');
+    this.knifeHandleText = document.getElementById('knife-handle-text');
+    this.knifeHandleArrow = document.getElementById('knife-handle-arrow');
+    this.rebootBreakerLed = document.getElementById('reboot-breaker-led');
+    this.btnTerminalRedirectPower = document.getElementById('btn-terminal-redirect-power');
+    this.btnTerminalGrantAccess = document.getElementById('btn-terminal-redirect-power') || document.getElementById('btn-terminal-grant-access');
     this.terminalGrantAccessText = document.getElementById('terminal-grant-access-text');
+    this.terminalRedirectSub = document.getElementById('terminal-redirect-sub');
 
     // Shop Modal Elements
     this.shopModal = document.getElementById('shop-modal');
@@ -5396,7 +5550,8 @@ class Game {
 
     // Unique Quantum Teleporter Item (Boss Defeat Reward)
     this.hasTeleporterItem = false;
-    this.teleporterNodes = []; // Array of TeleporterNode (Max 2: Alpha & Beta)
+    this.teleporterNodes = []; // Array of TeleporterNode
+    this.teleporterKitsOwned = 0;
     this.teleportCooldown = 0;
 
     this.sound = new SoundFX();
@@ -5451,6 +5606,8 @@ class Game {
 
     // Kinetic Cannon Slingshot & Air Hockey Puck State
     this.cannonCharges = 1; // 1 Free starter charge for testing/delight!
+    this.cannonCooldown = 0; // 10s cooldown between kinetic cannon shots
+    this.cannonLaunchDistance = 0; // Launch distance to boss for teleport dodge check
     this.emergencyCannonCooldown = 0; // 30s cooldown between emergency closet refills
     this.isCannonAiming = false;
     this.aimAngle = 0;
@@ -5489,6 +5646,9 @@ class Game {
     this.hasFireExtinguisher = false;
     this.hasCryoCanister = false;
     this.isCryoSpraying = false;
+    this.extinguisherPressure = 100;
+    this.maxExtinguisherPressure = 100;
+    this.isExtinguisherSpraying = false;
     this.extinguishingRack = null;
     this.extinguishHoldTime = 0;
     this.emfPylonsRemaining = 0;
@@ -5516,6 +5676,9 @@ class Game {
     this.shopClearanceLevel = 0;
     this.hasPortableTerminal = false;
     this.portableTerminal = null;
+    this.portableTerminals = []; // Array of PortableTerminalStation
+    this.portableTerminalsLimit = 0;
+    this.currentBossRewardChoices = [];
     this.isBossRewardOpen = false;
     this.bossRewardModal = document.getElementById('boss-reward-modal');
     this.activeBuffs = {
@@ -5827,10 +5990,11 @@ class Game {
         this.bossCoilsCount.textContent = `${Math.round(boss.temperature)}°C / ${boss.maxTemperature}°C`;
       }
       if (this.bossStatusText) {
+        const press = Math.round(this.extinguisherPressure ?? 100);
         if (boss.isFrozen) {
-          this.bossStatusText.textContent = '🧯 CORE EXTINGUISHED SOLID (0°C)! SLIDE/RAM CART AT HIGH SPEED TO SHATTER!';
+          this.bossStatusText.textContent = '🧯 CORE EXTINGUISHED SOLID (0°C)! SLIDE/RAM CART AT HIGH SPEED (>260px/s) TO SHATTER!';
         } else if (this.hasFireExtinguisher || this.hasCryoCanister) {
-          this.bossStatusText.textContent = '🧯 FIRE EXTINGUISHER READY! HOLD [E] NEAR DAEMON TO SPRAY CHEMICAL FOAM!';
+          this.bossStatusText.textContent = `🧯 FIRE EXTINGUISHER [PRESSURE: ${press}%] — HOLD [E] TO SPRAY CHEMICAL FOAM!`;
         } else {
           this.bossStatusText.textContent = '🧯 RETRIEVE FIRE EXTINGUISHER FROM SOUTH SUPPLIES CLOSET!';
         }
@@ -5863,8 +6027,10 @@ class Game {
       if (this.bossStatusText) {
         if ((this.cannonCharges || 0) <= 0) {
           this.bossStatusText.textContent = '🎯 OUT OF AMMO! GET EMERGENCY CANNON CHARGES FROM SOUTH SUPPLIES CLOSET!';
+        } else if ((this.cannonCooldown || 0) > 0) {
+          this.bossStatusText.textContent = `⏳ CANNON RECHARGING (${this.cannonCooldown.toFixed(1)}s) // SLALOM CLOSE (<300px) TO PREVENT DODGES! (${boss.hitsTaken}/${boss.hitsRequired} HITS)`;
         } else {
-          this.bossStatusText.textContent = `🎯 PRESS [F] TO LAUNCH KINETIC CANNON & RAM GLITCH! (${boss.hitsTaken}/${boss.hitsRequired} HITS LANDED)`;
+          this.bossStatusText.textContent = `🎯 CANNON READY [PRESS F] // SLALOM CLOSE (<300px) OR SPRITE WILL DODGE LONG SHOTS! (${boss.hitsTaken}/${boss.hitsRequired} HITS)`;
         }
       }
       return;
@@ -6018,18 +6184,10 @@ class Game {
   }
 
   // ==========================================================================
-  // Apex Boss Reward Requisition System (Teleporter / Field Terminal / Shop Clearance)
+  // Apex Boss Reward Requisition System (Draft Choice Modal)
   // ==========================================================================
   initBossRewardModal() {
-    document.getElementById('btn-select-teleporter')?.addEventListener('click', () => {
-      this.grantTeleporterReward();
-    });
-    document.getElementById('btn-select-portable-terminal')?.addEventListener('click', () => {
-      this.grantPortableTerminalReward();
-    });
-    document.getElementById('btn-select-shop-expansion')?.addEventListener('click', () => {
-      this.grantShopClearanceReward();
-    });
+    // Dynamic cards attached per draft invocation in openBossRewardModal
   }
 
   openBossRewardModal(targetBoss) {
@@ -6038,45 +6196,111 @@ class Game {
     this.isBossRewardOpen = true;
     this.keys = {};
 
-    // Dynamic state on cards
-    const statusTele = document.getElementById('reward-teleporter-status');
-    const btnTele = document.getElementById('btn-select-teleporter');
-    if (statusTele && btnTele) {
-      if (!this.hasTeleporterItem) {
-        statusTele.textContent = 'PROTOCOL: READY (NEW ITEM)';
-        statusTele.style.color = '#00f3ff';
-        btnTele.textContent = 'CLAIM TELEPORTER KIT';
-      } else {
-        statusTele.textContent = 'OWNED: OVERCLOCK RECHARGE FREQUENCY';
-        statusTele.style.color = '#00ff9d';
-        btnTele.textContent = 'OVERCLOCK TELEPORTER (0.2s COOLDOWN)';
-      }
+    const grid = document.querySelector('.boss-reward-grid');
+    if (!grid) return;
+
+    // Guaranteed Slot 1: Higher Shop Limits
+    const slot1 = {
+      id: 'shop_expansion',
+      pill: 'SUPPLY EXPANSION',
+      icon: '🔓',
+      name: 'Shop Limits Overclock (+3 All Caps)',
+      desc: `Overclocks hardware requisition clearance to Level ${this.shopClearanceLevel + 1}. Increases the maximum purchase cap on all depot items by +3!`,
+      status: `CLEARANCE LVL ${this.shopClearanceLevel + 1} (+3 ALL CAPS)`,
+      btnText: `CLAIM SHOP OVERCLOCK (+3)`
+    };
+
+    // Slots 2 & 3: Randomly drawn from [teleporter, portable_terminal, patch_drone (if unowned)]
+    const randomPool = ['teleporter', 'portable_terminal'];
+    if (!this.player.hasPatchDrone) {
+      randomPool.push('patch_drone');
     }
 
-    const statusTerm = document.getElementById('reward-terminal-status');
-    const btnTerm = document.getElementById('btn-select-portable-terminal');
-    if (statusTerm && btnTerm) {
-      if (!this.hasPortableTerminal) {
-        statusTerm.textContent = 'PROTOCOL: READY (NEW DEPLOYABLE)';
-        statusTerm.style.color = '#00ff9d';
-        btnTerm.textContent = 'CLAIM FIELD TERMINAL';
-      } else {
-        statusTerm.textContent = 'OWNED: FIELD TRANSMITTER AMPLIFIED';
-        statusTerm.style.color = '#38bdf8';
-        btnTerm.textContent = 'AMPLIFY FIELD TERMINAL';
-      }
+    // Shuffle randomPool
+    for (let i = randomPool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [randomPool[i], randomPool[j]] = [randomPool[j], randomPool[i]];
     }
 
-    const statusShop = document.getElementById('reward-shop-status');
-    const btnShop = document.getElementById('btn-select-shop-expansion');
-    if (statusShop && btnShop) {
-      statusShop.textContent = `CLEARANCE LVL ${this.shopClearanceLevel + 1} (+3 POWERUP PURCHASE CAPS)`;
-      statusShop.style.color = '#c084fc';
-      btnShop.textContent = `EXPAND SHOP & CAPS (+3 TO ALL)`;
-    }
+    const selectedIds = [slot1.id, randomPool[0], randomPool[1]];
+    this.currentBossRewardChoices = selectedIds;
+
+    const cardsData = selectedIds.map(id => {
+      if (id === 'shop_expansion') return slot1;
+      if (id === 'teleporter') {
+        const nextPairIdx = this.teleporterKitsOwned || 0;
+        const pairNames = ['Node α & β', 'Node γ & δ', 'Node ε & ζ', 'Node η & θ'];
+        const pairName = pairNames[nextPairIdx % pairNames.length];
+        return {
+          id: 'teleporter',
+          pill: 'TACTICAL MOBILITY',
+          icon: '🌀',
+          name: `Quantum Teleporter Kit (${pairName})`,
+          desc: `Deploy an additional linked pair of Quantum Warp Pads (${pairName}) across the warehouse floor using [T]. Step on either pad or tap [T] to warp instantly!`,
+          status: `KITS OWNED: ${this.teleporterKitsOwned || 0} (+1 LINKED PAIR)`,
+          btnText: `CLAIM TELEPORTER PAIR`
+        };
+      }
+      if (id === 'portable_terminal') {
+        const currentLimit = this.portableTerminalsLimit || 0;
+        return {
+          id: 'portable_terminal',
+          pill: 'REMOTE COMMAND',
+          icon: '💻',
+          name: 'Portable Field NOC Terminal',
+          desc: `Deploy a mobile NOC console anywhere on the floor with [P]! Tap [E] near it to redirect power, trip breakers, or enter PINs on the fly without sprinting south.`,
+          status: `TERMINALS OWNED: ${currentLimit} (+1 MOBILE CONSOLE)`,
+          btnText: `CLAIM FIELD CONSOLE`
+        };
+      }
+      if (id === 'patch_drone') {
+        return {
+          id: 'patch_drone',
+          pill: 'AUTOMATED LOGISTICS',
+          icon: '🛸',
+          name: 'Sentry Auto-Patch Companion',
+          desc: `An autonomous companion drone that follows your cart. Automatically plugs carried cables into target server racks within ~140px, and speeds up manual reboot holds!`,
+          status: `PROTOTYPE DRONE: 1-TIME APEX REQUISITION`,
+          btnText: `DEPLOY SENTRY DRONE`
+        };
+      }
+    });
+
+    grid.innerHTML = '';
+    cardsData.forEach(card => {
+      const cardEl = document.createElement('div');
+      cardEl.className = 'boss-reward-card';
+      cardEl.id = `card-reward-${card.id}`;
+      cardEl.dataset.rewardId = card.id;
+      cardEl.innerHTML = `
+        <div class="boss-reward-pill">${card.pill}</div>
+        <div class="boss-reward-icon">${card.icon}</div>
+        <h3 class="boss-reward-name">${card.name}</h3>
+        <p class="boss-reward-desc">${card.desc}</p>
+        <div class="boss-reward-status" id="reward-${card.id}-status">${card.status}</div>
+        <button type="button" class="btn-reward-select" id="btn-select-${card.id}">${card.btnText}</button>
+      `;
+      const btn = cardEl.querySelector('.btn-reward-select');
+      btn.addEventListener('click', () => {
+        this.claimBossReward(card.id);
+      });
+      grid.appendChild(cardEl);
+    });
 
     this.bossRewardModal?.classList.remove('hidden');
     if (this.sound?.playLevelUp) this.sound.playLevelUp();
+  }
+
+  claimBossReward(rewardId) {
+    if (rewardId === 'shop_expansion') {
+      this.grantShopClearanceReward();
+    } else if (rewardId === 'teleporter') {
+      this.grantTeleporterReward();
+    } else if (rewardId === 'portable_terminal') {
+      this.grantPortableTerminalReward();
+    } else if (rewardId === 'patch_drone') {
+      this.grantPatchDroneReward();
+    }
   }
 
   closeBossRewardModal() {
@@ -6086,27 +6310,37 @@ class Game {
   }
 
   grantTeleporterReward() {
-    if (!this.hasTeleporterItem) {
-      this.hasTeleporterItem = true;
-      if (this.sound?.playTeleportDeploy) this.sound.playTeleportDeploy(0);
-      this.particles.spawnSparks(this.player.x, this.player.y, 40, '#00f3ff');
-      this.showTemporaryToast('🌀 QUANTUM TELEPORTER KIT UNLOCKED! Press [T] to place Node Alpha!', '✨');
-    } else {
-      CONFIG.TELEPORTER.COOLDOWN = 0.2;
-      this.teleportCooldown = 0;
-      if (this.sound?.playTeleportWarp) this.sound.playTeleportWarp();
-      this.particles.spawnSparks(this.player.x, this.player.y, 50, '#00f3ff');
-      this.showTemporaryToast('⚡ QUANTUM TELEPORTER OVERCLOCKED! WARP COOLDOWN REDUCED TO 0.2s!', '⚡');
-    }
+    this.hasTeleporterItem = true;
+    this.teleporterKitsOwned = (this.teleporterKitsOwned || 0) + 1;
+    const pairIdx = this.teleporterKitsOwned - 1;
+    const pairNames = ['Node α & β', 'Node γ & δ', 'Node ε & ζ', 'Node η & θ'];
+    const pairName = pairNames[pairIdx % pairNames.length];
+    if (this.sound?.playTeleportDeploy) this.sound.playTeleportDeploy(0);
+    this.particles.spawnSparks(this.player.x, this.player.y, 45, '#00f3ff');
+    this.showTemporaryToast(`🌀 QUANTUM TELEPORTER KIT UNLOCKED (${pairName})! Press [T] to anchor the first pad!`, '✨');
     this.closeBossRewardModal();
     this.updateBuffDisplay();
   }
 
   grantPortableTerminalReward() {
     this.hasPortableTerminal = true;
+    this.portableTerminalsLimit = (this.portableTerminalsLimit || 0) + 1;
     if (this.sound?.playCabinetOpen) this.sound.playCabinetOpen();
     this.particles.spawnSparks(this.player.x, this.player.y, 45, '#00ff9d');
-    this.showTemporaryToast('💻 PORTABLE FIELD TERMINAL ACQUIRED! Press [P] anywhere on the map to deploy/relocate!', '💻');
+    this.showTemporaryToast(`💻 PORTABLE FIELD TERMINAL ACQUIRED! (Capacity: ${this.portableTerminalsLimit}) Press [P] to deploy!`, '💻');
+    this.closeBossRewardModal();
+    this.updateBuffDisplay();
+    this.calculateSynergies();
+  }
+
+  grantPatchDroneReward() {
+    this.player.hasPatchDrone = true;
+    this.hasPatchDrone = true;
+    this.patchDrone = new PatchDroneEntity(this.player);
+    if (this.sound?.playLevelUp) this.sound.playLevelUp();
+    this.particles.spawnSparks(this.player.x, this.player.y, 50, '#00f3ff');
+    this.particles.spawnSparks(this.player.x, this.player.y, 30, '#00ff9d');
+    this.showTemporaryToast('🛸 SENTRY AUTO-PATCH DRONE ONLINE! Drone will auto-plug carried cables within ~140px of target racks!', '🛸');
     this.closeBossRewardModal();
     this.updateBuffDisplay();
     this.calculateSynergies();
@@ -6166,7 +6400,13 @@ class Game {
   }
 
   filterShopCards(category) {
+    const activeItems = ['energy_drink', 'cannon', 'replacement_chassis'];
     document.querySelectorAll('.shop-card').forEach(card => {
+      const item = card.dataset.item;
+      if (!activeItems.includes(item)) {
+        card.classList.add('hidden');
+        return;
+      }
       if (category === 'all' || card.dataset.category === category) {
         card.classList.remove('hidden');
       } else {
@@ -6178,6 +6418,7 @@ class Game {
   openShop() {
     if (this.isTerminalOpen) this.closeTerminal();
     this.isShopOpen = true;
+    this.filterShopCards(this.shopCategory || 'all');
     this.calculateSynergies();
     this.updateCreditsUI();
     this.updateShopButtons();
@@ -6195,66 +6436,6 @@ class Game {
   // ==========================================================================
   initSuppliesModal() {
     document.getElementById('btn-close-supplies')?.addEventListener('click', () => this.closeSuppliesModal());
-
-    document.getElementById('btn-supplies-first_aid')?.addEventListener('click', () => {
-      const cost = 90;
-      if (this.credits < cost) {
-        this.sound.playTerminalFail();
-        this.showTemporaryToast(`❌ INSUFFICIENT FUNDS (NEED ${cost} ⚡)`);
-        return;
-      }
-      if (this.player.hp >= this.player.maxHp) {
-        this.showTemporaryToast('⚠️ CART INTEGRITY ALREADY AT MAXIMUM (100 HP)!');
-        return;
-      }
-      this.credits -= cost;
-      this.player.hp = Math.min(this.player.maxHp, this.player.hp + 50);
-      this.updateCreditsUI();
-      this.updatePlayerHealthUI();
-      this.sound.playPlugSuccess();
-      this.particles.spawnSparks(this.player.x, this.player.y, 35, '#00ff9d');
-      this.showTemporaryToast('🩹 FIRST AID DEPLOYED: +50 SYSTEM INTEGRITY (HP) RESTORED!', '🩹');
-      this.updateSuppliesModalUI();
-    });
-
-    document.getElementById('btn-supplies-zip_ties')?.addEventListener('click', () => {
-      const cost = 80;
-      if (this.credits < cost) {
-        this.sound.playTerminalFail();
-        this.showTemporaryToast(`❌ INSUFFICIENT FUNDS (NEED ${cost} ⚡)`);
-        return;
-      }
-      const failingRacks = this.racks.filter(r => r.isFailing && !r.isDestroyed);
-      if (failingRacks.length === 0) {
-        this.showTemporaryToast('⚠️ NO FAILING SERVERS REQUIRE IMMEDIATE ZIP-TIES!');
-        return;
-      }
-      this.credits -= cost;
-      const target = failingRacks[Math.floor(Math.random() * failingRacks.length)];
-      target.resolveError();
-      target.uptime = 100;
-      this.updateCreditsUI();
-      this.sound.playPlugSuccess();
-      this.particles.spawnSparks(target.x + target.width / 2, target.y + target.height / 2, 45, '#38bdf8');
-      this.showTemporaryToast(`⚡ ZIP-TIES DEPLOYED! ${target.id} QUICK-PATCHED TO 100% UPTIME!`, '⚡');
-      this.updateSuppliesModalUI();
-    });
-
-    document.getElementById('btn-supplies-adrenaline')?.addEventListener('click', () => {
-      const cost = 85;
-      if (this.credits < cost) {
-        this.sound.playTerminalFail();
-        this.showTemporaryToast(`❌ INSUFFICIENT FUNDS (NEED ${cost} ⚡)`);
-        return;
-      }
-      this.credits -= cost;
-      this.adrenalineTimer = 25.0;
-      this.updateCreditsUI();
-      this.sound.playGrab();
-      this.particles.spawnSparks(this.player.x, this.player.y, 45, '#f59e0b');
-      this.showTemporaryToast('🔋 ADRENALINE SURGE INJECTED! +40 SPEED & HYPER-TRACTION FOR 25s!', '🔋');
-      this.updateSuppliesModalUI();
-    });
   }
 
   openSuppliesModal() {
@@ -6276,18 +6457,6 @@ class Game {
   updateSuppliesModalUI() {
     const disp = document.getElementById('supplies-credits-display');
     if (disp) disp.textContent = this.credits;
-
-    // First Aid button state
-    const btnAid = document.getElementById('btn-supplies-first_aid');
-    if (btnAid) btnAid.disabled = this.credits < 90 || this.player.hp >= this.player.maxHp;
-
-    // Zip ties button state
-    const btnZip = document.getElementById('btn-supplies-zip_ties');
-    if (btnZip) btnZip.disabled = this.credits < 80;
-
-    // Adrenaline button state
-    const btnAdren = document.getElementById('btn-supplies-adrenaline');
-    if (btnAdren) btnAdren.disabled = this.credits < 85;
 
     const createExtinguisherCard = () => {
       const card = document.createElement('div');
@@ -6891,21 +7060,47 @@ class Game {
       this.activeBuffsContainer.appendChild(puckBadge);
     }
 
+    // Kinetic Cannon Ready / Cooldown Badge
+    if ((this.cannonCharges || 0) > 0 || (this.cannonCooldown || 0) > 0) {
+      const cBadge = document.createElement('div');
+      cBadge.className = 'buff-badge';
+      cBadge.style.color = '#00f3ff';
+      cBadge.style.borderColor = 'rgba(0, 243, 255, 0.4)';
+      if ((this.cannonCooldown || 0) > 0) {
+        cBadge.innerHTML = `🎯 CANNON: ${this.cannonCooldown.toFixed(1)}s`;
+      } else {
+        cBadge.innerHTML = `🎯 CANNON: ${this.cannonCharges} [F]`;
+      }
+      this.activeBuffsContainer.appendChild(cBadge);
+    }
+
+    // Fire Extinguisher Pressure Badge
+    if (this.hasFireExtinguisher || this.hasCryoCanister) {
+      const fBadge = document.createElement('div');
+      fBadge.className = 'buff-badge';
+      fBadge.style.color = '#ff5500';
+      fBadge.style.borderColor = 'rgba(255, 85, 0, 0.4)';
+      fBadge.innerHTML = `🧯 EXTINGUISHER: ${Math.round(this.extinguisherPressure ?? 100)}%`;
+      this.activeBuffsContainer.appendChild(fBadge);
+    }
+
     // Unique Quantum Teleporter Item Badge
     if (this.hasTeleporterItem) {
       const teleBadge = document.createElement('div');
-      if (this.teleporterNodes.length === 0) {
+      const maxNodes = (this.teleporterKitsOwned || 1) * 2;
+      if (this.teleporterNodes.length < maxNodes) {
+        const pairIdx = Math.floor(this.teleporterNodes.length / 2);
+        const isEven = (this.teleporterNodes.length % 2 === 0);
+        const cfg = TELEPORTER_PAIRS[pairIdx % TELEPORTER_PAIRS.length];
+        const nextNodeName = isEven ? cfg.nameA : cfg.nameB;
         teleBadge.className = 'buff-badge buff-teleporter';
-        teleBadge.innerHTML = `🌀 TELEPORTER: READY [PRESS T FOR NODE α]`;
-      } else if (this.teleporterNodes.length === 1) {
-        teleBadge.className = 'buff-badge buff-teleporter';
-        teleBadge.innerHTML = `🌀 TELEPORTER: NODE α SET [PRESS T FOR NODE β]`;
+        teleBadge.innerHTML = `🌀 TELEPORTER: READY [PRESS T FOR ${nextNodeName}]`;
       } else {
         teleBadge.className = 'buff-badge buff-teleporter linked';
         if (this.teleportCooldown > 0) {
           teleBadge.innerHTML = `🌀 TELEPORT LINK RECHARGING: ${this.teleportCooldown.toFixed(1)}s`;
         } else {
-          teleBadge.innerHTML = `🌀 TELEPORT LINK ONLINE [STEP ON PAD / [T]]`;
+          teleBadge.innerHTML = `🌀 TELEPORT LINKS ONLINE (${this.teleporterKitsOwned || 1} PAIRS) [T]`;
         }
       }
       this.activeBuffsContainer.appendChild(teleBadge);
@@ -6915,9 +7110,11 @@ class Game {
     if (this.hasPortableTerminal) {
       const termBadge = document.createElement('div');
       termBadge.className = 'buff-badge buff-portable-terminal';
-      termBadge.innerHTML = this.portableTerminal
-        ? `💻 FIELD TERMINAL: DEPLOYED [E: OPEN | P: RELOCATE]`
-        : `💻 FIELD TERMINAL: READY [PRESS P TO DEPLOY]`;
+      const deployed = this.portableTerminals.length > 0 ? this.portableTerminals.length : (this.portableTerminal ? 1 : 0);
+      const cap = this.portableTerminalsLimit || 1;
+      termBadge.innerHTML = deployed > 0
+        ? `💻 FIELD CONSOLES: ${deployed}/${cap} [E: OPEN | P: RELOCATE]`
+        : `💻 FIELD CONSOLES: 0/${cap} [PRESS P TO DEPLOY]`;
       this.activeBuffsContainer.appendChild(termBadge);
     }
   }
@@ -7122,17 +7319,52 @@ class Game {
       this.submitTerminalCode();
     });
 
-    // Terminal Reboot Breaker Switch
-    this.btnRebootToggleSwitch?.addEventListener('click', () => {
+    // Terminal Reboot Breaker Switch (Click or Drag Lever Down)
+    this.btnRebootToggleSwitch?.addEventListener('click', (e) => {
+      e.preventDefault();
       this.sound.init();
       this.toggleRebootSwitch();
     });
 
-    // Terminal Grant Access for PIN Error Button
-    this.btnTerminalGrantAccess?.addEventListener('click', () => {
+    // Support pulling/dragging the lever handle downward
+    let leverStartY = 0;
+    let isDraggingLever = false;
+    const leverElem = this.btnRebootToggleSwitch;
+    if (leverElem) {
+      leverElem.addEventListener('pointerdown', (e) => {
+        leverStartY = e.clientY;
+        isDraggingLever = true;
+        try { leverElem.setPointerCapture(e.pointerId); } catch (_) {}
+      });
+      leverElem.addEventListener('pointermove', (e) => {
+        if (!isDraggingLever) return;
+        const dy = e.clientY - leverStartY;
+        if (dy > 24 && !leverElem.classList.contains('on')) {
+          isDraggingLever = false;
+          this.sound.init();
+          this.toggleRebootSwitch(true);
+        } else if (dy < -24 && leverElem.classList.contains('on')) {
+          isDraggingLever = false;
+          this.sound.init();
+          this.toggleRebootSwitch(false);
+        }
+      });
+      const endDrag = (e) => {
+        if (!isDraggingLever) return;
+        isDraggingLever = false;
+        try { leverElem.releasePointerCapture(e.pointerId); } catch (_) {}
+      };
+      leverElem.addEventListener('pointerup', endDrag);
+      leverElem.addEventListener('pointercancel', endDrag);
+    }
+
+    // Terminal Redirect Power Button (for Bug and Standard PIN Errors)
+    const handleRedirectPower = () => {
       this.sound.init();
-      this.grantAccessForPinErrorServer();
-    });
+      this.redirectPower();
+    };
+    this.btnTerminalRedirectPower?.addEventListener('click', handleRedirectPower);
+    this.btnTerminalGrantAccess?.addEventListener('click', handleRedirectPower);
 
     // Tab buttons
     document.querySelectorAll('.tut-tab[data-step]').forEach(tab => {
@@ -8067,13 +8299,17 @@ class Game {
         energyDrinkPurchases: this.energyDrinkPurchases || 0,
         magnetPurchases: this.magnetPurchases || 0,
         cannonCharges: this.cannonCharges || 0,
+        cannonCooldown: this.cannonCooldown || 0,
         emergencyCannonCooldown: this.emergencyCannonCooldown || 0,
         cannonPuckTimer: this.cannonPuckTimer || 0,
         hasPortableTerminal: Boolean(this.hasPortableTerminal),
+        portableTerminalsLimit: this.portableTerminalsLimit || (this.hasPortableTerminal ? 1 : 0),
+        portableTerminals: (this.portableTerminals || []).map(t => ({ x: t.x, y: t.y })),
         portableTerminal: this.portableTerminal ? { x: this.portableTerminal.x, y: this.portableTerminal.y } : null,
         shopClearanceLevel: this.shopClearanceLevel || 0,
         powerupMaxLimitBonus: this.powerupMaxLimitBonus || 0,
         hasTeleporterItem: Boolean(this.hasTeleporterItem),
+        teleporterKitsOwned: this.teleporterKitsOwned || (this.hasTeleporterItem ? 1 : 0),
         teleportCooldown: this.teleportCooldown || 0,
         teleporterNodes: (this.teleporterNodes || []).map(n => ({
           id: n.id,
@@ -8354,8 +8590,21 @@ class Game {
       });
     }
 
-    if (uData.portableTerminal && typeof uData.portableTerminal.x === 'number') {
+    this.hasPortableTerminal = Boolean(uData.hasPortableTerminal);
+    this.portableTerminalsLimit = uData.portableTerminalsLimit || (uData.hasPortableTerminal ? 1 : 0);
+    this.portableTerminals = [];
+    if (Array.isArray(uData.portableTerminals)) {
+      uData.portableTerminals.forEach(t => {
+        if (t && typeof t.x === 'number' && typeof t.y === 'number') {
+          this.portableTerminals.push(new PortableTerminalStation(t.x, t.y));
+        }
+      });
+    }
+    if (this.portableTerminals.length > 0) {
+      this.portableTerminal = this.portableTerminals[0];
+    } else if (uData.portableTerminal && typeof uData.portableTerminal.x === 'number') {
       this.portableTerminal = new PortableTerminalStation(uData.portableTerminal.x, uData.portableTerminal.y);
+      this.portableTerminals.push(this.portableTerminal);
     } else {
       this.portableTerminal = null;
     }
@@ -8366,11 +8615,14 @@ class Game {
       this.calculateSynergies();
     }
 
-    // Restore Quantum Teleporters
+    // Restore Quantum Teleporters & Cooldowns
+    this.hasTeleporterItem = Boolean(uData.hasTeleporterItem);
+    this.teleporterKitsOwned = uData.teleporterKitsOwned || (uData.hasTeleporterItem ? 1 : 0);
+    this.cannonCooldown = uData.cannonCooldown || 0;
     this.teleporterNodes = [];
     if (Array.isArray(uData.teleporterNodes)) {
       uData.teleporterNodes.forEach(n => {
-        const isAlpha = (n.id === 'alpha');
+        const isAlpha = (n.id === 'alpha' || (typeof n.id === 'string' && n.id.endsWith('_a')));
         const defaultColor = isAlpha ? (CONFIG.COLORS?.TELEPORTER_ALPHA ?? '#00f3ff') : (CONFIG.COLORS?.TELEPORTER_BETA ?? '#e024c3');
         const defaultSecColor = isAlpha ? '#00ff9d' : '#ff007f';
         const tNode = new TeleporterNode(
@@ -8629,6 +8881,11 @@ class Game {
       this.showTemporaryToast('❌ NO CANNON CHARGES // PURCHASE AT SOUTH IT SUPPLY DEPOT');
       return;
     }
+    if ((this.cannonCooldown || 0) > 0) {
+      this.sound?.playTerminalFail?.();
+      this.showTemporaryToast(`⏳ KINETIC CANNON RECHARGING (${this.cannonCooldown.toFixed(1)}s REMAINING)`);
+      return;
+    }
     if (this.isShopOpen) this.closeShop();
     if (this.isTerminalOpen) this.closeTerminal();
     this.isCannonAiming = true;
@@ -8647,9 +8904,14 @@ class Game {
 
   fireCannon() {
     if (!this.isCannonAiming || this.cannonCharges <= 0) return;
+    if ((this.cannonCooldown || 0) > 0) return;
 
     this.isCannonAiming = false;
     this.cannonCharges--;
+    this.cannonCooldown = 10.0; // 10-second cooldown between cannon shots
+    const boss = this.activeBoss || this.bugBoss;
+    this.cannonLaunchDistance = (boss && boss.isAlive) ? Math.hypot(this.player.x - boss.x, this.player.y - boss.y) : 0;
+
     this.sound.playCannonLaunch();
     this.camera.shake(26, 0.5);
 
@@ -9387,6 +9649,8 @@ class Game {
           if (this.terminalRebootControls && !this.terminalRebootControls.classList.contains('hidden')) {
             this.toggleRebootSwitch();
           }
+        } else if (e.code === 'KeyG') {
+          this.redirectPower();
         } else if (e.code === 'Escape') {
           this.closeTerminal();
         }
@@ -9402,6 +9666,12 @@ class Game {
         } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
           this.claimBossReward('shop_clearance');
         }
+        return;
+      }
+
+      // Facility Supplies Closet Modal Handling
+      if (this.isSuppliesModalOpen) {
+        if (e.code === 'Escape') this.closeSuppliesModal();
         return;
       }
 
@@ -9556,16 +9826,16 @@ class Game {
       if (e.code === 'KeyG') {
         const nearRack = this.getNearestRack(105);
         const nearNoc = this.player && Math.hypot((this.player.x + this.player.width / 2) - (this.nocDesk.x + this.nocDesk.width / 2), (this.player.y + this.player.height / 2) - (this.nocDesk.y + this.nocDesk.height / 2)) < 115;
-        if ((nearRack && nearRack.isFailing && (nearRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED || nearRack.error?.type === CONFIG.ERRORS.HARD_REBOOT)) || nearNoc) {
-          this.grantAccessForPinErrorServer();
+        if (nearRack || nearNoc) {
+          this.redirectPower();
           return;
         }
       }
 
       if (e.code === 'KeyE') {
         const nearRack = this.getNearestRack(105);
-        if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED) {
-          if (nearRack.isShutdown) {
+        if (nearRack && nearRack.isFailing && (nearRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED || nearRack.error?.type === CONFIG.ERRORS.HARD_REBOOT)) {
+          if (nearRack.isShutdown && nearRack.rebootAllowed) {
             if (this.rebootingRack !== nearRack) {
               this.rebootingRack = nearRack;
               this.rebootHoldTime = 0;
@@ -9578,8 +9848,8 @@ class Game {
               this.terminalSelect.value = nearRack.id;
               this.updateTerminalSelectionFeedback();
             }
-            this.showTemporaryToast(`🛑 ${nearRack.id} PIN: [${nearRack.code}] SCANNED! TYPE AT MASTER TERMINAL & FLIP SWITCH TO ALLOW REBOOT!`, '🛑');
-            this.sound.playKey();
+            this.sound.playTerminalFail();
+            this.showTemporaryToast(`🛑 SERVER NOT SHUT DOWN! PIN [${nearRack.code}] SCANNED ➔ GO TO NOC TERMINAL & PULL SWITCH TO SHUT DOWN FIRST!`, '🛑');
           }
         } else if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.SERVER_BUG) {
           if (nearRack.isShutdown) {
@@ -9595,7 +9865,7 @@ class Game {
               this.terminalSelect.value = nearRack.id;
               this.updateTerminalSelectionFeedback();
             }
-            this.showTemporaryToast(`🐛 ${nearRack.id} PIN: [${nearRack.code}] SCANNED! TYPE AT MASTER TERMINAL TO SHUT DOWN & TRAP BUG!`, '🐛');
+            this.showTemporaryToast(`🐛 ${nearRack.id} PIN: [${nearRack.code}] SCANNED! TYPE AT MASTER TERMINAL TO SHUT DOWN & TRAP BUG (OR REDIRECT POWER)!`, '🐛');
             this.sound.playKey();
           }
         } else if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS) {
@@ -9614,11 +9884,6 @@ class Game {
             }
             this.showTemporaryToast(`🦠 ${nearRack.id} PIN: [${nearRack.code}] SCANNED! TYPE AT MASTER TERMINAL TO SHUT DOWN FIRST!`, '🦠');
             this.sound.playKey();
-          }
-        } else if (nearRack && nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.HARD_REBOOT) {
-          if (this.rebootingRack !== nearRack) {
-            this.rebootingRack = nearRack;
-            this.rebootHoldTime = 0;
           }
         } else {
           this.handleInteractKey();
@@ -9707,6 +9972,18 @@ class Game {
     }
   }
 
+  setTerminalRebootVisible(visible) {
+    if (this.terminalRebootControls) {
+      if (visible) {
+        this.terminalRebootControls.classList.remove('hidden');
+        this.terminalModal?.querySelector('.terminal-window')?.classList.add('has-lever-open');
+      } else {
+        this.terminalRebootControls.classList.add('hidden');
+        this.terminalModal?.querySelector('.terminal-window')?.classList.remove('has-lever-open');
+      }
+    }
+  }
+
   updateTerminalDisplay() {
     if (!this.terminalDigits) return;
     const buf = this.terminalInputBuffer;
@@ -9732,44 +10009,50 @@ class Game {
           this.sound.playTerminalSuccess();
           this.particles.spawnSparks(this.nocDesk.x + this.nocDesk.width / 2, this.nocDesk.y, 25, '#00f3ff');
         }
-        this.terminalRebootControls?.classList.remove('hidden');
+        this.setTerminalRebootVisible(true);
         if (rack.rebootAllowed) {
           this.btnRebootToggleSwitch?.classList.remove('off');
           this.btnRebootToggleSwitch?.classList.add('on');
+          this.knifeSwitchApparatus?.classList.add('on');
+          if (this.knifeHandleText) this.knifeHandleText.textContent = 'SHUT DOWN';
+          if (this.knifeHandleArrow) this.knifeHandleArrow.textContent = '▲';
+          if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'SHUT DOWN';
+          this.rebootBreakerLed?.classList.add('on');
           this.btnRebootToggleSwitch?.setAttribute('aria-checked', 'true');
-          if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'ARMED';
           if (this.rebootSwitchStatus) {
-            this.rebootSwitchStatus.textContent = 'BREAKER ARMED ➔ VISIT RACK & HOLD [E] FOR 5s';
+            this.rebootSwitchStatus.textContent = 'BREAKER ISOLATED ➔ VISIT RACK & HOLD [E] FOR 5s';
             this.rebootSwitchStatus.style.color = '#00ff9d';
           }
           if (this.terminalFeedback) {
-            this.terminalFeedback.textContent = `BREAKER SWITCH ARMED: ${rack.id} REBOOT PERMITTED! VISIT RACK & HOLD [E] FOR 5s`;
+            this.terminalFeedback.textContent = `BREAKER SWITCH ENGAGED: ${rack.id} COUNTDOWN FROZEN // VISIT RACK & HOLD [E] FOR 5s`;
             this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
           }
         } else {
           this.btnRebootToggleSwitch?.classList.remove('on');
           this.btnRebootToggleSwitch?.classList.add('off');
+          this.knifeSwitchApparatus?.classList.remove('on');
+          if (this.knifeHandleText) this.knifeHandleText.textContent = 'PULL DOWN';
+          if (this.knifeHandleArrow) this.knifeHandleArrow.textContent = '▼';
+          if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'ONLINE';
+          this.rebootBreakerLed?.classList.remove('on');
           this.btnRebootToggleSwitch?.setAttribute('aria-checked', 'false');
-          if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'OFF';
           if (this.rebootSwitchStatus) {
-            this.rebootSwitchStatus.textContent = 'PIN ALIGNED ➔ FLIP SWITCH TO ALLOW REBOOT';
+            this.rebootSwitchStatus.textContent = 'PIN ALIGNED ➔ PULL LEVER DOWN TO SHUT DOWN';
             this.rebootSwitchStatus.style.color = '#00f3ff';
           }
           if (this.terminalFeedback) {
-            this.terminalFeedback.textContent = `PIN [${rack.code}] VERIFIED! FLIP THE BREAKER SWITCH TO ALLOW REBOOT ➔`;
+            this.terminalFeedback.textContent = `PIN [${rack.code}] VERIFIED! PULL THE MAIN BREAKER LEVER DOWN TO SHUT DOWN ➔`;
             this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
           }
         }
         this.updateGrantAccessButtonState();
       } else {
         if (!rack.rebootAllowed) {
-          this.terminalRebootControls?.classList.add('hidden');
+          this.setTerminalRebootVisible(false);
         }
       }
     } else {
-      if (this.terminalRebootControls) {
-        this.terminalRebootControls.classList.add('hidden');
-      }
+      this.setTerminalRebootVisible(false);
     }
   }
 
@@ -9812,7 +10095,7 @@ class Game {
       this.terminalFeedback.textContent = 'AWAITING NODE SELECTION';
       this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
       if (promptElem) promptElem.textContent = '> ENTER PIN:';
-      if (this.terminalRebootControls) this.terminalRebootControls.classList.add('hidden');
+      this.setTerminalRebootVisible(false);
       return;
     }
 
@@ -9829,37 +10112,53 @@ class Game {
     );
 
     if (isRebootType) {
-      const pinAligned = (this.terminalInputBuffer === rack.code && rack.code.length === 4);
-      if (rack.rebootAllowed || pinAligned) {
-        this.terminalRebootControls?.classList.remove('hidden');
-        if (rack.rebootAllowed) {
-          this.btnRebootToggleSwitch?.classList.remove('off');
-          this.btnRebootToggleSwitch?.classList.add('on');
-          this.btnRebootToggleSwitch?.setAttribute('aria-checked', 'true');
-          if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'ARMED';
-          if (this.rebootSwitchStatus) {
-            this.rebootSwitchStatus.textContent = 'BREAKER ARMED ➔ VISIT RACK & HOLD [E] FOR 5s';
-            this.rebootSwitchStatus.style.color = '#00ff9d';
-          }
-          if (promptElem) promptElem.textContent = '> REBOOT PERMITTED [ARMED]:';
-          this.terminalFeedback.textContent = `BREAKER SWITCH ARMED: ${rack.id} COUNTDOWN FROZEN // VISIT RACK & HOLD [E] FOR 5s`;
-          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
-        } else {
-          this.btnRebootToggleSwitch?.classList.remove('on');
-          this.btnRebootToggleSwitch?.classList.add('off');
-          this.btnRebootToggleSwitch?.setAttribute('aria-checked', 'false');
-          if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'OFF';
-          if (this.rebootSwitchStatus) {
-            this.rebootSwitchStatus.textContent = 'PIN ALIGNED ➔ FLIP SWITCH TO ALLOW REBOOT';
-            this.rebootSwitchStatus.style.color = '#00f3ff';
-          }
-          if (promptElem) promptElem.textContent = '> PIN ALIGNED // FLIP SWITCH:';
-          this.terminalFeedback.textContent = `PIN [${rack.code}] VERIFIED! FLIP THE BREAKER SWITCH TO ALLOW REBOOT ➔`;
-          this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+      this.setTerminalRebootVisible(true);
+      const pinAligned = (this.terminalInputBuffer === rack.code && rack.code.length === 4) || rack.pinVerified;
+      if (rack.rebootAllowed) {
+        this.btnRebootToggleSwitch?.classList.remove('off');
+        this.btnRebootToggleSwitch?.classList.add('on');
+        this.knifeSwitchApparatus?.classList.add('on');
+        if (this.knifeHandleText) this.knifeHandleText.textContent = 'SHUT DOWN';
+        if (this.knifeHandleArrow) this.knifeHandleArrow.textContent = '▲';
+        if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'SHUT DOWN';
+        this.rebootBreakerLed?.classList.add('on');
+        this.btnRebootToggleSwitch?.setAttribute('aria-checked', 'true');
+        if (this.rebootSwitchStatus) {
+          this.rebootSwitchStatus.textContent = 'BREAKER ISOLATED ➔ VISIT RACK & HOLD [E] FOR 5s';
+          this.rebootSwitchStatus.style.color = '#00ff9d';
         }
-        this.updateGrantAccessButtonState();
+        if (promptElem) promptElem.textContent = '> REBOOT PERMITTED [ARMED]:';
+        this.terminalFeedback.textContent = `BREAKER SWITCH ENGAGED: ${rack.id} COUNTDOWN FROZEN // VISIT RACK & HOLD [E] FOR 5s`;
+        this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+      } else if (pinAligned) {
+        this.btnRebootToggleSwitch?.classList.remove('on');
+        this.btnRebootToggleSwitch?.classList.add('off');
+        this.knifeSwitchApparatus?.classList.remove('on');
+        if (this.knifeHandleText) this.knifeHandleText.textContent = 'PULL DOWN';
+        if (this.knifeHandleArrow) this.knifeHandleArrow.textContent = '▼';
+        if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'ONLINE';
+        this.rebootBreakerLed?.classList.remove('on');
+        this.btnRebootToggleSwitch?.setAttribute('aria-checked', 'false');
+        if (this.rebootSwitchStatus) {
+          this.rebootSwitchStatus.textContent = 'PIN VERIFIED ➔ PULL LEVER DOWN TO SHUT DOWN';
+          this.rebootSwitchStatus.style.color = '#00f3ff';
+        }
+        if (promptElem) promptElem.textContent = '> PIN VERIFIED // PULL LEVER DOWN:';
+        this.terminalFeedback.textContent = `PIN [${rack.code}] VERIFIED! PULL THE MAIN BREAKER LEVER DOWN TO SHUT DOWN ➔`;
+        this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
       } else {
-        this.terminalRebootControls?.classList.add('hidden');
+        this.btnRebootToggleSwitch?.classList.remove('on');
+        this.btnRebootToggleSwitch?.classList.add('off');
+        this.knifeSwitchApparatus?.classList.remove('on');
+        if (this.knifeHandleText) this.knifeHandleText.textContent = 'LOCKED';
+        if (this.knifeHandleArrow) this.knifeHandleArrow.textContent = '▼';
+        if (this.rebootSwitchLabel) this.rebootSwitchLabel.textContent = 'LOCKED';
+        this.rebootBreakerLed?.classList.remove('on');
+        this.btnRebootToggleSwitch?.setAttribute('aria-checked', 'false');
+        if (this.rebootSwitchStatus) {
+          this.rebootSwitchStatus.textContent = 'SAFETY LOCKED ➔ ENTER PIN TO UNLOCK LEVER';
+          this.rebootSwitchStatus.style.color = '#f59e0b';
+        }
         if (promptElem) promptElem.textContent = '> ENTER PIN TO UNLOCK REBOOT SWITCH:';
         if (!rack.error?.hasBeenInspected) {
           this.terminalFeedback.textContent = `PIN UNKNOWN ➔ VISIT ${rack.id} TO SCAN PIN (OR USE HEX DECODER)`;
@@ -9869,8 +10168,9 @@ class Game {
           this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
         }
       }
+      this.updateGrantAccessButtonState();
     } else {
-      if (this.terminalRebootControls) this.terminalRebootControls.classList.add('hidden');
+      this.setTerminalRebootVisible(false);
       if (isShutdownType) {
         if (rack.isShutdown) {
           if (promptElem) promptElem.textContent = '> NODE BREAKER IS OFF [ISOLATED]:';
@@ -10043,7 +10343,7 @@ class Game {
   closeTerminal() {
     this.isTerminalOpen = false;
     this.terminalModal?.classList.add('hidden');
-    this.terminalRebootControls?.classList.add('hidden');
+    this.setTerminalRebootVisible(false);
     this.keys = {};
     document.querySelectorAll('.numpad-btn[data-key]').forEach(btn => {
       btn.style.boxShadow = '';
@@ -10052,36 +10352,55 @@ class Game {
     });
   }
 
-  toggleRebootSwitch() {
+  toggleRebootSwitch(forceState = null) {
     const selectedRackId = this.terminalSelect?.value;
-    const rack = this.racks.find(r => r.id === selectedRackId);
+    let rack = this.racks.find(r => r.id === selectedRackId);
+
+    const isRebootType = (r) => r && r.isFailing && !r.isDestroyed && (
+      r.error?.type === CONFIG.ERRORS.RESTART_REQUIRED ||
+      r.error?.type === CONFIG.ERRORS.HARD_REBOOT
+    );
+
+    if (!isRebootType(rack)) {
+      const rebootRack = this.racks.find(r => isRebootType(r));
+      if (rebootRack) {
+        rack = rebootRack;
+        if (this.terminalSelect) {
+          this.terminalSelect.value = rebootRack.id;
+          this.updateTerminalSelectionFeedback();
+        }
+      }
+    }
+
     if (!rack || !rack.isFailing) {
       this.sound.playTerminalFail();
       return;
     }
 
-    const isRebootType = (
-      rack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED ||
-      rack.error?.type === CONFIG.ERRORS.HARD_REBOOT
-    );
-
-    if (!isRebootType) {
+    if (!isRebootType(rack)) {
       this.sound.playTerminalFail();
       return;
     }
 
-    if (this.terminalInputBuffer !== rack.code && !rack.rebootAllowed) {
+    // Safety Interlock: Must have entered 4-digit PIN first before lever can be engaged!
+    const isPinVerified = (this.terminalInputBuffer === rack.code && rack.code.length === 4) || rack.pinVerified || rack.rebootAllowed;
+    if (!isPinVerified) {
       this.sound.playTerminalFail();
+      if (this.btnRebootToggleSwitch) {
+        this.btnRebootToggleSwitch.classList.add('locked-shake');
+        setTimeout(() => this.btnRebootToggleSwitch?.classList.remove('locked-shake'), 450);
+      }
       if (this.terminalFeedback) {
-        this.terminalFeedback.textContent = 'ENTER CORRECT 4-DIGIT PIN FIRST TO ENGAGE REBOOT SWITCH!';
+        this.terminalFeedback.textContent = `❌ SAFETY INTERLOCK: ENTER 4-DIGIT PIN [${rack.code ? rack.code : 'UNKNOWN'}] TO UNLOCK LEVER!`;
         this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_RED;
       }
+      this.showTemporaryToast(`❌ SAFETY INTERLOCK: ENTER PIN [${rack.code}] TO UNLOCK BREAKER LEVER!`, '⚠️');
       return;
     }
 
     if (!rack.rebootAllowed) {
       rack.rebootAllowed = true;
-      rack.shutdownBreaker(); // Halts countdown and freezes timer!
+      rack.shutdownBreaker(); // Halts countdown, freezes timer, sets isShutdown = true!
 
       if (typeof this.sound.playSwitchToggle === 'function') {
         this.sound.playSwitchToggle(true);
@@ -10097,70 +10416,111 @@ class Game {
         this.btnRebootToggleSwitch.classList.add('on');
         this.btnRebootToggleSwitch.setAttribute('aria-checked', 'true');
       }
+      if (this.knifeSwitchApparatus) {
+        this.knifeSwitchApparatus.classList.add('on');
+      }
+      if (this.knifeHandleText) {
+        this.knifeHandleText.textContent = 'SHUT DOWN';
+      }
+      if (this.knifeHandleArrow) {
+        this.knifeHandleArrow.textContent = '▲';
+      }
       if (this.rebootSwitchLabel) {
-        this.rebootSwitchLabel.textContent = 'ARMED';
+        this.rebootSwitchLabel.textContent = 'SHUT DOWN';
+      }
+      if (this.rebootBreakerLed) {
+        this.rebootBreakerLed.classList.add('on');
       }
       if (this.rebootSwitchStatus) {
-        this.rebootSwitchStatus.textContent = 'BREAKER ARMED ➔ REBOOT AUTHORIZED!';
+        this.rebootSwitchStatus.textContent = 'BREAKER ISOLATED ➔ VISIT RACK & HOLD [E] FOR 5s';
         this.rebootSwitchStatus.style.color = '#00ff9d';
       }
       if (this.terminalFeedback) {
-        this.terminalFeedback.textContent = `BREAKER SWITCH ENGAGED: ${rack.id} REBOOT PERMITTED! VISIT RACK & HOLD [E] FOR 5s`;
+        this.terminalFeedback.textContent = `BREAKER SWITCH PULLED DOWN: ${rack.id} SHUT DOWN! VISIT RACK & HOLD [E] FOR 5s`;
         this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_GREEN;
       }
 
-      this.showTemporaryToast(`⚡ ${rack.id} REBOOT PERMITTED! COUNTDOWN FROZEN ➔ VISIT RACK & HOLD [E] FOR 5s`, '⚡');
+      this.showTemporaryToast(`⚡ ${rack.id} BREAKER SHUT DOWN! COUNTDOWN FROZEN ➔ VISIT RACK & HOLD [E] FOR 5s`, '⚡');
       this.updateGrantAccessButtonState();
       this.updateTerminalLiveCountdowns();
       this.updateObjectiveUI();
     } else {
       this.sound.playKey();
-      this.showTemporaryToast(`ℹ️ ${rack.id} BREAKER IS ALREADY ARMED! VISIT RACK & HOLD [E] FOR 5s TO TURN ON`, 'ℹ️');
+      this.showTemporaryToast(`ℹ️ ${rack.id} BREAKER IS ALREADY SHUT DOWN! VISIT RACK & HOLD [E] FOR 5s TO REBOOT`, 'ℹ️');
     }
   }
 
-  grantAccessForPinErrorServer() {
-    // Find server with PIN error (ACCESS_DENIED or AUTH_LOCKOUT)
-    const pinRack = this.racks.find(r =>
-      r.isFailing &&
-      !r.isDestroyed &&
-      (r.error?.type === CONFIG.ERRORS.ACCESS_DENIED || r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT)
-    );
+  redirectPower() {
+    let target = null;
+    const selectedRackId = this.terminalSelect?.value;
+    const selectedRack = this.racks.find(r => r.id === selectedRackId);
 
-    if (!pinRack) {
+    // 1. Check if currently selected rack in terminal has an eligible fault (BUG or PIN error)
+    if (selectedRack && selectedRack.isFailing && !selectedRack.isDestroyed && (
+      selectedRack.error?.type === CONFIG.ERRORS.SERVER_BUG ||
+      selectedRack.error?.type === CONFIG.ERRORS.ACCESS_DENIED ||
+      selectedRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT
+    )) {
+      target = selectedRack;
+    } else {
+      // 2. Otherwise find the first active server in the warehouse with a BUG or PIN error
+      target = this.racks.find(r =>
+        r.isFailing &&
+        !r.isDestroyed &&
+        (r.error?.type === CONFIG.ERRORS.SERVER_BUG ||
+         r.error?.type === CONFIG.ERRORS.ACCESS_DENIED ||
+         r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT)
+      );
+    }
+
+    if (!target) {
       this.sound.playTerminalFail();
       if (this.terminalFeedback) {
-        this.terminalFeedback.textContent = 'NO ACTIVE SERVER WITH A PIN ERROR FOUND';
+        this.terminalFeedback.textContent = 'NO ACTIVE BUG OR PIN ERROR SERVERS FOUND';
         this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_AMBER;
       }
-      this.showTemporaryToast('ℹ️ NO ACTIVE PIN ERROR SERVERS FOUND', 'ℹ️');
+      this.showTemporaryToast('ℹ️ NO ACTIVE BUG OR PIN ERROR SERVERS TO REDIRECT POWER TO', 'ℹ️');
       return;
     }
 
-    // Grant access to this server!
-    pinRack.resolveError();
+    const isBug = target.error?.type === CONFIG.ERRORS.SERVER_BUG;
+
+    // Resolve the error via high-voltage power redirection!
+    target.resolveError();
     this.sound.playTerminalSuccess();
     this.sound.playPlugSuccess?.();
-    this.particles.spawnSparks(this.nocDesk.x + this.nocDesk.width / 2, this.nocDesk.y, 40, '#00ff9d');
-    this.particles.spawnSparks(pinRack.x + pinRack.width / 2, pinRack.y + pinRack.height / 2, 45, '#00ff9d');
+    if (typeof this.sound.playSwitchToggle === 'function') {
+      this.sound.playSwitchToggle(true);
+    }
+
+    this.particles.spawnSparks(this.nocDesk.x + this.nocDesk.width / 2, this.nocDesk.y, 45, isBug ? '#f59e0b' : '#00ff9d');
+    this.particles.spawnSparks(target.x + target.width / 2, target.y + target.height / 2, 50, isBug ? '#00f3ff' : '#00ff9d');
 
     const bonus = (this.activeSynergies?.netops >= 1) ? 30 : 0;
-    const reward = 80 + bonus;
-    this.addCredits(reward, `+${reward} ⚡ ACCESS GRANTED FOR ${pinRack.id} (PIN ERROR RESOLVED)`);
+    const reward = (isBug ? 85 : 80) + bonus;
+    const rewardMsg = isBug
+      ? `+${reward} ⚡ POWER REDIRECTED: ${target.id} BUG INFESTATION PURGED`
+      : `+${reward} ⚡ POWER REDIRECTED: ${target.id} PIN ERROR OVERRIDDEN`;
+    this.addCredits(reward, rewardMsg);
 
-    if (this.activeCodeMemo?.rackId === pinRack.id) {
+    if (this.activeCodeMemo?.rackId === target.id) {
       this.activeCodeMemo = null;
       if (this.memoCodeVal) this.memoCodeVal.textContent = '--';
     }
 
     if (this.terminalFeedback) {
-      this.terminalFeedback.textContent = `🔓 ACCESS GRANTED: ${pinRack.id} PIN ERROR REMOTELY OVERRIDDEN & RESTORED!`;
+      this.terminalFeedback.textContent = isBug
+        ? `⚡ POWER REDIRECTED: HIGH-VOLTAGE SURGE PURGED BUG IN ${target.id}!`
+        : `⚡ POWER REDIRECTED: ${target.id} PIN ERROR REMOTELY OVERRIDDEN & RESTORED!`;
       this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_GREEN;
     }
 
-    this.showTemporaryToast(`🔓 ACCESS GRANTED! SERVER ${pinRack.id} PIN ERROR RESOLVED!`, '🔓');
+    const toastMsg = isBug
+      ? `⚡ POWER REDIRECTED! HIGH-VOLTAGE PURGE ZAPPED BUG IN ${target.id}!`
+      : `⚡ POWER REDIRECTED! SERVER ${target.id} PIN ERROR RESOLVED!`;
+    this.showTemporaryToast(toastMsg, '⚡');
 
-    const optToRemove = this.terminalSelect?.querySelector(`option[value="${pinRack.id}"]`);
+    const optToRemove = this.terminalSelect?.querySelector(`option[value="${target.id}"]`);
     optToRemove?.remove();
 
     this.updateGrantAccessButtonState();
@@ -10168,28 +10528,41 @@ class Game {
     this.updateObjectiveUI();
   }
 
+  grantAccessForPinErrorServer() {
+    this.redirectPower();
+  }
+
   updateGrantAccessButtonState() {
-    if (!this.btnTerminalGrantAccess) return;
-    const pinRack = this.racks.find(r =>
+    const btn = this.btnTerminalRedirectPower || this.btnTerminalGrantAccess;
+    if (!btn) return;
+    const eligibleRacks = this.racks.filter(r =>
       r.isFailing &&
       !r.isDestroyed &&
-      (r.error?.type === CONFIG.ERRORS.ACCESS_DENIED || r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT)
+      (r.error?.type === CONFIG.ERRORS.ACCESS_DENIED ||
+       r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT ||
+       r.error?.type === CONFIG.ERRORS.SERVER_BUG)
     );
 
-    if (pinRack) {
-      this.btnTerminalGrantAccess.classList.remove('disabled');
+    if (eligibleRacks.length > 0) {
+      btn.classList.remove('disabled');
       if (this.terminalGrantAccessText) {
-        this.terminalGrantAccessText.textContent = `GRANT ACCESS: ${pinRack.id} (PIN ERROR)`;
+        this.terminalGrantAccessText.textContent = `REDIRECT POWER (${eligibleRacks.length} ACTIVE)`;
       }
-      this.btnTerminalGrantAccess.style.opacity = '1';
-      this.btnTerminalGrantAccess.title = `Grant remote access override to ${pinRack.id}`;
+      if (this.terminalRedirectSub) {
+        this.terminalRedirectSub.textContent = `OVERRIDE PIN ERRORS & PURGE BUG INFESTATIONS [G]`;
+      }
+      btn.style.opacity = '1';
+      btn.title = `Redirect power to resolve bug or PIN faults (${eligibleRacks.length} active)`;
     } else {
-      this.btnTerminalGrantAccess.classList.add('disabled');
+      btn.classList.add('disabled');
       if (this.terminalGrantAccessText) {
-        this.terminalGrantAccessText.textContent = 'NO ACTIVE PIN ERROR SERVERS';
+        this.terminalGrantAccessText.textContent = 'REDIRECT POWER (0 ACTIVE)';
       }
-      this.btnTerminalGrantAccess.style.opacity = '0.55';
-      this.btnTerminalGrantAccess.title = 'No active servers with PIN errors';
+      if (this.terminalRedirectSub) {
+        this.terminalRedirectSub.textContent = 'NO ACTIVE BUG OR PIN FAULTS DETECTED';
+      }
+      btn.style.opacity = '0.55';
+      btn.title = 'No active servers with bug or PIN errors';
     }
   }
 
@@ -10263,23 +10636,45 @@ class Game {
 
     if (this.terminalInputBuffer === targetRack.code) {
       if (isRebootType) {
+        targetRack.pinVerified = true;
         this.terminalRebootControls?.classList.remove('hidden');
         this.updateGrantAccessButtonState();
         if (!targetRack.rebootAllowed) {
           this.sound.playTerminalSuccess();
           this.particles.spawnSparks(this.nocDesk.x + this.nocDesk.width / 2, this.nocDesk.y, 25, '#00f3ff');
-          if (this.terminalFeedback) {
-            this.terminalFeedback.textContent = `PIN ALIGNED! FLIP THE BREAKER SWITCH BELOW TO ALLOW REBOOT ➔`;
-            this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+          if (this.btnRebootToggleSwitch) {
+            this.btnRebootToggleSwitch.classList.remove('on');
+            this.btnRebootToggleSwitch.classList.add('off');
+            this.btnRebootToggleSwitch.setAttribute('aria-checked', 'false');
+          }
+          if (this.knifeSwitchApparatus) {
+            this.knifeSwitchApparatus.classList.remove('on');
+          }
+          if (this.knifeHandleText) {
+            this.knifeHandleText.textContent = 'PULL DOWN';
+          }
+          if (this.knifeHandleArrow) {
+            this.knifeHandleArrow.textContent = '▼';
+          }
+          if (this.rebootSwitchLabel) {
+            this.rebootSwitchLabel.textContent = 'ONLINE';
+          }
+          if (this.rebootBreakerLed) {
+            this.rebootBreakerLed.classList.remove('on');
           }
           if (this.rebootSwitchStatus) {
-            this.rebootSwitchStatus.textContent = 'PIN VERIFIED ➔ FLIP SWITCH TO ALLOW REBOOT';
-            this.rebootSwitchStatus.style.color = '#00ff9d';
+            this.rebootSwitchStatus.textContent = 'PIN VERIFIED ➔ PULL LEVER DOWN TO SHUT DOWN';
+            this.rebootSwitchStatus.style.color = '#00f3ff';
           }
+          if (this.terminalFeedback) {
+            this.terminalFeedback.textContent = `PIN [${targetRack.code}] VERIFIED! PULL THE MAIN BREAKER LEVER DOWN TO SHUT DOWN ➔`;
+            this.terminalFeedback.style.color = CONFIG.COLORS.CONSOLE_CYAN;
+          }
+          this.showTemporaryToast(`✅ PIN VERIFIED! PULL THE BREAKER LEVER DOWN TO SHUT DOWN ${targetRack.id}!`, '⚡');
         } else {
           this.sound.playKey();
           if (this.terminalFeedback) {
-            this.terminalFeedback.textContent = `REBOOT ALREADY PERMITTED // VISIT ${targetRack.id} AND HOLD [E] FOR 5s`;
+            this.terminalFeedback.textContent = `BREAKER ALREADY SHUT DOWN // VISIT ${targetRack.id} AND HOLD [E] FOR 5s`;
             this.terminalFeedback.style.color = CONFIG.COLORS.RACK_LED_GREEN;
           }
         }
@@ -10454,6 +10849,20 @@ class Game {
     return this.getDistanceToSuppliesCloset() <= maxDist;
   }
 
+  getNearestPortableTerminal() {
+    const list = this.portableTerminals.length > 0 ? this.portableTerminals : (this.portableTerminal ? [this.portableTerminal] : []);
+    let closest = null;
+    let minDist = Infinity;
+    for (const t of list) {
+      const d = Math.hypot(this.player.x - (t.x + t.width / 2), this.player.y - (t.y + t.height / 2));
+      if (d < minDist) {
+        minDist = d;
+        closest = t;
+      }
+    }
+    return closest;
+  }
+
   getNearTeleporterNode(maxDist = (CONFIG.TELEPORTER?.INTERACT_RADIUS ?? 52)) {
     for (const node of this.teleporterNodes) {
       const dist = Math.hypot(this.player.x - node.x, this.player.y - node.y);
@@ -10462,17 +10871,27 @@ class Game {
     return null;
   }
 
+  getTeleporterPartner(node) {
+    if (!node || !this.teleporterNodes) return null;
+    const idx = this.teleporterNodes.indexOf(node);
+    if (idx === -1) return null;
+    return (idx % 2 === 0) ? (this.teleporterNodes[idx + 1] || null) : (this.teleporterNodes[idx - 1] || null);
+  }
+
   // ==========================================================================
   // Interactions: Grab Cable, Plug In, Read PIN, Replace Server, or Open Kiosks
   // ==========================================================================
   handleInteractKey() {
     // 0. Quantum Teleporter Node Proximity Warp ([E])
-    if (this.teleporterNodes.length === 2) {
-      const nearNode = this.getNearTeleporterNode();
-      if (nearNode) {
-        const otherNode = this.teleporterNodes[0] === nearNode ? this.teleporterNodes[1] : this.teleporterNodes[0];
-        this.teleportPlayer(nearNode, otherNode);
-        return;
+    const nearNode = this.getNearTeleporterNode();
+    if (nearNode) {
+      const idx = this.teleporterNodes.indexOf(nearNode);
+      if (idx !== -1) {
+        const partner = (idx % 2 === 0) ? this.teleporterNodes[idx + 1] : this.teleporterNodes[idx - 1];
+        if (partner) {
+          this.teleportPlayer(nearNode, partner);
+          return;
+        }
       }
     }
 
@@ -10481,10 +10900,11 @@ class Game {
 
     // 0.5. Portable Field NOC Terminal Proximity ([E])
     // Only open terminal if player isn't right on top of a server rack (< 65px)
-    if (this.portableTerminal && this.portableTerminal.isNear(this.player.x, this.player.y)) {
+    const nearPortable = this.getNearestPortableTerminal();
+    if (nearPortable && nearPortable.isNear(this.player.x, this.player.y)) {
       const distToPortable = Math.hypot(
-        this.player.x - (this.portableTerminal.x + this.portableTerminal.width / 2),
-        this.player.y - (this.portableTerminal.y + this.portableTerminal.height / 2)
+        this.player.x - (nearPortable.x + nearPortable.width / 2),
+        this.player.y - (nearPortable.y + nearPortable.height / 2)
       );
       if (distToPortable < distToRack || distToRack >= 65) {
         this.openTerminal();
@@ -10722,9 +11142,9 @@ class Game {
     }
 
     // 7. Hold interaction tap notifications:
-    if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED) {
-      if (nearRack.isShutdown) {
-        this.showTemporaryToast('⚙️ HOLD [E] FOR 5 SECONDS TO MANUALLY TURN ON SERVER', '⚡');
+    if (nearRack.isFailing && (nearRack.error?.type === CONFIG.ERRORS.RESTART_REQUIRED || nearRack.error?.type === CONFIG.ERRORS.HARD_REBOOT)) {
+      if (nearRack.isShutdown && nearRack.rebootAllowed) {
+        this.showTemporaryToast('⚙️ HOLD [E] FOR 5 SECONDS TO REBOOT & TURN ON SERVER', '⚡');
       } else {
         nearRack.error.hasBeenInspected = true;
         this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
@@ -10733,7 +11153,8 @@ class Game {
           this.terminalSelect.value = nearRack.id;
           this.updateTerminalSelectionFeedback();
         }
-        this.showTemporaryToast(`🛑 RESTART REQUIRED: PIN [${nearRack.code}] SCANNED ➔ TYPE AT TERMINAL & FLIP SWITCH TO ALLOW REBOOT!`, '🛑');
+        this.sound.playTerminalFail();
+        this.showTemporaryToast(`🛑 RESTART REQUIRED: PIN [${nearRack.code}] SCANNED ➔ GO TO NOC TERMINAL & PULL SWITCH TO SHUT DOWN FIRST!`, '🛑');
       }
       this.sound.playKey();
       return;
@@ -10749,7 +11170,7 @@ class Game {
           this.terminalSelect.value = nearRack.id;
           this.updateTerminalSelectionFeedback();
         }
-        this.showTemporaryToast(`🛑 SERVER BUG: PIN [${nearRack.code}] SCANNED ➔ TYPE AT TERMINAL TO SHUT DOWN & TRAP BUG!`, '🛑');
+        this.showTemporaryToast(`🛑 SERVER BUG: PIN [${nearRack.code}] SCANNED ➔ SHUT DOWN OR USE REDIRECT POWER AT TERMINAL!`, '🛑');
       }
       this.sound.playKey();
       return;
@@ -10778,11 +11199,6 @@ class Game {
         this.particles.spawnSparks(nearRack.x + nearRack.width / 2, nearRack.y + nearRack.height / 2, 25, '#ff5500');
         this.showTemporaryToast(`🔥 ${nearRack.id} IS ENGULFED IN FLAMES! SENSORS ARE MELTED (CANNOT SCAN EVEN WITH HEX DECODER) ➔ RETRIEVE FIRE EXTINGUISHER FROM SUPPLIES CLOSET!`, '🔥');
       }
-      return;
-    }
-    if (nearRack.isFailing && nearRack.error?.type === CONFIG.ERRORS.HARD_REBOOT) {
-      this.showTemporaryToast('⚠️ HOLD [E] CONTINUOUSLY TO HARD REBOOT POWER BREAKER');
-      this.sound.playKey();
       return;
     }
 
@@ -10854,21 +11270,26 @@ class Game {
   // Portable Field NOC Terminal System (Deployable Apex Reward)
   // ==========================================================================
   handlePortableTerminalKey() {
-    if (!this.hasPortableTerminal) {
-      this.sound.playTerminalFail?.();
+    if (!this.hasPortableTerminal || (this.portableTerminalsLimit || 0) <= 0) {
+      this.sound?.playTerminalFail?.();
       this.showTemporaryToast('🔒 PORTABLE FIELD TERMINAL LOCKED — Defeat a main boss to acquire this item! (Press [B] for boss)', '💻');
       return;
     }
 
-    if (!this.portableTerminal) {
-      this.portableTerminal = new PortableTerminalStation(this.player.x - 55, this.player.y - 29);
+    const limit = this.portableTerminalsLimit || 1;
+    if (this.portableTerminals.length < limit) {
+      const term = new PortableTerminalStation(this.player.x - 55, this.player.y - 29);
+      this.portableTerminals.push(term);
+      this.portableTerminal = term;
       if (this.sound?.playCabinetOpen) this.sound.playCabinetOpen();
       this.particles.spawnSparks(this.player.x, this.player.y, 40, '#00ff9d');
       this.camera.shake(6, 0.2);
-      this.showTemporaryToast('💻 PORTABLE FIELD TERMINAL DEPLOYED! PRESS [E] TO ACCESS MASTER TERMINAL, [P] TO RELOCATE.', '💻');
+      this.showTemporaryToast(`💻 PORTABLE FIELD TERMINAL #${this.portableTerminals.length} DEPLOYED! [E: OPEN | P: RELOCATE/DEPLOY]`, '💻');
     } else {
-      this.portableTerminal.x = this.player.x - 55;
-      this.portableTerminal.y = this.player.y - 29;
+      const term = this.getNearestPortableTerminal() || this.portableTerminals[0];
+      term.x = this.player.x - 55;
+      term.y = this.player.y - 29;
+      this.portableTerminal = term;
       if (this.sound?.playCabinetOpen) this.sound.playCabinetOpen();
       this.particles.spawnSparks(this.player.x, this.player.y, 40, '#00ff9d');
       this.showTemporaryToast('💻 PORTABLE FIELD TERMINAL RELOCATED TO CURRENT POSITION! [E: OPEN | P: RELOCATE]', '💻');
@@ -10880,71 +11301,82 @@ class Game {
   // Unique Quantum Teleporter System (Post-Boss Prototype Reward)
   // ==========================================================================
   handleTeleporterKey() {
-    if (!this.hasTeleporterItem) {
-      this.sound.playTerminalFail();
+    if (!this.hasTeleporterItem || (this.teleporterKitsOwned || 0) <= 0) {
+      this.sound?.playTerminalFail?.();
       this.showTemporaryToast('🔒 QUANTUM TELEPORTER LOCKED — Defeat the Corrupted Bug Boss to acquire this item! (Press [B] for boss)', '🌀');
       return;
     }
 
-    // Phase 1: Deploy Node Alpha
-    if (this.teleporterNodes.length === 0) {
-      const nodeA = new TeleporterNode(
-        'alpha',
-        this.player.x,
-        this.player.y,
-        'NODE α',
-        CONFIG.COLORS.TELEPORTER_ALPHA ?? '#00f3ff',
-        '#00ff9d'
-      );
-      this.teleporterNodes.push(nodeA);
-      this.sound.playTeleportDeploy(0);
-      this.particles.spawnSparks(nodeA.x, nodeA.y, 45, '#00f3ff');
-      this.particles.spawnSparks(nodeA.x, nodeA.y, 25, '#00ff9d');
-      this.camera.shake(8, 0.25);
-      this.showTemporaryToast('🌀 TELEPORTER NODE ALPHA [α] ANCHORED! Move across aisles and press [T] to anchor Node Beta [β].', '🌀');
-      this.updateBuffDisplay();
-      return;
-    }
+    const maxNodes = (this.teleporterKitsOwned || 1) * 2;
 
-    // Phase 2: Deploy Node Beta (Completing the Permanent Pair)
-    if (this.teleporterNodes.length === 1) {
-      const nodeA = this.teleporterNodes[0];
-      const dist = Math.hypot(this.player.x - nodeA.x, this.player.y - nodeA.y);
-      const minDist = CONFIG.TELEPORTER?.MIN_DISTANCE ?? 120;
-      if (dist < minDist) {
-        this.sound.playTerminalFail();
-        this.showTemporaryToast(`⚠️ TOO CLOSE TO NODE ALPHA! Move at least ${minDist}px away to establish subspace quantum link.`, '⚠️');
+    // Check if we need to deploy the next unplaced node
+    if (this.teleporterNodes.length < maxNodes) {
+      const pairIdx = Math.floor(this.teleporterNodes.length / 2);
+      const isEven = (this.teleporterNodes.length % 2 === 0);
+      const cfg = TELEPORTER_PAIRS[pairIdx % TELEPORTER_PAIRS.length];
+
+      if (isEven) {
+        // Deploy first node of pair (Node A)
+        const nodeA = new TeleporterNode(
+          `pair_${pairIdx}_a`,
+          this.player.x,
+          this.player.y,
+          cfg.nameA,
+          cfg.colorA,
+          cfg.secA
+        );
+        this.teleporterNodes.push(nodeA);
+        this.sound?.playTeleportDeploy?.(0);
+        this.particles.spawnSparks(nodeA.x, nodeA.y, 45, cfg.colorA);
+        this.particles.spawnSparks(nodeA.x, nodeA.y, 25, cfg.secA);
+        this.camera.shake(8, 0.25);
+        this.showTemporaryToast(`🌀 ${cfg.nameA} ANCHORED! Move across aisles and press [T] to anchor ${cfg.nameB}.`, '🌀');
+        this.updateBuffDisplay();
+        return;
+      } else {
+        // Deploy second node of pair (Node B)
+        const nodeA = this.teleporterNodes[pairIdx * 2];
+        const dist = Math.hypot(this.player.x - nodeA.x, this.player.y - nodeA.y);
+        const minDist = CONFIG.TELEPORTER?.MIN_DISTANCE ?? 120;
+        if (dist < minDist) {
+          this.sound?.playTerminalFail?.();
+          this.showTemporaryToast(`⚠️ TOO CLOSE TO ${cfg.nameA}! Move at least ${minDist}px away to establish subspace quantum link.`, '⚠️');
+          return;
+        }
+
+        const nodeB = new TeleporterNode(
+          `pair_${pairIdx}_b`,
+          this.player.x,
+          this.player.y,
+          cfg.nameB,
+          cfg.colorB,
+          cfg.secB
+        );
+        this.teleporterNodes.push(nodeB);
+        this.sound?.playTeleportDeploy?.(1);
+        this.particles.spawnSparks(nodeB.x, nodeB.y, 60, cfg.colorB);
+        this.particles.spawnSparks(nodeB.x, nodeB.y, 30, cfg.secB);
+        this.particles.spawnSparks(nodeA.x, nodeA.y, 40, cfg.colorA);
+        this.camera.shake(14, 0.35);
+        this.showTemporaryToast(`⚡ QUANTUM LINK ESTABLISHED (${cfg.nameA} ↔ ${cfg.nameB})! Step onto pad or press [T]/[E] to warp!`, '🌀');
+        this.updateBuffDisplay();
         return;
       }
-
-      const nodeB = new TeleporterNode(
-        'beta',
-        this.player.x,
-        this.player.y,
-        'NODE β',
-        CONFIG.COLORS.TELEPORTER_BETA ?? '#e024c3',
-        '#ff007f'
-      );
-      this.teleporterNodes.push(nodeB);
-      this.sound.playTeleportDeploy(1);
-      this.particles.spawnSparks(nodeB.x, nodeB.y, 60, '#e024c3');
-      this.particles.spawnSparks(nodeB.x, nodeB.y, 30, '#ff007f');
-      this.particles.spawnSparks(nodeA.x, nodeA.y, 40, '#00f3ff');
-      this.camera.shake(14, 0.35);
-      this.showTemporaryToast('⚡ QUANTUM TELEPORT LINK ESTABLISHED! Step onto either node pad or press [T]/[E] to teleport!', '🌀');
-      this.updateBuffDisplay();
-      return;
     }
 
-    // Phase 3: Both nodes already permanently placed!
-    if (this.teleporterNodes.length === 2) {
-      const nearNode = this.getNearTeleporterNode();
-      if (nearNode) {
-        const otherNode = this.teleporterNodes[0] === nearNode ? this.teleporterNodes[1] : this.teleporterNodes[0];
-        this.teleportPlayer(nearNode, otherNode);
-      } else {
-        this.showTemporaryToast('🌀 QUANTUM LINK PERMANENTLY ANCHORED! Step on Node α or Node β to warp across the warehouse.', '🌀');
+    // All available nodes are deployed!
+    const nearNode = this.getNearTeleporterNode();
+    if (nearNode) {
+      const idx = this.teleporterNodes.indexOf(nearNode);
+      if (idx !== -1) {
+        const partner = (idx % 2 === 0) ? this.teleporterNodes[idx + 1] : this.teleporterNodes[idx - 1];
+        if (partner) {
+          this.teleportPlayer(nearNode, partner);
+          return;
+        }
       }
+    } else {
+      this.showTemporaryToast(`🌀 ALL ${this.teleporterKitsOwned || 1} QUANTUM PAIRS ACTIVE! Step on any pad to warp across the warehouse.`, '🌀');
     }
   }
 
@@ -11007,32 +11439,35 @@ class Game {
 
   renderTeleporterLink(ctx, cam) {
     if (this.teleporterNodes.length < 2) return;
-    const nodeA = this.teleporterNodes[0];
-    const nodeB = this.teleporterNodes[1];
+    for (let i = 0; i < this.teleporterNodes.length; i += 2) {
+      const nodeA = this.teleporterNodes[i];
+      const nodeB = this.teleporterNodes[i + 1];
+      if (!nodeA || !nodeB) continue;
 
-    const posA = cam.toScreen(nodeA.x, nodeA.y);
-    const posB = cam.toScreen(nodeB.x, nodeB.y);
+      const posA = cam.toScreen(nodeA.x, nodeA.y);
+      const posB = cam.toScreen(nodeB.x, nodeB.y);
 
-    ctx.save();
-    // Glowing dashed quantum conduit
-    ctx.beginPath();
-    ctx.moveTo(posA.x, posA.y);
-    ctx.lineTo(posB.x, posB.y);
-    ctx.strokeStyle = CONFIG.COLORS.TELEPORTER_LINK ?? 'rgba(0, 243, 255, 0.35)';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([12, 16]);
-    ctx.lineDashOffset = -this.gameTime * 45;
-    ctx.shadowColor = '#00f3ff';
-    ctx.shadowBlur = 10;
-    ctx.stroke();
+      ctx.save();
+      // Glowing dashed quantum conduit
+      ctx.beginPath();
+      ctx.moveTo(posA.x, posA.y);
+      ctx.lineTo(posB.x, posB.y);
+      ctx.strokeStyle = nodeA.color ? `${nodeA.color}66` : 'rgba(0, 243, 255, 0.35)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([12, 16]);
+      ctx.lineDashOffset = -this.gameTime * 45;
+      ctx.shadowColor = nodeA.color || '#00f3ff';
+      ctx.shadowBlur = 10;
+      ctx.stroke();
 
-    // Inner bright beam
-    ctx.lineWidth = 1.2;
-    ctx.strokeStyle = '#ffffff';
-    ctx.setLineDash([6, 22]);
-    ctx.lineDashOffset = -this.gameTime * 45;
-    ctx.stroke();
-    ctx.restore();
+      // Inner bright beam
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = '#ffffff';
+      ctx.setLineDash([6, 22]);
+      ctx.lineDashOffset = -this.gameTime * 45;
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   renderTeleporterPrompt(ctx, cam, node) {
@@ -11051,18 +11486,20 @@ class Game {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    if (this.teleporterNodes.length === 2) {
+    const idx = this.teleporterNodes.indexOf(node);
+    const partner = (idx !== -1) ? ((idx % 2 === 0) ? this.teleporterNodes[idx + 1] : this.teleporterNodes[idx - 1]) : null;
+
+    if (partner) {
       if (this.teleportCooldown > 0) {
         ctx.fillStyle = '#ffb800';
         ctx.fillText(`⏳ RECHARGING: ${this.teleportCooldown.toFixed(1)}s`, pos.x, pos.y);
       } else {
-        const otherNode = this.teleporterNodes[0] === node ? this.teleporterNodes[1] : this.teleporterNodes[0];
         ctx.fillStyle = '#00ff9d';
-        ctx.fillText(`[E] / [T] WARP ➔ ${otherNode.name}`, pos.x, pos.y);
+        ctx.fillText(`[E] / [T] WARP ➔ ${partner.name}`, pos.x, pos.y);
       }
     } else {
       ctx.fillStyle = '#00f3ff';
-      ctx.fillText('[T] DEPLOY NODE β ELSEWHERE', pos.x, pos.y);
+      ctx.fillText('[T] ANCHOR PARTNER NODE ELSEWHERE', pos.x, pos.y);
     }
     ctx.restore();
   }
@@ -11206,10 +11643,11 @@ class Game {
           this.sound, this.particles, this.activeBuffs, isCannonPuck
         );
       }
-      if (this.portableTerminal) {
-        this.portableTerminal.update(dt);
+      const terms = this.portableTerminals.length > 0 ? this.portableTerminals : (this.portableTerminal ? [this.portableTerminal] : []);
+      for (const term of terms) {
+        term.update(dt);
         this.player.resolveAABBCollision(
-          this.portableTerminal.x, this.portableTerminal.y, this.portableTerminal.width, this.portableTerminal.height,
+          term.x, term.y, term.width, term.height,
           this.sound, this.particles, this.activeBuffs, isCannonPuck
         );
       }
@@ -11219,18 +11657,17 @@ class Game {
         if (!this.rebootingRack && !this.shakingRack && !this.disinfectingRack && !this.coolingRack && !this.wormRack && !this.extinguishingRack) {
           const near = this.getNearestRack(105);
           if (near && near.isFailing) {
-            if (near.error?.type === CONFIG.ERRORS.RESTART_REQUIRED && near.isShutdown) {
-              this.rebootingRack = near;
-              this.rebootHoldTime = 0;
+            if ((near.error?.type === CONFIG.ERRORS.RESTART_REQUIRED || near.error?.type === CONFIG.ERRORS.HARD_REBOOT)) {
+              if (near.isShutdown && near.rebootAllowed) {
+                this.rebootingRack = near;
+                this.rebootHoldTime = 0;
+              }
             } else if (near.error?.type === CONFIG.ERRORS.SERVER_BUG && near.isShutdown) {
               this.shakingRack = near;
               this.shakeHoldTime = 0;
             } else if (near.error?.type === CONFIG.ERRORS.SERVER_SMALL_VIRUS && near.isShutdown) {
               this.disinfectingRack = near;
               this.disinfectHoldTime = 0;
-            } else if (near.error?.type === CONFIG.ERRORS.HARD_REBOOT) {
-              this.rebootingRack = near;
-              this.rebootHoldTime = 0;
             } else if (near.error?.type === CONFIG.ERRORS.SERVER_OVERHEAT) {
               if (this.hasFireExtinguisher || this.hasCryoCanister) {
                 this.extinguishingRack = near;
@@ -11479,18 +11916,23 @@ class Game {
         }
       }
 
-      // Automatic Step-on Quantum Teleportation Check
-      if (this.teleporterNodes.length === 2 && this.teleportCooldown <= 0) {
-        const nodeA = this.teleporterNodes[0];
-        const nodeB = this.teleporterNodes[1];
+      // Automatic Step-on Quantum Teleportation Check (All linked pairs)
+      if (this.teleportCooldown <= 0) {
         const actRadius = CONFIG.TELEPORTER?.ACTIVATION_RADIUS ?? 30;
-        const distA = Math.hypot(this.player.x - nodeA.x, this.player.y - nodeA.y);
-        const distB = Math.hypot(this.player.x - nodeB.x, this.player.y - nodeB.y);
+        for (let i = 0; i < this.teleporterNodes.length; i += 2) {
+          const nodeA = this.teleporterNodes[i];
+          const nodeB = this.teleporterNodes[i + 1];
+          if (!nodeA || !nodeB) continue;
+          const distA = Math.hypot(this.player.x - nodeA.x, this.player.y - nodeA.y);
+          const distB = Math.hypot(this.player.x - nodeB.x, this.player.y - nodeB.y);
 
-        if (distA <= actRadius) {
-          this.teleportPlayer(nodeA, nodeB);
-        } else if (distB <= actRadius) {
-          this.teleportPlayer(nodeB, nodeA);
+          if (distA <= actRadius) {
+            this.teleportPlayer(nodeA, nodeB);
+            break;
+          } else if (distB <= actRadius) {
+            this.teleportPlayer(nodeB, nodeA);
+            break;
+          }
         }
       }
     } else {
@@ -11524,6 +11966,20 @@ class Game {
         this.updateBuffDisplay();
       }
     }
+
+    // Update Kinetic Cannon Cooldown
+    if (this.cannonCooldown > 0) {
+      this.cannonCooldown = Math.max(0, this.cannonCooldown - dt);
+      if (this.cannonCooldown === 0) {
+        this.updateBuffDisplay();
+      }
+    }
+
+    // Repressurize Fire Extinguisher when not actively spraying
+    if (!this.isExtinguisherSpraying) {
+      this.extinguisherPressure = Math.min(this.maxExtinguisherPressure ?? 100, (this.extinguisherPressure ?? 100) + 28 * dt);
+    }
+    this.isExtinguisherSpraying = false;
 
     // Update Emergency Cannon Charge Dispenser Cooldown (1 charge per 30s)
     if (this.emergencyCannonCooldown > 0) {
@@ -11837,9 +12293,11 @@ class Game {
 
     // 2.5 Quantum Teleporter Connecting Link & Floor Pads
     this.renderTeleporterLink(ctx, cam);
-    const isLinked = this.teleporterNodes.length === 2;
     const cooldownRatio = this.teleportCooldown / (CONFIG.TELEPORTER?.COOLDOWN ?? 1.2);
-    for (const node of this.teleporterNodes) {
+    for (let i = 0; i < this.teleporterNodes.length; i++) {
+      const node = this.teleporterNodes[i];
+      const partner = (i % 2 === 0) ? this.teleporterNodes[i + 1] : this.teleporterNodes[i - 1];
+      const isLinked = Boolean(partner);
       if (cam.isBoundingBoxVisible(node.x - 50, node.y - 50, 100, 100)) {
         node.render(ctx, cam, isLinked, cooldownRatio);
       }
@@ -11877,8 +12335,13 @@ class Game {
     if (this.suppliesCloset && cam.isBoundingBoxVisible(this.suppliesCloset.x, this.suppliesCloset.y, this.suppliesCloset.width, this.suppliesCloset.height)) {
       this.suppliesCloset.render(ctx, cam);
     }
-    if (this.portableTerminal && cam.isBoundingBoxVisible(this.portableTerminal.x, this.portableTerminal.y, this.portableTerminal.width, this.portableTerminal.height)) {
-      this.portableTerminal.render(ctx, cam);
+    const renderTerminals = (this.portableTerminals && this.portableTerminals.length > 0)
+      ? this.portableTerminals
+      : (this.portableTerminal ? [this.portableTerminal] : []);
+    for (const term of renderTerminals) {
+      if (cam.isBoundingBoxVisible(term.x, term.y, term.width, term.height)) {
+        term.render(ctx, cam);
+      }
     }
 
     // 6. Particle Sparks & Explosions
@@ -11919,14 +12382,15 @@ class Game {
     // 10. In-World Interactive Prompts
     const nearTeleNode = this.getNearTeleporterNode();
     const isNearHost = this.bossHostRack && activeBoss && activeBoss.isAlive && this.getDistanceToRack(this.bossHostRack) <= 120;
-    const isNearPortableTerminal = this.portableTerminal && this.portableTerminal.isNear(this.player.x, this.player.y);
+    const nearPortable = this.getNearestPortableTerminal();
+    const isNearPortableTerminal = Boolean(nearPortable && nearPortable.isNear(this.player.x, this.player.y));
     const dNOCPrompt = this.isNearNOCDesk() ? this.getDistanceToNOCDesk() : Infinity;
     const dClosetPrompt = this.isNearSuppliesCloset() ? this.getDistanceToSuppliesCloset() : Infinity;
     const dShopPrompt = this.isNearShopKiosk() ? this.getDistanceToShopKiosk() : Infinity;
     const minSouthPromptDist = Math.min(dNOCPrompt, dClosetPrompt, dShopPrompt);
 
     if (isNearPortableTerminal) {
-      this.renderPortableTerminalPrompt(ctx, cam);
+      this.renderPortableTerminalPrompt(ctx, cam, nearPortable);
     } else if (isNearHost) {
       this.renderRackInteractionPrompt(ctx, cam, this.bossHostRack);
     } else if (nearRack) {
@@ -12581,25 +13045,25 @@ class Game {
         badgeColor = '#e879f9';
       } else if (errType === CONFIG.ERRORS.RESTART_REQUIRED || errType === CONFIG.ERRORS.HARD_REBOOT) {
         const req = (this.activeSynergies?.netops >= 2) ? 3.0 : (CONFIG.ERRORS.REBOOT_HOLD_TIME ?? 5.0);
-        const hasPinError = this.racks.some(r => r.isFailing && !r.isDestroyed && (r.error?.type === CONFIG.ERRORS.ACCESS_DENIED || r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT));
-        if (rack.isShutdown) {
+        const hasPinOrBugError = this.racks.some(r => r.isFailing && !r.isDestroyed && (r.error?.type === CONFIG.ERRORS.ACCESS_DENIED || r.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT || r.error?.type === CONFIG.ERRORS.SERVER_BUG));
+        if (rack.isShutdown && rack.rebootAllowed) {
           if (this.rebootingRack === rack && this.rebootHoldTime > 0) {
             const prog = Math.min(req, this.rebootHoldTime).toFixed(1);
             label = `⚡ REBOOTING: ${prog}s / ${req.toFixed(1)}s (HOLD [E])`;
             badgeColor = '#00f3ff';
           } else {
-            label = hasPinError
-              ? `⚡ HOLD [E] TO TURN ON (${req.toFixed(1)}s) | [G] GRANT PIN ACCESS`
-              : `⚡ HOLD [E] TO TURN ON (${req.toFixed(1)}s)`;
-            badgeColor = '#00f3ff';
+            label = hasPinOrBugError
+              ? `⚡ HOLD [E] TO REBOOT (${req.toFixed(1)}s) | [G] REDIRECT POWER`
+              : `⚡ HOLD [E] TO REBOOT (${req.toFixed(1)}s)`;
+            badgeColor = '#00ff9d';
           }
         } else {
           if (!rack.error?.hasBeenInspected) {
-            label = `[E] SCAN PIN [${rack.code}] ➔ TYPE AT TERMINAL [${timeLeft}s!]`;
+            label = `[E] SCAN PIN [${rack.code}] ➔ PULL SWITCH AT TERMINAL [${timeLeft}s!]`;
             badgeColor = '#ff2a55';
           } else {
-            label = `PIN: ${rack.code} ➔ TYPE AT TERMINAL & FLIP SWITCH [${timeLeft}s!]`;
-            badgeColor = '#00f3ff';
+            label = `🛑 NOT SHUT DOWN ➔ PULL SWITCH AT TERMINAL [PIN: ${rack.code}]`;
+            badgeColor = '#ff5500';
           }
         }
       } else if (errType === CONFIG.ERRORS.SERVER_BUG) {
@@ -12615,10 +13079,10 @@ class Game {
         } else {
           const bugSecs = Math.max(0, Math.ceil(rack.error?.bugTimer ?? (CONFIG.ERRORS.BUG_RACK_EXPLODE_TIME ?? 30.0)));
           if (!rack.error?.hasBeenInspected) {
-            label = `[E] SCAN PIN [${rack.code}] ➔ TYPE AT TERMINAL [${bugSecs}s!]`;
+            label = `[E] SCAN PIN [${rack.code}] ➔ SHUT DOWN OR REDIRECT POWER [${bugSecs}s!]`;
             badgeColor = '#ff2a55';
           } else {
-            label = `PIN: ${rack.code} ➔ TYPE AT TERMINAL TO TRAP BUG [${bugSecs}s!]`;
+            label = `[G] REDIRECT POWER OR PIN [${rack.code}] TO TRAP BUG [${bugSecs}s!]`;
             badgeColor = '#ffaa00';
           }
         }
@@ -12716,9 +13180,10 @@ class Game {
     ctx.restore();
   }
 
-  renderPortableTerminalPrompt(ctx, cam) {
-    if (!this.portableTerminal) return;
-    const pos = cam.toScreen(this.portableTerminal.x + this.portableTerminal.width / 2, this.portableTerminal.y - 14);
+  renderPortableTerminalPrompt(ctx, cam, targetTerm = null) {
+    const term = targetTerm || this.getNearestPortableTerminal() || this.portableTerminal;
+    if (!term) return;
+    const pos = cam.toScreen(term.x + term.width / 2, term.y - 14);
     const label = `[E] ACCESS FIELD NOC TERMINAL  |  [P] RELOCATE`;
 
     ctx.save();

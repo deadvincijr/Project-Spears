@@ -705,13 +705,22 @@ html, body {
 
 .terminal-window {
   width: 460px;
-  max-width: 94vw;
+  max-width: 95vw;
+  max-height: 92vh;
   background: #090f19;
   border: 2px solid var(--accent-cyan);
   border-radius: 8px;
   box-shadow: 0 0 32px rgba(0, 243, 255, 0.25), inset 0 0 16px rgba(0, 243, 255, 0.05);
   overflow: hidden;
   font-family: var(--font-mono);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s ease, max-width 0.25s ease;
+}
+
+.terminal-window:has(#terminal-reboot-controls:not(.hidden)),
+.terminal-window.has-lever-open {
+  width: 820px;
 }
 
 .terminal-header {
@@ -760,10 +769,20 @@ html, body {
 }
 
 .terminal-body {
-  padding: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.terminal-main-column {
+  flex: 1 1 420px;
+  min-width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .terminal-screen-glow {
@@ -2788,139 +2807,387 @@ body.perf-optimized .settings-window {
 /* ============================================================================
    Terminal Reboot Controls: Breaker Toggle Switch & Grant Access Button
    ============================================================================ */
-.terminal-reboot-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px;
-  background: rgba(0, 243, 255, 0.05);
-  border: 1.5px solid rgba(0, 243, 255, 0.35);
-  border-radius: 6px;
-  margin-top: 14px;
-  box-shadow: 0 0 20px rgba(0, 243, 255, 0.12);
+/* ============================================================================
+   Terminal Redirect Power Controls (For Bug & Standard PIN Errors)
+   ============================================================================ */
+.terminal-redirect-container {
+  width: 100%;
+  margin-top: 10px;
 }
 
-.terminal-switch-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 10px 14px;
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(0, 243, 255, 0.25);
-  border-radius: 6px;
-}
-
-.switch-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.switch-title {
-  font-family: var(--font-display);
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #00f3ff;
-  letter-spacing: 0.05em;
-}
-
-.switch-sub {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: #94a3b8;
-}
-
-.reboot-toggle-switch {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-}
-
-.reboot-toggle-switch .switch-housing {
-  position: relative;
-  width: 58px;
-  height: 30px;
-  background: #1e293b;
-  border: 1.5px solid #475569;
-  border-radius: 15px;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.reboot-toggle-switch .switch-handle {
-  position: absolute;
-  top: 3px;
-  left: 4px;
-  width: 20px;
-  height: 20px;
-  background: #94a3b8;
-  border-radius: 50%;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s;
-}
-
-.reboot-toggle-switch.on .switch-housing {
-  background: rgba(0, 255, 157, 0.2);
-  border-color: #00ff9d;
-  box-shadow: 0 0 16px rgba(0, 255, 157, 0.5);
-}
-
-.reboot-toggle-switch.on .switch-handle {
-  transform: translateX(28px);
-  background: #00ff9d;
-  box-shadow: 0 0 10px #00ff9d;
-}
-
-.reboot-toggle-switch .switch-label-text {
-  font-family: var(--font-display);
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: #94a3b8;
-  letter-spacing: 0.05em;
-  min-width: 48px;
-}
-
-.reboot-toggle-switch.on .switch-label-text {
-  color: #00ff9d;
-}
-
-.terminal-grant-access-btn {
+.terminal-redirect-power-btn {
   width: 100%;
   padding: 12px 16px;
-  background: linear-gradient(135deg, rgba(0, 243, 255, 0.15), rgba(0, 255, 157, 0.2));
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.16) 0%, rgba(0, 255, 157, 0.18) 100%);
   border: 1.5px solid #00f3ff;
   border-radius: 6px;
-  font-family: var(--font-display);
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: #00ff9d;
-  letter-spacing: 0.05em;
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  box-shadow: 0 0 16px rgba(0, 243, 255, 0.2);
+  gap: 12px;
+  box-shadow: 0 0 16px rgba(0, 243, 255, 0.22);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
+  user-select: none;
 }
 
-.terminal-grant-access-btn:hover:not(.disabled) {
-  background: linear-gradient(135deg, rgba(0, 243, 255, 0.35), rgba(0, 255, 157, 0.4));
-  box-shadow: 0 0 24px rgba(0, 255, 157, 0.5);
+.terminal-redirect-power-btn:hover:not(.disabled) {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.32) 0%, rgba(0, 255, 157, 0.35) 100%);
+  border-color: #00ff9d;
+  box-shadow: 0 0 24px rgba(0, 255, 157, 0.45);
   transform: translateY(-1px);
 }
 
-.terminal-grant-access-btn.disabled {
+.terminal-redirect-power-btn:active:not(.disabled) {
+  transform: translateY(1px);
+}
+
+.terminal-redirect-power-btn.disabled {
   opacity: 0.5;
   cursor: not-allowed;
   border-color: #475569;
-  color: #64748b;
   background: rgba(15, 23, 42, 0.6);
   box-shadow: none;
+}
+
+.redirect-power-icon {
+  font-size: 1.5rem;
+  color: #00ff9d;
+  filter: drop-shadow(0 0 8px #00ff9d);
+  flex-shrink: 0;
+  animation: pulse-icon 1.8s infinite ease-in-out;
+}
+
+.redirect-power-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-grow: 1;
+}
+
+.redirect-power-title {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #00ff9d;
+  letter-spacing: 0.06em;
+}
+
+.redirect-power-sub {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #94a3b8;
+  letter-spacing: 0.03em;
+}
+
+/* Backward compatibility alias */
+.terminal-grant-access-btn {
+  display: none;
+}
+
+/* ============================================================================
+   Literal Industrial Knife / Breaker Pull Switch Panel
+   ============================================================================ */
+.terminal-reboot-controls {
+  flex: 0 0 330px;
+  width: 330px;
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  margin-top: 0;
+}
+
+.terminal-reboot-controls.hidden {
+  display: none !important;
+}
+
+.terminal-breaker-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  gap: 12px;
+  padding: 14px 14px;
+  background: linear-gradient(180deg, #0b1322 0%, #070c16 100%);
+  border: 1.5px solid rgba(0, 243, 255, 0.45);
+  border-radius: 8px;
+  box-shadow: 0 0 24px rgba(0, 243, 255, 0.15), inset 0 0 12px rgba(0, 0, 0, 0.8);
+  position: relative;
+  overflow: hidden;
+}
+
+@media (max-width: 840px) {
+  .terminal-window:has(#terminal-reboot-controls:not(.hidden)),
+  .terminal-window.has-lever-open {
+    width: 96vw;
+  }
+  .terminal-body {
+    flex-direction: column;
+  }
+  .terminal-reboot-controls {
+    width: 100%;
+    flex: auto;
+  }
+}
+
+.breaker-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.breaker-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.breaker-rivet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #64748b;
+  box-shadow: inset 0 1px 1px #fff, 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.breaker-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.breaker-title {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #00f3ff;
+  letter-spacing: 0.06em;
+}
+
+.breaker-sub {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.breaker-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid #475569;
+  border-radius: 4px;
+}
+
+.breaker-badge-text {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.breaker-status-badge.on {
+  border-color: #00ff9d;
+  background: rgba(0, 255, 157, 0.15);
+}
+
+.breaker-status-badge.on .breaker-badge-text {
+  color: #00ff9d;
+}
+
+/* The Knife Switch Box */
+.knife-switch-apparatus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 10px;
+  background: rgba(5, 9, 16, 0.95);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  border-radius: 6px;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.9);
+  gap: 4px;
+  user-select: none;
+}
+
+.knife-contacts {
+  width: 90%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+}
+
+.knife-jaw {
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  border: 1px solid #b45309;
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+}
+
+.knife-volts-text {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #f59e0b;
+  letter-spacing: 0.08em;
+}
+
+.knife-isolated-text {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.08em;
+  transition: color 0.25s ease;
+}
+
+.knife-switch-apparatus.on .knife-isolated-text {
+  color: #00ff9d;
+  text-shadow: 0 0 6px rgba(0, 255, 157, 0.6);
+}
+
+.knife-switch-apparatus.on .bottom-contacts .knife-jaw {
+  background: linear-gradient(135deg, #059669, #00ff9d);
+  border-color: #00ff9d;
+  box-shadow: 0 0 10px rgba(0, 255, 157, 0.7);
+}
+
+/* Lever Track and Mechanism */
+.knife-lever-track {
+  width: 90%;
+  height: 104px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.knife-switch-lever {
+  width: 100%;
+  height: 36px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: transparent;
+  border: none;
+  cursor: grab;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.28s cubic-bezier(0.18, 0.9, 0.32, 1.25);
+  touch-action: none;
+}
+
+.knife-switch-lever:active {
+  cursor: grabbing;
+}
+
+.knife-switch-lever.on {
+  transform: translateY(68px);
+}
+
+.knife-hinge {
+  width: 20px;
+  height: 6px;
+  background: #334155;
+  border: 1px solid #64748b;
+  border-radius: 3px;
+  margin-bottom: 2px;
+}
+
+.knife-blades {
+  width: 82%;
+  display: flex;
+  justify-content: space-between;
+  height: 8px;
+}
+
+.blade {
+  width: 8px;
+  height: 8px;
+  background: linear-gradient(180deg, #d97706, #fbbf24);
+  border-radius: 1px;
+  box-shadow: 0 0 5px rgba(245, 158, 11, 0.5);
+}
+
+.knife-lever-bar {
+  width: 86%;
+  height: 4px;
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 2px;
+}
+
+/* Heavy Pull Handle */
+.knife-handle-grip {
+  width: 78%;
+  height: 28px;
+  margin-top: 2px;
+  background: repeating-linear-gradient(
+    45deg,
+    #ea580c,
+    #ea580c 8px,
+    #1e293b 8px,
+    #1e293b 16px
+  );
+  border: 1.5px solid #ff5500;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.knife-switch-lever.on .knife-handle-grip {
+  background: repeating-linear-gradient(
+    45deg,
+    #059669,
+    #059669 8px,
+    #0f172a 8px,
+    #0f172a 16px
+  );
+  border-color: #00ff9d;
+  box-shadow: 0 0 16px rgba(0, 255, 157, 0.45);
+}
+
+.handle-text {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.handle-arrow {
+  font-size: 0.75rem;
+  color: #ffffff;
+  animation: bounce-arrow 1.2s infinite alternate ease-in-out;
+}
+
+@keyframes bounce-arrow {
+  0% { transform: translateY(-1px); }
+  100% { transform: translateY(2px); }
+}
+
+/* Locked Safety Shake Animation */
+.knife-switch-lever.locked-shake {
+  animation: knife-lever-shake 0.45s ease;
+}
+
+@keyframes knife-lever-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
 }
 
 /* ============================================================================

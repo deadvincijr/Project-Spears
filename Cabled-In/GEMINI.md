@@ -276,14 +276,33 @@
       - Eliminates overlapping/stacked red and green radar indicators pointing to the exact same coordinates, displaying solely the clean emerald green target beacon (`TARGET: RACK_ID`).
       - On-screen, the target server's overhead directional arrow and countdown label dynamically turn emerald green (`#00ff9d` / `[TARGET]`), giving the player an unambiguous visual beacon to plug into.
 
-22. **Standard Reboot Errors: Terminal Breaker Toggle Switch & PIN Error Remote Access Grant**:
-    - **Reboot PIN Alignment & Breaker Permit Switch**:
-      - For reboot errors (`RESTART_REQUIRED` / `HARD_REBOOT`), players must enter the server's 4-digit PIN at the Master NOC Terminal.
-      - As soon as the entered PIN aligns with the target server (or on pressing [Enter] / clicking Remote Shutdown), the terminal reveals an interactive breaker toggle switch (`#terminal-reboot-controls`).
-      - Flipping this physical-style toggle switch arms the reboot permit (`rebootAllowed = true`), shuts down the breaker (`isShutdown = true`), halts the thermal explosion countdown timer, and plays mechanical dual-click breaker clack and power hum sound effects.
-      - Once armed, the player can visit the physical server rack on foot and hold `[E]` for 5 continuous seconds to complete the manual power-on cycle.
-      - Keyboard ergonomic shortcut: Pressing `[Space]` while inside the terminal when the switch is visible immediately flips the breaker toggle switch.
-    - **Grant Access Button for PIN Error Servers**:
-      - For standard reboot errors, a dedicated action button (`#btn-terminal-grant-access`) appears in the terminal: `GRANT ACCESS: [RACK_ID] (PIN ERROR)`.
-      - Clicking this button immediately authorizes and resolves any active server with a PIN error (`ACCESS_DENIED` / `AUTH_LOCKOUT`) across the data center, granting credits, spawning green celebratory sparks, and notifying the player.
-      - On-Foot Synergy (`[G]`): When near a reboot server or the NOC desk, pressing `[G]` also triggers the remote PIN access grant, allowing fast on-foot workflow without needing to re-open the terminal.
+22. **Standard Reboot Errors: Terminal Breaker Knife Pull Switch & 5s Reboot Shutdown Requirement**:
+    - **Literal Knife Breaker Pull Switch Apparatus**:
+      - For reboot errors (`RESTART_REQUIRED` / `HARD_REBOOT`), the Master NOC Terminal features an industrial knife breaker switch panel (`#knife-switch-apparatus`).
+      - Features dual heavy copper contacts (`480V LIVE VOLTAGE` top jaws, `BREAKER OPEN // SHUT DOWN` bottom jaws), an industrial hazard-striped pull handle (`#knife-handle-grip`), and animated directional indicators.
+      - **Safety Interlock**: Attempting to pull the lever before entering the server's authentic 4-digit PIN triggers a mechanical rattle/shake animation (`.locked-shake`), plays a warning buzzer, and displays `❌ SAFETY INTERLOCK: ENTER 4-DIGIT PIN TO UNLOCK LEVER!`.
+      - **PIN Verification & Lever Unlock**: Entering the 4-digit PIN (or pressing Enter / ENTER on virtual keypad) authenticates the code, unlocks the lever (`PULL DOWN`), and prompts the player to pull the lever. Entering PIN does NOT automatically toggle the switch—the player must physically pull the switch down (via click, downward mouse/touch drag, or `[Space]`).
+      - **Breaker Shutdown Action**: Pulling the lever down snaps the blades into the lower jaws (`.knife-switch-lever.on`), turns status indicators to emerald green (`SHUT DOWN`), executes `rack.shutdownBreaker()`, sets `isShutdown = true` and `rebootAllowed = true`, halts the explosion countdown timer, spawns electrical sparks, and plays heavy breaker clatter audio.
+    - **Enforced 5-Second Hold-to-Reboot Lockout**:
+      - Players are strictly forbidden from holding `[E]` for 5 seconds to reboot a server until they have flipped the breaker switch to shut down the server in the Master NOC Terminal.
+      - Approaching a reboot-required server prior to terminal breaker shutdown displays a red floating warning badge: `🛑 NOT SHUT DOWN ➔ PULL SWITCH AT TERMINAL [PIN: ...]`.
+      - Pressing or holding `[E]` while the server is still running blocks reboot charging, copies the server's PIN to the HUD memo, plays a fail buzzer, and shows a toast warning directing the player to the NOC Terminal.
+      - Only after the terminal switch has been pulled down to shut down the server does the prompt change to `⚡ HOLD [E] TO REBOOT (5.0s)`, allowing the 5-second power-on charge cycle.
+
+23. **Terminal Redirect Power System (Bug & PIN Error Remote Override)**:
+    - **High-Voltage Power Redirection Button**:
+      - The Master NOC Terminal includes a high-voltage `REDIRECT POWER` button (`#btn-terminal-redirect-power`) with subtitle `OVERRIDE PIN ERRORS & PURGE BUG INFESTATIONS [G]`.
+      - Can be activated directly via terminal button click or the `[G]` hotkey when near a rack or the NOC console.
+      - Dynamically targets either the selected server or any active server in the facility suffering from:
+        1. **Bug Infestations** (`SERVER_BUG`): Immediately surges high voltage to vaporize the chassis bug infestation, resolving the fault and awarding credits.
+        2. **Standard PIN Errors** (`ACCESS_DENIED`, `AUTH_LOCKOUT`): Overrides authentication lockout remotely without manual PIN typing.
+      - Displays live badge count of eligible fault servers (`REDIRECT POWER (X ACTIVE)`).
+
+24. **Facility Supplies Closet Streamlining & Modal Escape Behavior**:
+    - **Closet Inventory Streamlining**:
+      - Removed legacy maintenance items (`first_aid` medical kit, `adrenaline` canister, and `zip_ties` / quick patch cable ties) from the Supplies Closet modal.
+      - The Supplies Closet is now purely dedicated to DEFCON Boss Emergency Gear (Fire Extinguisher for Overheat Daemon, Heavy Restraint Rope for Bug Boss, Containment Wire for Catalog Bosses, and Emergency Kinetic Cannon Ammo).
+    - **Escape Key Closet Exit Isolation**:
+      - Pressing `[Escape]` while browsing the Supplies Closet modal cleanly exits the closet (`closeSuppliesModal()`) and returns the player to active gameplay.
+      - Completely bypasses the pause menu toggle so the pause screen is never erroneously opened when exiting the closet.
+

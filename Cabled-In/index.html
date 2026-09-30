@@ -103,76 +103,117 @@
           </div>
 
           <div class="terminal-body">
-            <div class="terminal-screen-glow">
-              <div class="terminal-row">
-                <span class="term-lbl">LOCATION:</span>
-                <span class="term-val">DATA CENTER FLOOR - SOUTH NOC DESK</span>
-              </div>
-              <div class="terminal-row">
-                <span class="term-lbl">SELECT FAULT:</span>
-                <select id="terminal-rack-select" class="terminal-select"></select>
-              </div>
-              <div class="terminal-row" id="terminal-countdown-row">
-                <span class="term-lbl">CRITICAL COUNTDOWN:</span>
-                <span id="terminal-countdown-val" class="term-val terminal-countdown-val">30.0s [MONITORING]</span>
-              </div>
-              <div class="terminal-progress-track">
-                <div class="terminal-progress-fill" id="terminal-countdown-fill"></div>
-              </div>
-
-              <div class="terminal-display-box">
-                <span class="terminal-prompt">&gt; ENTER AUTH OVERRIDE PIN:</span>
-                <div id="terminal-input-display" class="terminal-digits">_ _ _ _</div>
-                <div id="terminal-feedback" class="terminal-feedback">AWAITING 4-DIGIT AUTHORIZATION CODE</div>
-              </div>
-            </div>
-
-            <!-- Virtual Keypad for PIN Auth -->
-            <div class="terminal-keypad" id="terminal-keypad">
-              <button type="button" class="numpad-btn" data-key="1">1</button>
-              <button type="button" class="numpad-btn" data-key="2">2</button>
-              <button type="button" class="numpad-btn" data-key="3">3</button>
-              <button type="button" class="numpad-btn" data-key="4">4</button>
-              <button type="button" class="numpad-btn" data-key="5">5</button>
-              <button type="button" class="numpad-btn" data-key="6">6</button>
-              <button type="button" class="numpad-btn" data-key="7">7</button>
-              <button type="button" class="numpad-btn" data-key="8">8</button>
-              <button type="button" class="numpad-btn" data-key="9">9</button>
-              <button type="button" class="numpad-btn action-clear" id="numpad-clear">CLR</button>
-              <button type="button" class="numpad-btn" data-key="0">0</button>
-              <button type="button" class="numpad-btn action-enter" id="numpad-enter">ENTER</button>
-            </div>
-
-            <!-- Remote Shutdown Panel (for Bug, Overheat, Small Virus) -->
-            <div id="terminal-shutdown-panel" class="terminal-shutdown-panel hidden">
-              <button type="button" id="btn-terminal-shutdown" class="terminal-shutdown-btn">
-                <span class="shutdown-btn-icon">🛑</span>
-                <span class="shutdown-btn-text">EMERGENCY REMOTE SHUTDOWN</span>
-              </button>
-              <div id="terminal-shutdown-info" class="terminal-shutdown-info">
-                Cuts breaker power immediately. Halts explosion countdown and isolates node fault.
-              </div>
-            </div>
-
-            <!-- Reboot Breaker Switch & Grant Access Controls (For Standard Reboot Errors) -->
-            <div id="terminal-reboot-controls" class="terminal-reboot-controls hidden">
-              <div class="terminal-switch-row">
-                <div class="switch-meta">
-                  <div class="switch-title">BREAKER REBOOT PERMIT</div>
-                  <div class="switch-sub" id="reboot-switch-status">PIN VERIFIED ➔ FLIP SWITCH TO ALLOW REBOOT</div>
+            <div class="terminal-main-column">
+              <div class="terminal-screen-glow">
+                <div class="terminal-row">
+                  <span class="term-lbl">LOCATION:</span>
+                  <span class="term-val">DATA CENTER FLOOR - SOUTH NOC DESK</span>
                 </div>
-                <button type="button" id="btn-reboot-toggle-switch" class="reboot-toggle-switch off" role="switch" aria-checked="false" aria-label="Toggle Breaker Reboot Switch">
-                  <span class="switch-housing">
-                    <span class="switch-handle"></span>
-                  </span>
-                  <span class="switch-label-text" id="reboot-switch-label">OFF</span>
+                <div class="terminal-row">
+                  <span class="term-lbl">SELECT FAULT:</span>
+                  <select id="terminal-rack-select" class="terminal-select"></select>
+                </div>
+                <div class="terminal-row" id="terminal-countdown-row">
+                  <span class="term-lbl">CRITICAL COUNTDOWN:</span>
+                  <span id="terminal-countdown-val" class="term-val terminal-countdown-val">30.0s [MONITORING]</span>
+                </div>
+                <div class="terminal-progress-track">
+                  <div class="terminal-progress-fill" id="terminal-countdown-fill"></div>
+                </div>
+
+                <div class="terminal-display-box">
+                  <span class="terminal-prompt">&gt; ENTER AUTH OVERRIDE PIN:</span>
+                  <div id="terminal-input-display" class="terminal-digits">_ _ _ _</div>
+                  <div id="terminal-feedback" class="terminal-feedback">AWAITING 4-DIGIT AUTHORIZATION CODE</div>
+                </div>
+              </div>
+
+              <!-- Virtual Keypad for PIN Auth -->
+              <div class="terminal-keypad" id="terminal-keypad">
+                <button type="button" class="numpad-btn" data-key="1">1</button>
+                <button type="button" class="numpad-btn" data-key="2">2</button>
+                <button type="button" class="numpad-btn" data-key="3">3</button>
+                <button type="button" class="numpad-btn" data-key="4">4</button>
+                <button type="button" class="numpad-btn" data-key="5">5</button>
+                <button type="button" class="numpad-btn" data-key="6">6</button>
+                <button type="button" class="numpad-btn" data-key="7">7</button>
+                <button type="button" class="numpad-btn" data-key="8">8</button>
+                <button type="button" class="numpad-btn" data-key="9">9</button>
+                <button type="button" class="numpad-btn action-clear" id="numpad-clear">CLR</button>
+                <button type="button" class="numpad-btn" data-key="0">0</button>
+                <button type="button" class="numpad-btn action-enter" id="numpad-enter">ENTER</button>
+              </div>
+
+              <!-- Redirect Power Controls (For Bug & Standard PIN Errors) -->
+              <div class="terminal-redirect-container" id="terminal-redirect-container">
+                <button type="button" id="btn-terminal-redirect-power" class="terminal-redirect-power-btn" aria-label="Redirect Power to Override PIN or Purge Bug">
+                  <span class="redirect-power-icon">⚡</span>
+                  <div class="redirect-power-meta">
+                    <span class="redirect-power-title" id="terminal-grant-access-text">REDIRECT POWER</span>
+                    <span class="redirect-power-sub" id="terminal-redirect-sub">OVERRIDE PIN ERRORS &amp; PURGE BUG INFESTATIONS [G]</span>
+                  </div>
                 </button>
               </div>
-              <div class="terminal-grant-row" id="terminal-grant-row">
-                <button type="button" id="btn-terminal-grant-access" class="terminal-grant-access-btn">
-                  <span class="grant-icon">🔓</span>
-                  <span id="terminal-grant-access-text">GRANT ACCESS FOR PIN ERROR</span>
+
+              <!-- Remote Shutdown Panel (for Overheat, Small Virus) -->
+              <div id="terminal-shutdown-panel" class="terminal-shutdown-panel hidden">
+                <button type="button" id="btn-terminal-shutdown" class="terminal-shutdown-btn">
+                  <span class="shutdown-btn-icon">🛑</span>
+                  <span class="shutdown-btn-text">EMERGENCY REMOTE SHUTDOWN</span>
                 </button>
+                <div id="terminal-shutdown-info" class="terminal-shutdown-info">
+                  Cuts breaker power immediately. Halts explosion countdown and isolates node fault.
+                </div>
+              </div>
+            </div>
+
+            <!-- Literal Industrial Knife / Breaker Pull Switch Panel (For Server Shutdown & Reboot Permit) -->
+            <div id="terminal-reboot-controls" class="terminal-reboot-controls hidden">
+              <div class="terminal-breaker-panel">
+                <div class="breaker-panel-header">
+                  <div class="breaker-header-left">
+                    <div class="breaker-rivet"></div>
+                    <div class="breaker-titles">
+                      <span class="breaker-title">MAIN BREAKER SHUTDOWN SWITCH</span>
+                      <span class="breaker-sub" id="reboot-switch-status">PIN VERIFIED ➔ PULL LEVER DOWN TO SHUT DOWN BREAKER</span>
+                    </div>
+                  </div>
+                  <div class="breaker-status-badge" id="reboot-breaker-led">
+                    <span class="status-indicator-dot"></span>
+                    <span class="breaker-badge-text" id="reboot-switch-label">ONLINE</span>
+                  </div>
+                </div>
+
+                <!-- Physical Knife Switch Box (Click or Drag handle down) -->
+                <div class="knife-switch-apparatus" id="knife-switch-apparatus">
+                  <div class="knife-contacts top-contacts">
+                    <div class="knife-jaw jaw-left"></div>
+                    <span class="knife-volts-text">480V LIVE VOLTAGE</span>
+                    <div class="knife-jaw jaw-right"></div>
+                  </div>
+
+                  <div class="knife-lever-track" id="knife-lever-track">
+                    <button type="button" id="btn-reboot-toggle-switch" class="knife-switch-lever off" role="switch" aria-checked="false" aria-label="Pull Breaker Shutdown Lever">
+                      <div class="knife-hinge"></div>
+                      <div class="knife-blades">
+                        <div class="blade blade-left"></div>
+                        <div class="blade blade-right"></div>
+                      </div>
+                      <div class="knife-crossbar"></div>
+                      <div class="knife-handle-grip" id="knife-handle-grip">
+                        <span class="handle-hazard-stripes"></span>
+                        <span class="handle-text" id="knife-handle-text">PULL DOWN</span>
+                        <span class="handle-arrow" id="knife-handle-arrow">▼</span>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div class="knife-contacts bottom-contacts">
+                    <div class="knife-jaw jaw-left"></div>
+                    <span class="knife-isolated-text" id="knife-bottom-contact-label">BREAKER OPEN // SHUT DOWN</span>
+                    <div class="knife-jaw jaw-right"></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -222,7 +263,7 @@
           </div>
 
           <!-- Item 2: Phase Dash Module (Prototype) -->
-          <div class="shop-card cat-drift is-prototype-locked" data-category="drift" data-item="phase_dash">
+          <div class="shop-card cat-drift is-prototype-locked hidden" data-category="drift" data-item="phase_dash">
             <div class="card-icon">⚡</div>
             <div class="card-info">
               <div class="card-name">Phase Dash Module <span class="shop-badge-prototype">[PROTOTYPE]</span></div>
@@ -234,7 +275,7 @@
           </div>
 
           <!-- Item 3: Nitrous Afterburners -->
-          <div class="shop-card cat-drift" data-category="drift" data-item="nitrous">
+          <div class="shop-card cat-drift hidden" data-category="drift" data-item="nitrous">
             <div class="card-icon">🔥</div>
             <div class="card-info">
               <div class="card-name">Overclocked Nitrous Afterburners <span
@@ -247,7 +288,7 @@
           </div>
 
           <!-- Item 4: Kinetic Slalom Springs -->
-          <div class="shop-card cat-drift" data-category="drift" data-item="slalom_springs">
+          <div class="shop-card cat-drift hidden" data-category="drift" data-item="slalom_springs">
             <div class="card-icon">🌀</div>
             <div class="card-info">
               <div class="card-name">Kinetic Slalom Springs <span
@@ -260,7 +301,7 @@
           </div>
 
           <!-- Item 5: Frictionless Teflon Skids -->
-          <div class="shop-card cat-drift" data-category="drift" data-item="teflon_skids">
+          <div class="shop-card cat-drift hidden" data-category="drift" data-item="teflon_skids">
             <div class="card-icon">⛸️</div>
             <div class="card-info">
               <div class="card-name">Frictionless Teflon Skids <span
@@ -287,7 +328,7 @@
           </div>
 
           <!-- Item 7: Reinforced Spiked Bumper -->
-          <div class="shop-card cat-combat" data-category="combat" data-item="spiked_bumper">
+          <div class="shop-card cat-combat hidden" data-category="combat" data-item="spiked_bumper">
             <div class="card-icon">🦏</div>
             <div class="card-info">
               <div class="card-name">Reinforced Spiked Bumper <span
@@ -300,7 +341,7 @@
           </div>
 
           <!-- Item 8: EMP Shockwave Emitter -->
-          <div class="shop-card cat-combat" data-category="combat" data-item="emp_shockwave">
+          <div class="shop-card cat-combat hidden" data-category="combat" data-item="emp_shockwave">
             <div class="card-icon">⚡</div>
             <div class="card-info">
               <div class="card-name">EMP Shockwave Emitter <span
@@ -313,7 +354,7 @@
           </div>
 
           <!-- Item 9: Emergency Defibrillator Capacitor -->
-          <div class="shop-card cat-combat" data-category="combat" data-item="defibrillator">
+          <div class="shop-card cat-combat hidden" data-category="combat" data-item="defibrillator">
             <div class="card-icon">🔋</div>
             <div class="card-info">
               <div class="card-name">Emergency Defibrillator Capacitor <span
@@ -326,7 +367,7 @@
           </div>
 
           <!-- Item 9b: Cryo Deflector Shield (Prototype) -->
-          <div class="shop-card cat-combat is-prototype-locked" data-category="combat" data-item="cryo_shield">
+          <div class="shop-card cat-combat is-prototype-locked hidden" data-category="combat" data-item="cryo_shield">
             <div class="card-icon">🛡️</div>
             <div class="card-info">
               <div class="card-name">Cryo Deflector Shield <span class="shop-badge-prototype">[PROTOTYPE]</span></div>
@@ -339,7 +380,7 @@
 
           <!-- === BUILD 3: NETOPS ARCHITECT === -->
           <!-- Item 10: Superconducting Patch Reel -->
-          <div class="shop-card cat-netops" data-category="netops" data-item="super_reel">
+          <div class="shop-card cat-netops hidden" data-category="netops" data-item="super_reel">
             <div class="card-icon">🔌</div>
             <div class="card-info">
               <div class="card-name">Superconducting Patch Reel <span
@@ -352,7 +393,7 @@
           </div>
 
           <!-- Item 11: Comms Hex-Decoder -->
-          <div class="shop-card cat-netops" data-category="netops" data-item="hex_decoder">
+          <div class="shop-card cat-netops hidden" data-category="netops" data-item="hex_decoder">
             <div class="card-icon">📡</div>
             <div class="card-info">
               <div class="card-name">Comms Hex-Decoder <span style="font-size: 0.68rem; color: #00ff9d;">[NETOPS]</span>
@@ -365,7 +406,7 @@
           </div>
 
           <!-- Item 12: Autonomous Patch Sentry Drone -->
-          <div class="shop-card cat-netops" data-category="netops" data-item="patch_drone">
+          <div class="shop-card cat-netops hidden" data-category="netops" data-item="patch_drone">
             <div class="card-icon">🛸</div>
             <div class="card-info">
               <div class="card-name">Autonomous Patch Drone Companion <span
@@ -378,7 +419,7 @@
           </div>
 
           <!-- Item 13: NetOps High-Yield Bonds -->
-          <div class="shop-card cat-netops" data-category="netops" data-item="yield_bonds">
+          <div class="shop-card cat-netops hidden" data-category="netops" data-item="yield_bonds">
             <div class="card-icon">📈</div>
             <div class="card-info">
               <div class="card-name">NetOps High-Yield Bonds <span
@@ -425,42 +466,6 @@
         <div class="supplies-section-title">🚨 DEFCON EMERGENCY ANOMALY RESPONSE GEAR</div>
         <div class="supplies-card-grid" id="supplies-boss-gear-grid"></div>
 
-        <!-- General Facility Maintenance Section -->
-        <div class="supplies-section-title" style="margin-top: 14px;">🔧 WAREHOUSE MAINTENANCE &amp; FIRST AID UTILITIES
-        </div>
-        <div class="supplies-card-grid">
-          <div class="shop-card" data-supplies-item="first_aid">
-            <div class="card-icon">🩹</div>
-            <div class="card-info">
-              <div class="card-name">Emergency Medical Kit <span style="font-size: 0.68rem; color: #00ff9d;">[FIRST
-                  AID]</span></div>
-              <div class="card-desc">Instantly restores +50 System Integrity (Health) to the maintenance cart</div>
-            </div>
-            <button type="button" class="btn-buy" id="btn-supplies-first_aid" data-cost="90">90 ⚡ RESTORE</button>
-          </div>
-
-          <div class="shop-card" data-supplies-item="zip_ties">
-            <div class="card-icon">⚡</div>
-            <div class="card-info">
-              <div class="card-name">Quick-Patch Zip-Ties &amp; Flux <span
-                  style="font-size: 0.68rem; color: #38bdf8;">[MAINTENANCE]</span></div>
-              <div class="card-desc">Instantly clears and resolves 1 random failing server in the warehouse without
-                running a cord</div>
-            </div>
-            <button type="button" class="btn-buy" id="btn-supplies-zip_ties" data-cost="80">80 ⚡ DEPLOY</button>
-          </div>
-
-          <div class="shop-card" data-supplies-item="adrenaline">
-            <div class="card-icon">🔋</div>
-            <div class="card-info">
-              <div class="card-name">Adrenaline Surge Canister <span
-                  style="font-size: 0.68rem; color: #ffb800;">[BOOST]</span></div>
-              <div class="card-desc">Provides 25 seconds of hyper-acceleration, +40 px/s speed, and high-traction
-                braking</div>
-            </div>
-            <button type="button" class="btn-buy" id="btn-supplies-adrenaline" data-cost="85">85 ⚡ INJECT</button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
