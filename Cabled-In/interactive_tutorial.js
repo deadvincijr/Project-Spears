@@ -103,6 +103,7 @@ class InteractiveTutorial {
 
     // Event listener for continue button
     document.getElementById('tg-btn-continue')?.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
       this.advanceArrow();
     });
@@ -128,10 +129,11 @@ class InteractiveTutorial {
     this.game.activeScenarioId = 'beginner';
     this.game.startGame('beginner');
 
-    // Give starter credits & reset cart
-    this.game.credits = 150;
-    this.game.cannonCharges = 1;
+    // Start with 0 credits and 0 cannon charges so tools are locked until unlocked in their respective lessons!
+    this.game.credits = 0;
+    this.game.cannonCharges = 0;
     this.game.updateCreditsUI();
+    this.game.updateBuffDisplay?.();
 
     // Clear any spontaneous random errors so tutorial controls pacing
     this.clearAllActiveErrors();
@@ -146,6 +148,34 @@ class InteractiveTutorial {
     this.game.isTutorialMode = false;
     if (this.guideCard) this.guideCard.classList.add('hidden');
     if (this.climaxBanner) this.climaxBanner.classList.add('hidden');
+  }
+
+  isFeatureAllowed(feature) {
+    if (!this.isActive) return true;
+    const steps = this.getStepDefinitions();
+    const currentStep = steps[this.stepIndex];
+    const currentId = currentStep?.id;
+
+    switch (feature) {
+      case 'cannon':
+        // Allowed only during or after 'cannon_charge' (Index 9) or post-boss
+        return this.stepIndex >= 9 || this.chosenPowerup !== null || this.hasDefeatedBoss;
+      case 'shop':
+        // Allowed only during or after 'shop_upgrade' (Index 8) or post-boss
+        return this.stepIndex >= 8 || this.chosenPowerup !== null || this.hasDefeatedBoss;
+      case 'supplies':
+        // Allowed only during or after 'supplies_closet' (Index 7) or post-boss
+        return this.stepIndex >= 7 || this.chosenPowerup !== null || this.hasDefeatedBoss;
+      case 'terminal':
+        // Allowed from 'error_pin' (Index 4) onwards (including 'error_reboot' at Index 5, etc.)
+        return this.stepIndex >= 4 || this.chosenPowerup !== null || this.hasDefeatedBoss;
+      case 'teleporter':
+        return this.chosenPowerup === 'teleporter' || this.hasDefeatedBoss;
+      case 'portable_terminal':
+        return this.chosenPowerup === 'portable_terminal' || this.hasDefeatedBoss;
+      default:
+        return true;
+    }
   }
 
   clearAllActiveErrors() {
@@ -228,12 +258,27 @@ class InteractiveTutorial {
             color: '#00ff9d'
           }
         ],
+        onStart: () => {
+          this.hasBrakedWithSpace = false;
+          // Give player forward sliding momentum so they can immediately test the brakes!
+          this.game.player.vx = 260;
+          this.game.player.vy = 0;
+        },
         practice: {
           keyPrompt: 'Hold [SPACE] while moving to stop!',
           instruction: 'Slide fast, then HOLD SPACEBAR until your cart comes to a complete standstill!',
           checkComplete: () => {
             const speed = Math.hypot(this.game.player.vx, this.game.player.vy);
-            if (this.game.keys[' '] && speed < 15 && this.practiceTimer > 1.2) {
+            const isHoldingSpace = Boolean(this.game.keys['Space'] || this.game.keys[' ']);
+            if (isHoldingSpace) {
+              this.hasBrakedWithSpace = true;
+            }
+            // If player used spacebar and stopped (< 25 px/s)
+            if (this.hasBrakedWithSpace && speed < 25) {
+              return true;
+            }
+            // If player actively holds spacebar and slows down under 40 px/s
+            if (isHoldingSpace && speed < 40 && this.practiceTimer > 0.4) {
               return true;
             }
             return false;
@@ -749,8 +794,15 @@ class InteractiveTutorial {
     }
   }
 
-  advanceArrow() {
+  advanceArrow(force = false) {
     if (!this.isFrozen) return;
+
+    // Debounce to strictly ensure a click or space press only advances exactly ONE arrow box!
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (!force && this.lastArrowAdvanceTime && (now - this.lastArrowAdvanceTime) < 260) {
+      return;
+    }
+    this.lastArrowAdvanceTime = now;
 
     const steps = this.getStepDefinitions();
     const currentStep = steps[this.stepIndex];
@@ -788,9 +840,20 @@ class InteractiveTutorial {
   handleInput(event) {
     if (!this.isActive) return false;
 
-    // If game is frozen for an explanation slide, Left Click or Space advances to next arrow!
+    // Track Space key down during active practice phase
+    if (!this.isFrozen && (event.key === ' ' || event.code === 'Space')) {
+      this.hasBrakedWithSpace = true;
+    }
+
+    // Ignore clicks that originated inside the guide card (handled by the button itself!)
+    if (event.target && event.target.closest && event.target.closest('#tutorial-guide-card')) {
+      return false;
+    }
+
+    // If game is frozen for an explanation slide, Left Click (button 0) or Space advances to next arrow!
     if (this.isFrozen) {
       if (event.type === 'click' || event.type === 'mousedown') {
+        if (event.button !== undefined && event.button !== 0) return false;
         this.advanceArrow();
         return true;
       }
@@ -853,6 +916,25 @@ class InteractiveTutorial {
     const steps = this.getStepDefinitions();
     const currentStep = steps[this.stepIndex];
     if (!currentStep) return;
+
+    // Track space key braking
+    if (this.game.keys?.['Space'] || this.game.keys?.[' ']) {
+      this.hasBrakedWithSpace = true;
+    }
+
+    // Track wall/rack collisions for bouncing lesson
+    if (currentStep.id === 'bouncing') {
+      const nearWall = p.x <= 45 || p.x >= (typeof CONFIG !== 'undefined' ? CONFIG.WORLD.WIDTH : 2400) - 45 ||
+                       p.y <= 45 || p.y >= (typeof CONFIG !== 'undefined' ? CONFIG.WORLD.HEIGHT : 1800) - 45;
+      const nearRack = this.game.racks?.some(r => {
+        const cx = Math.max(r.x, Math.min(p.x, r.x + r.width));
+        const cy = Math.max(r.y, Math.min(p.y, r.y + r.height));
+        return Math.hypot(p.x - cx, p.y - cy) < (p.radius + 14);
+      });
+      if (nearWall || nearRack || (p.lastWallBounceTime && performance.now() - p.lastWallBounceTime < 1000)) {
+        this.hasBounced = true;
+      }
+    }
 
     // Check if practice criteria fulfilled
     if (currentStep.practice && currentStep.practice.checkComplete()) {

@@ -232,6 +232,7 @@ assert.strictEqual(tutorial.subStepIndex, 1, 'Should advance to subStepIndex 1')
 assert.strictEqual(tutorial.isFrozen, true, 'Should remain frozen on slide 1');
 
 // Press Click on final slide to unfreeze into practice phase
+tutorial.lastArrowAdvanceTime = 0; // Clear debounce timer for synchronous unit test
 const handled2 = tutorial.handleInput({ type: 'click' });
 assert.strictEqual(handled2, true, 'Click must be handled on final slide');
 assert.strictEqual(tutorial.isFrozen, false, 'Must unfreeze after final arrow slide to allow player practice');
@@ -378,6 +379,53 @@ assert.strictEqual(allDestroyed, true, 'Every server must detonate in comedic fi
 assert.strictEqual(game.isGameOver, true, 'Game Over cascade must be triggered');
 console.log('✓ Test 10 Passed: Comedic relief climax and 50-server cascade detonation verified.\n');
 
+// ----------------------------------------------------------------------------
+// Test 11: Verifying Hydraulic Braking Completion & Feature Gating
+// ----------------------------------------------------------------------------
+console.log('Test 11: Verifying Spacebar braking completion and component feature gating...');
+const testGame = createMockGame();
+const tut2 = new InteractiveTutorial(testGame);
+tut2.start();
+
+// Starter inventory must have 0 cannon charges and 0 shop credits
+assert.strictEqual(testGame.credits, 0, 'Starter credits must be 0 in tutorial');
+assert.strictEqual(testGame.cannonCharges, 0, 'Starter cannon charges must be 0 in tutorial');
+
+// Step 0: Moving -> Cannon, Shop, Supplies must all be locked!
+assert.strictEqual(tut2.isFeatureAllowed('cannon'), false, 'Cannon must be locked during moving');
+assert.strictEqual(tut2.isFeatureAllowed('shop'), false, 'Shop must be locked during moving');
+assert.strictEqual(tut2.isFeatureAllowed('supplies'), false, 'Supplies closet must be locked during moving');
+
+// Load Step 1: Braking
+tut2.loadStep(1, 0);
+assert.strictEqual(tut2.isFeatureAllowed('cannon'), false, 'Cannon must be locked during braking');
+assert.strictEqual(tut2.isFeatureAllowed('shop'), false, 'Shop must be locked during braking');
+
+// Advance through slides into practice phase
+tut2.advanceArrow(true);
+tut2.advanceArrow(true);
+assert.strictEqual(tut2.isFrozen, false, 'Must be in practice phase for braking');
+
+// Simulate holding spacebar
+testGame.keys['Space'] = true;
+testGame.player.vx = 8;
+testGame.player.vy = 4;
+tut2.update(0.1);
+
+const brakingStep = tut2.getStepDefinitions()[1];
+assert.strictEqual(brakingStep.practice.checkComplete(), true, 'Braking practice must complete when holding Space and stopped');
+
+// Advance to step 8: Shop
+tut2.loadStep(8, 0);
+assert.strictEqual(tut2.isFeatureAllowed('shop'), true, 'Shop must be allowed during shop_upgrade lesson');
+assert.strictEqual(tut2.isFeatureAllowed('cannon'), false, 'Cannon must remain locked during shop lesson');
+
+// Advance to step 9: Cannon
+tut2.loadStep(9, 0);
+assert.strictEqual(tut2.isFeatureAllowed('cannon'), true, 'Cannon must be allowed during cannon_charge lesson');
+
+console.log('✓ Test 11 Passed: Braking completion and component gating fully verified.\n');
+
 console.log('====================================================');
-console.log('🎉 ALL INTERACTIVE TUTORIAL TESTS PASSED! (10/10)');
+console.log('🎉 ALL INTERACTIVE TUTORIAL TESTS PASSED! (11/11)');
 console.log('====================================================');

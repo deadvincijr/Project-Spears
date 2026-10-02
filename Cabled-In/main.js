@@ -6454,6 +6454,11 @@ class Game {
   }
 
   openShop() {
+    if (this.interactiveTutorial?.isActive && !this.interactiveTutorial.isFeatureAllowed('shop')) {
+      this.sound?.playTerminalFail?.();
+      this.showTemporaryToast('🔒 IT SUPPLY DEPOT LOCKED — Unlocked in Lesson 9!', '🛒');
+      return;
+    }
     if (this.isTerminalOpen) this.closeTerminal();
     this.isShopOpen = true;
     if (this.interactiveTutorial?.isActive) {
@@ -6480,6 +6485,11 @@ class Game {
   }
 
   openSuppliesModal() {
+    if (this.interactiveTutorial?.isActive && !this.interactiveTutorial.isFeatureAllowed('supplies')) {
+      this.sound?.playTerminalFail?.();
+      this.showTemporaryToast('🔒 SUPPLIES CLOSET LOCKED — Unlocked in Lesson 8!', '🚪');
+      return;
+    }
     if (this.isTerminalOpen) this.closeTerminal();
     if (this.isShopOpen) this.closeShop();
     this.isSuppliesModalOpen = true;
@@ -6762,6 +6772,12 @@ class Game {
   }
 
   buyItem(itemType, cost) {
+    if (this.interactiveTutorial?.isActive && !this.interactiveTutorial.isFeatureAllowed('shop')) {
+      this.sound.playTerminalFail();
+      this.showTemporaryToast('🔒 IT SUPPLY DEPOT LOCKED — Unlocked in Lesson 9!', '🛒');
+      return;
+    }
+
     if (this.credits < cost) {
       this.sound.playTerminalFail();
       this.showTemporaryToast(`❌ INSUFFICIENT FUNDS (NEED ${cost} ⚡, CURRENT: ${this.credits} ⚡)`);
@@ -8952,6 +8968,11 @@ class Game {
   // Kinetic Cannon Slingshot & Air Hockey Puck System
   // ==========================================================================
   armCannon() {
+    if (this.interactiveTutorial?.isActive && !this.interactiveTutorial.isFeatureAllowed('cannon')) {
+      this.sound?.playTerminalFail?.();
+      this.showTemporaryToast('🔒 KINETIC CANNON LOCKED — Unlocked in Lesson 10!', '🎯');
+      return;
+    }
     if (this.cannonCharges <= 0) {
       this.sound.playError();
       this.showTemporaryToast('❌ NO CANNON CHARGES // PURCHASE AT SOUTH IT SUPPLY DEPOT');
@@ -9929,7 +9950,7 @@ class Game {
               this.rebootHoldTime = 0;
             }
           } else {
-            nearRack.error.hasBeenInspected = true;
+            if (nearRack.error) nearRack.error.hasBeenInspected = true;
             this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
             if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
             if (this.terminalSelect) {
@@ -9946,7 +9967,7 @@ class Game {
               this.shakeHoldTime = 0;
             }
           } else {
-            nearRack.error.hasBeenInspected = true;
+            if (nearRack.error) nearRack.error.hasBeenInspected = true;
             this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
             if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
             if (this.terminalSelect) {
@@ -9963,7 +9984,7 @@ class Game {
               this.disinfectHoldTime = 0;
             }
           } else {
-            nearRack.error.hasBeenInspected = true;
+            if (nearRack.error) nearRack.error.hasBeenInspected = true;
             this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
             if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
             if (this.terminalSelect) {
@@ -10297,6 +10318,11 @@ class Game {
   }
 
   openTerminal() {
+    if (this.interactiveTutorial?.isActive && !this.interactiveTutorial.isFeatureAllowed('terminal')) {
+      this.sound?.playTerminalFail?.();
+      this.showTemporaryToast('🔒 NOC TERMINAL LOCKED — Focus on basic cart training first!', '💻');
+      return;
+    }
     if (this.isShopOpen) this.closeShop();
     this.isTerminalOpen = true;
     this.terminalInputBuffer = '';
@@ -11234,7 +11260,7 @@ class Game {
       if (nearRack.isShutdown && nearRack.rebootAllowed) {
         this.showTemporaryToast('⚙️ HOLD [E] FOR 5 SECONDS TO REBOOT & TURN ON SERVER', '⚡');
       } else {
-        nearRack.error.hasBeenInspected = true;
+        if (nearRack.error) nearRack.error.hasBeenInspected = true;
         this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
         if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
         if (this.terminalSelect) {
@@ -11251,7 +11277,7 @@ class Game {
       if (nearRack.isShutdown) {
         this.showTemporaryToast('🐛 HOLD [E] FOR 1.5s TO TAKE BUG OUT, THEN SQUISH IT!', '🐛');
       } else {
-        nearRack.error.hasBeenInspected = true;
+        if (nearRack.error) nearRack.error.hasBeenInspected = true;
         this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
         if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
         if (this.terminalSelect) {
@@ -11267,7 +11293,7 @@ class Game {
       if (nearRack.isShutdown) {
         this.showTemporaryToast('🧪 HOLD [E] FOR 2.5s TO DISINFECT VIRUS SLIME', '🦠');
       } else {
-        nearRack.error.hasBeenInspected = true;
+        if (nearRack.error) nearRack.error.hasBeenInspected = true;
         this.activeCodeMemo = { rackId: nearRack.id, code: nearRack.code };
         if (this.memoCodeVal) this.memoCodeVal.textContent = `${nearRack.id}: ${nearRack.code}`;
         if (this.terminalSelect) {
@@ -11299,7 +11325,7 @@ class Game {
     }
 
     // 9. ALL SERVERS: Selecting any server rack scans and copies its PIN!
-    if (nearRack.error?.type === CONFIG.ERRORS.ACCESS_DENIED || nearRack.error?.type === CONFIG.ERRORS.AUTH_LOCKOUT || nearRack.error?.type === CONFIG.ERRORS.PHANTOM_GLITCH) {
+    if (nearRack.error && (nearRack.error.type === CONFIG.ERRORS.ACCESS_DENIED || nearRack.error.type === CONFIG.ERRORS.AUTH_LOCKOUT || nearRack.error.type === CONFIG.ERRORS.PHANTOM_GLITCH)) {
       nearRack.error.hasBeenInspected = true;
     }
 
