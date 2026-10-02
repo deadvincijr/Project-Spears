@@ -306,3 +306,45 @@
       - Pressing `[Escape]` while browsing the Supplies Closet modal cleanly exits the closet (`closeSuppliesModal()`) and returns the player to active gameplay.
       - Completely bypasses the pause menu toggle so the pause screen is never erroneously opened when exiting the closet.
 
+25. **Interactive Step-by-Step Tutorial System, Sequential Glowing Arrows & Comedic Climax**:
+    - **Interactive Tutorial Mode (`[🎓 PLAY INTERACTIVE TUTORIAL]`)**:
+      - Accessible directly from the cyber Main Menu primary action row and the in-game Pause Menu (`#btn-menu-interactive-tutorial`, `#btn-pause-interactive-tutorial`).
+      - Starts a clean tutorial run on the Beginner Deployment warehouse map with isolated error pacing, starting funds, and starter Kinetic Cannon ammo.
+    - **Freeze-Frame Glowing Arrow System & Sequential Progression**:
+      - Whenever a new mechanic or aspect of the facility is presented, the entire game engine completely freezes (halting cart momentum, server explosion countdown timers, and boss combat attacks).
+      - Animated glowing neon arrows (`#00f3ff`, `#00ff9d`, `#ffb800`, `#ff2a55`) point directly at targets with pulsing target halos, bouncing trajectory chevrons, and energetic drop shadows.
+      - Arrows appear one by one; the player presses `[SPACE]` or **Left Click** to advance to the next arrow until the explanation phase completes and unlocks active practice.
+    - **Child-Friendly ("Explain Like You're 6") Dialogue Cards & Floating HUD**:
+      - Floating arcade guide card (`#tutorial-guide-card`) featuring mascot mascot 🤖 **CHIPPY THE CABLE CART**.
+      - High-contrast, friendly explanations with clear key pill badges (e.g. `[W][A][S][D]`, `[SPACE]`, `[E]`, `[F]`, `[K]`, `[P]`, `[T]`), teaching the game intuitively.
+    - **Comprehensive Curriculum Across 11 Guided Lessons**:
+      1. **Cart & Momentum**: Explaining the slippery ice rink floor and drifting with WASD / Arrow keys.
+      2. **Hydraulic Anchor Braking**: Holding `[SPACE]` to stop immediately on slippery tiles.
+      3. **Rubber Bumper Ricochets**: Bumping into server racks and neon electric perimeter walls.
+      4. **Error 1 — Standard Wire Bus (`CABLE_DISCONNECT`)**: Grabbing loose patch cords at red racks and plugging into emerald target nodes with `[E]`.
+      5. **Error 2 — 4-Digit PIN Auth Lockout (`AUTH_LOCKOUT`)**: Reading PINs on foot and authorizing at the Master NOC Terminal Desk.
+      6. **Error 3 — 5-Second Hold Reboot (`HARD_REBOOT`)**: Pulling the knife breaker switch at the terminal desk, then holding `[E]` + `[SPACE]` for 5.0 seconds at the frozen server.
+      7. **Error 4 — Daisy Chain Wire (`MULTI_CABLE_CHAIN`)**: Connecting sequential servers in a 3-node bus chain.
+      8. **Facility Supplies Closet**: Approaching the South locker and pressing `[E]` to inspect boss-hunting tools and emergency gear.
+      9. **IT Supply Depot Shop**: Opening the shop (`[K]` or kiosk) and spending Data Credits on permanent upgrades.
+      10. **Kinetic Cannon Slingshot**: Pressing `[F]` to enter bullet-time freeze, aiming dotted trajectory, and launching like a supersonic air hockey puck.
+      11. **First Boss Battle (Corrupted Bug Boss)**: Grabbing the Heavy Restraint Rope and coiling 3 circles around the Bug Boss to neutralize it.
+    - **Apex Powerup Requisition Walkthrough (3 Sequential Arrows)**:
+      - Upon boss defeat, `boss-reward-modal` opens with 3 guaranteed choices:
+        1. **Quantum Subspace Teleporter Kit** (`teleporter`)
+        2. **Portable Field NOC Terminal** (`portable_terminal`)
+        3. **Shop Clearance & Limit Overclock** (`shop_expansion`)
+      - The tutorial freezes and guides the player with 3 sequential arrows explaining each item's superpower in simple language before unlocking card selection.
+    - **Dedicated Hands-On Training for Chosen Powerup**:
+      - **Teleporter**: Guides deploying Node Alpha (`[T]`), skating across the floor to place Node Beta (`[T]`), and stepping on the pad to warp instantly.
+      - **Portable Terminal**: Guides dropping the mini console on the floor (`[P]`), accessing it on-the-fly (`[E]`), and packing it up (`[P]`).
+      - **Shop Clearance**: Guides opening the store (`[K]`) to inspect the unlocked Cryo Deflector Shield and boosted purchase caps.
+    - **30-Second Practice & Comedic Relief Detonation Climax**:
+      - After powerup training, a 30-second calm calibration timer counts down while the player glides around freely.
+      - At 30 seconds, the game pauses with a comedic gold-bordered greeting banner:
+        **"Well it looks like you're ready to go! Good Luck! 😄👍"**
+      - All 50+ server racks in the warehouse immediately suffer cascading critical overheating faults!
+      - Racks violently detonate one after another in a hilarious, runaway chain explosion sequence with screen shake, firework debris, and funny panic toasts (`"💥 RACK-XX DETONATED!"`, `"🔥 THIS IS FINE! EVERYTHING IS FINE! 🔥"`).
+      - Concludes with the player cart being comically overwhelmed, triggering a custom Graduation Screen (*"🎓 TUTORIAL COMPLETE // GRADUATION CERTIFIED! YOU SURVIVED THE TUTORIAL... ALMOST!"*) with a button returning directly to the Main Menu.
+
+

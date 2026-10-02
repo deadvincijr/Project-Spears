@@ -4264,3 +4264,222 @@ body.perf-optimized .settings-window {
   }
 }
 
+/* ==========================================================================
+   Interactive Tutorial System Styles
+   ========================================================================== */
+
+/* Floating Child-Friendly Guide Card */
+.tutorial-guide-card {
+  position: fixed;
+  bottom: 35px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(640px, 94vw);
+  background: rgba(8, 14, 26, 0.96);
+  border: 2px solid var(--accent-cyan, #00f3ff);
+  border-radius: 14px;
+  box-shadow: 0 0 35px rgba(0, 243, 255, 0.38), 0 12px 30px rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(16px);
+  z-index: 1000;
+  pointer-events: auto;
+  animation: tgSlideUp 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes tgSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 40px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.tg-card-inner {
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tg-mascot-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+  padding-bottom: 8px;
+}
+
+.tg-mascot-icon {
+  font-size: 1.8rem;
+  animation: mascotWiggle 2s infinite ease-in-out;
+}
+
+@keyframes mascotWiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-8deg) scale(1.08); }
+  75% { transform: rotate(8deg) scale(1.08); }
+}
+
+.tg-mascot-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.tg-mascot-name {
+  font-family: var(--font-display, "Orbitron", sans-serif);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #00f3ff;
+  text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+}
+
+.tg-step-badge {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #ffb800;
+  letter-spacing: 0.06em;
+}
+
+.tg-dialogue-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tg-dialogue-title {
+  font-family: var(--font-display, "Orbitron", sans-serif);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+}
+
+.tg-dialogue-text {
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #d1e4ff;
+  margin: 0;
+}
+
+.tg-dialogue-text strong {
+  color: #00ff9d;
+}
+
+.tg-action-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.tg-key-cue {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.tg-btn-continue {
+  font-family: var(--font-display, "Orbitron", sans-serif);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #030712;
+  background: linear-gradient(135deg, #00ff9d, #00f3ff);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 0 14px rgba(0, 255, 157, 0.4);
+}
+
+.tg-btn-continue:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 0 22px rgba(0, 255, 157, 0.7);
+}
+
+/* Comedic Relief Climax Fullscreen Banner */
+.tutorial-climax-banner {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 7, 18, 0.82);
+  backdrop-filter: blur(10px);
+  animation: bannerFadeIn 0.4s ease;
+}
+
+@keyframes bannerFadeIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.climax-banner-window {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(6, 10, 20, 0.98));
+  border: 3px solid #ffb800;
+  border-radius: 20px;
+  padding: 40px 50px;
+  text-align: center;
+  max-width: 680px;
+  width: 90vw;
+  box-shadow: 0 0 50px rgba(255, 184, 0, 0.5), 0 20px 40px rgba(0, 0, 0, 0.9);
+  animation: pulseGoldBorder 1.5s infinite alternate ease-in-out;
+}
+
+@keyframes pulseGoldBorder {
+  from { border-color: #ffb800; box-shadow: 0 0 35px rgba(255, 184, 0, 0.35); }
+  to { border-color: #00ff9d; box-shadow: 0 0 60px rgba(0, 255, 157, 0.55); }
+}
+
+.climax-badge {
+  font-family: var(--font-display, "Orbitron", sans-serif);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #ffb800;
+  margin-bottom: 12px;
+}
+
+.climax-title {
+  font-family: var(--font-display, "Orbitron", sans-serif);
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  margin: 0 0 14px 0;
+  line-height: 1.35;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.6);
+}
+
+.climax-sub {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Menu Button for Interactive Tutorial */
+.menu-btn-interactive-tutorial {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.22), rgba(0, 255, 157, 0.22)) !important;
+  border: 1px solid #00f3ff !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 18px rgba(0, 243, 255, 0.35) !important;
+}
+
+.menu-btn-interactive-tutorial:hover {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.38), rgba(0, 255, 157, 0.38)) !important;
+  box-shadow: 0 0 28px rgba(0, 243, 255, 0.65) !important;
+  transform: translateY(-2px) scale(1.02) !important;
+}
+
+

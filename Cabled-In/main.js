@@ -2545,6 +2545,9 @@ class Player {
     }
 
     if (bounced) {
+      if (typeof window !== 'undefined' && window.game?.interactiveTutorial?.isActive) {
+        window.game.interactiveTutorial.hasBounced = true;
+      }
       this.lastWallBounceTime = performance.now();
       this.lastWallBounceX = this.x;
       this.lastWallBounceY = this.y;
@@ -2641,6 +2644,9 @@ class Player {
 
         const impact = Math.abs(dot);
         if (impact > 80) {
+          if (typeof window !== 'undefined' && window.game?.interactiveTutorial?.isActive) {
+            window.game.interactiveTutorial.hasBounced = true;
+          }
           if (isCannonPuck) {
             if (sound) sound.playAirHockeyClack();
             if (particles) {
@@ -5696,6 +5702,12 @@ class Game {
     this.shopCategory = 'all';
     this.shopSynergyText = document.getElementById('shop-synergy-text');
 
+    this.isTutorialMode = false;
+    const TutorialCls = (typeof InteractiveTutorial !== 'undefined')
+      ? InteractiveTutorial
+      : (typeof require !== 'undefined' ? (require('./interactive_tutorial.js').InteractiveTutorial || null) : null);
+    this.interactiveTutorial = TutorialCls ? new TutorialCls(this) : null;
+
     this.initWarehouseMap();
     this.initEventListeners();
     this.initTerminalMinigame();
@@ -6175,6 +6187,10 @@ class Game {
     // Trigger Interactive Apex Boss Reward Choice Modal
     this.openBossRewardModal(targetBoss);
 
+    if (this.interactiveTutorial?.isActive) {
+      this.interactiveTutorial.handleBossDefeatedInTutorial();
+    }
+
     this.activeBoss = null;
     this.bugBoss = null;
   }
@@ -6222,7 +6238,9 @@ class Game {
       [randomPool[i], randomPool[j]] = [randomPool[j], randomPool[i]];
     }
 
-    const selectedIds = [slot1.id, randomPool[0], randomPool[1]];
+    const selectedIds = this.interactiveTutorial?.isActive
+      ? ['teleporter', 'portable_terminal', 'shop_expansion']
+      : [slot1.id, randomPool[0], randomPool[1]];
     this.currentBossRewardChoices = selectedIds;
 
     const cardsData = selectedIds.map(id => {
@@ -6289,6 +6307,10 @@ class Game {
 
     this.bossRewardModal?.classList.remove('hidden');
     if (this.sound?.playLevelUp) this.sound.playLevelUp();
+
+    if (this.interactiveTutorial?.isActive) {
+      this.interactiveTutorial.startPowerupChoiceWalkthrough();
+    }
   }
 
   claimBossReward(rewardId) {
@@ -6300,6 +6322,10 @@ class Game {
       this.grantPortableTerminalReward();
     } else if (rewardId === 'patch_drone') {
       this.grantPatchDroneReward();
+    }
+
+    if (this.interactiveTutorial?.isActive) {
+      this.interactiveTutorial.onPowerupClaimed(rewardId);
     }
   }
 
@@ -6418,6 +6444,9 @@ class Game {
   openShop() {
     if (this.isTerminalOpen) this.closeTerminal();
     this.isShopOpen = true;
+    if (this.interactiveTutorial?.isActive) {
+      this.interactiveTutorial.onDedicatedPowerupAction('opened_shop');
+    }
     this.filterShopCards(this.shopCategory || 'all');
     this.calculateSynergies();
     this.updateCreditsUI();
@@ -6442,6 +6471,9 @@ class Game {
     if (this.isTerminalOpen) this.closeTerminal();
     if (this.isShopOpen) this.closeShop();
     this.isSuppliesModalOpen = true;
+    if (this.interactiveTutorial?.isActive) {
+      this.interactiveTutorial.hasOpenedCloset = true;
+    }
     this.sound.playCabinetOpen();
     this.updateCreditsUI();
     this.updateSuppliesModalUI();
@@ -6722,6 +6754,10 @@ class Game {
       this.sound.playTerminalFail();
       this.showTemporaryToast(`❌ INSUFFICIENT FUNDS (NEED ${cost} ⚡, CURRENT: ${this.credits} ⚡)`);
       return;
+    }
+
+    if (this.interactiveTutorial?.isActive) {
+      this.interactiveTutorial.hasPurchasedShopItem = true;
     }
 
     if (itemType === 'replacement_chassis') {
@@ -7144,6 +7180,11 @@ class Game {
       this.openTutorial(0);
     });
 
+    document.getElementById('btn-menu-interactive-tutorial')?.addEventListener('click', () => {
+      this.sound.init();
+      this.startInteractiveTutorial();
+    });
+
     // In-game HUD manual button
     document.getElementById('btn-open-tutorial')?.addEventListener('click', () => {
       this.sound.init();
@@ -7185,6 +7226,11 @@ class Game {
 
     document.getElementById('btn-pause-tutorial')?.addEventListener('click', () => {
       this.openTutorial(0);
+    });
+
+    document.getElementById('btn-pause-interactive-tutorial')?.addEventListener('click', () => {
+      this.sound.init();
+      this.startInteractiveTutorial();
     });
 
     document.getElementById('btn-pause-menu')?.addEventListener('click', () => {
@@ -7448,6 +7494,24 @@ class Game {
   closeTutorial() {
     this.isTutorialOpen = false;
     this.tutorialModal?.classList.add('hidden');
+  }
+
+  startInteractiveTutorial() {
+    this.sound.init();
+    if (this.isPaused) this.togglePause();
+    if (this.isTerminalOpen) this.closeTerminal();
+    if (this.isShopOpen) this.closeShop();
+    if (this.isTutorialOpen) this.closeTutorial();
+    if (this.isScenarioModalOpen) {
+      this.isScenarioModalOpen = false;
+      this.scenarioModal?.classList.add('hidden');
+    }
+    if (this.statsModal && !this.statsModal.classList.contains('hidden')) {
+      this.closeStats();
+    }
+    if (this.interactiveTutorial) {
+      this.interactiveTutorial.start();
+    }
   }
 
   // ==========================================================================
@@ -8906,6 +8970,10 @@ class Game {
     if (!this.isCannonAiming || this.cannonCharges <= 0) return;
     if ((this.cannonCooldown || 0) > 0) return;
 
+    if (this.interactiveTutorial?.isActive) {
+      this.interactiveTutorial.hasFiredCannon = true;
+    }
+
     this.isCannonAiming = false;
     this.cannonCharges--;
     this.cannonCooldown = 10.0; // 10-second cooldown between cannon shots
@@ -9557,6 +9625,9 @@ class Game {
 
     window.addEventListener('mousedown', (e) => {
       this.sound.init();
+      if (this.interactiveTutorial?.isActive && this.interactiveTutorial.handleInput(e)) {
+        return;
+      }
       if (e.button === 0 && this.isCannonAiming) {
         this.fireCannon();
         e.preventDefault();
@@ -9565,6 +9636,11 @@ class Game {
 
     window.addEventListener('keydown', (e) => {
       this.sound.init();
+
+      if (this.interactiveTutorial?.isActive && this.interactiveTutorial.handleInput(e)) {
+        e.preventDefault();
+        return;
+      }
 
       // Block browser zoom key combinations (Ctrl + Plus, Minus, Zero)
       if (e.ctrlKey && (e.key === '-' || e.key === '=' || e.key === '+' || e.key === '_' || e.key === '0' || e.code === 'NumpadSubtract' || e.code === 'NumpadAdd')) {
@@ -11294,6 +11370,9 @@ class Game {
       this.particles.spawnSparks(this.player.x, this.player.y, 40, '#00ff9d');
       this.showTemporaryToast('💻 PORTABLE FIELD TERMINAL RELOCATED TO CURRENT POSITION! [E: OPEN | P: RELOCATE]', '💻');
     }
+    if (this.interactiveTutorial?.isActive) {
+      this.interactiveTutorial.onDedicatedPowerupAction('placed');
+    }
     this.updateBuffDisplay();
   }
 
@@ -11331,6 +11410,9 @@ class Game {
         this.particles.spawnSparks(nodeA.x, nodeA.y, 25, cfg.secA);
         this.camera.shake(8, 0.25);
         this.showTemporaryToast(`🌀 ${cfg.nameA} ANCHORED! Move across aisles and press [T] to anchor ${cfg.nameB}.`, '🌀');
+        if (this.interactiveTutorial?.isActive) {
+          this.interactiveTutorial.onDedicatedPowerupAction('deploy_alpha');
+        }
         this.updateBuffDisplay();
         return;
       } else {
@@ -11359,6 +11441,9 @@ class Game {
         this.particles.spawnSparks(nodeA.x, nodeA.y, 40, cfg.colorA);
         this.camera.shake(14, 0.35);
         this.showTemporaryToast(`⚡ QUANTUM LINK ESTABLISHED (${cfg.nameA} ↔ ${cfg.nameB})! Step onto pad or press [T]/[E] to warp!`, '🌀');
+        if (this.interactiveTutorial?.isActive) {
+          this.interactiveTutorial.onDedicatedPowerupAction('deploy_beta');
+        }
         this.updateBuffDisplay();
         return;
       }
@@ -11404,6 +11489,9 @@ class Game {
 
     // Audio warp sound
     this.sound.playTeleportWarp();
+    if (this.interactiveTutorial?.isActive) {
+      this.interactiveTutorial.onDedicatedPowerupAction('warped');
+    }
 
     // Trigger screen damage/warp vignette flash
     this.triggerWarpVignette();
@@ -11538,6 +11626,18 @@ class Game {
 
     if (this.isPaused || this.isShopOpen || this.isTutorialOpen || this.isBossRewardOpen) return;
 
+    // Interactive Tutorial Hook: freeze or advance tutorial
+    if (this.interactiveTutorial?.isActive) {
+      this.interactiveTutorial.update(dt);
+      if (this.interactiveTutorial.isFrozen) {
+        this.camera.targetX = this.player.x;
+        this.camera.targetY = this.player.y;
+        this.camera.update(dt, 0, 0);
+        this.particles.update(dt);
+        return; // Timers, racks, entity movements frozen for tutorial explanation!
+      }
+    }
+
     // While in bullet-time Cannon Aiming mode, EVERYTHING FREEZES!
     if (this.isCannonAiming) {
       this.aimAnimOffset = (this.aimAnimOffset + 35 * dt) % (CONFIG.CANNON.DOT_SPACING ?? 20);
@@ -11561,7 +11661,7 @@ class Game {
 
     // 3-Minute Progressive Boss Encounter Trigger (Every 3 minutes: 3:00, 6:00, 9:00, 12:00, 15:00...)
     const expectedWave = Math.floor(this.gameTime / 180);
-    if (expectedWave > (this.currentBossWave || 0) && (!this.activeBoss || !this.activeBoss.isAlive) && this.gameState === 'PLAYING') {
+    if (!this.interactiveTutorial?.isActive && expectedWave > (this.currentBossWave || 0) && (!this.activeBoss || !this.activeBoss.isAlive) && this.gameState === 'PLAYING') {
       this.spawnBoss(expectedWave);
     }
 
@@ -12054,9 +12154,10 @@ class Game {
       cable.update(this.player, dt);
     }
 
-    // Incident Timer with Dynamic Escalation (Halted during Boss Battle)
+    // Incident Timer with Dynamic Escalation (Halted during Boss Battle & Tutorial)
     const currentBossActive = Boolean((this.activeBoss && this.activeBoss.isAlive) || (this.bugBoss && this.bugBoss.isAlive));
-    if (!currentBossActive) {
+    const isTutorialControlled = Boolean(this.interactiveTutorial?.isActive && !this.interactiveTutorial?.hasDefeatedBoss);
+    if (!currentBossActive && !isTutorialControlled) {
       this.incidentTimer += dt;
       if (this.incidentTimer >= currentSpawnInterval) {
         this.incidentTimer = 0;
@@ -12413,6 +12514,11 @@ class Game {
     // 11. Kinetic Cannon Slingshot Aiming Overlay (Bullet-Time Freeze)
     if (this.isCannonAiming) {
       this.renderCannonAimingUI(ctx, cam);
+    }
+
+    // 12. Interactive Tutorial Glowing Arrows & Mascot Guidance
+    if (this.interactiveTutorial?.isActive) {
+      this.interactiveTutorial.render(ctx, cam);
     }
   }
 
