@@ -11342,6 +11342,14 @@ class Game {
     // Legacy objective banner removed; all alerts dispatched as bottom toasts
   }
 
+  updateActiveAlertsCount() {
+    this.updateObjectiveUI?.();
+  }
+
+  triggerCatastrophicCascadeGameOver() {
+    this.triggerGameOver('SERVER_LOSS_LIMIT');
+  }
+
   // ==========================================================================
   // Portable Field NOC Terminal System (Deployable Apex Reward)
   // ==========================================================================

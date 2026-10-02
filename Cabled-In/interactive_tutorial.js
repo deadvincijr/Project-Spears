@@ -159,7 +159,11 @@ class InteractiveTutorial {
     }
     this.game.activeCable = null;
     this.game.connectedCables = [];
-    this.game.updateActiveAlertsCount();
+    if (typeof this.game.updateActiveAlertsCount === 'function') {
+      this.game.updateActiveAlertsCount();
+    } else if (typeof this.game.updateObjectiveUI === 'function') {
+      this.game.updateObjectiveUI();
+    }
   }
 
   // ==========================================================================
@@ -466,7 +470,7 @@ class InteractiveTutorial {
           keyPrompt: 'Skate to the Supplies Closet at South wall and press [E]!',
           instruction: 'Approach the Facility Supplies Closet and press [E] to browse the emergency gear! Press [ESC] when done.',
           checkComplete: () => {
-            return this.game.isSuppliesOpen || this.hasOpenedCloset;
+            return this.game.isSuppliesModalOpen || this.game.isSuppliesOpen || this.hasOpenedCloset;
           }
         }
       },
@@ -767,7 +771,9 @@ class InteractiveTutorial {
   soundBlip() {
     try {
       if (this.game.sound?.playBlip) this.game.sound.playBlip();
+      else if (this.game.sound?.playKey) this.game.sound.playKey();
       else if (this.game.sound?.playClick) this.game.sound.playClick();
+      else if (this.game.sound?.playSwitchToggle) this.game.sound.playSwitchToggle();
     } catch (_) {}
   }
 
@@ -775,6 +781,7 @@ class InteractiveTutorial {
     try {
       if (this.game.sound?.playUpgrade) this.game.sound.playUpgrade();
       else if (this.game.sound?.playLinkSuccess) this.game.sound.playLinkSuccess();
+      else if (this.game.sound?.playPlugSuccess) this.game.sound.playPlugSuccess();
     } catch (_) {}
   }
 
@@ -1133,7 +1140,11 @@ class InteractiveTutorial {
       } else {
         // All servers exploded! Kill player cart to trigger game over transition
         this.game.player.hp = 0;
-        this.game.triggerCatastrophicCascadeGameOver();
+        if (typeof this.game.triggerCatastrophicCascadeGameOver === 'function') {
+          this.game.triggerCatastrophicCascadeGameOver();
+        } else if (typeof this.game.triggerGameOver === 'function') {
+          this.game.triggerGameOver('SERVER_LOSS_LIMIT');
+        }
 
         // Customize the Game Over modal for tutorial graduation
         setTimeout(() => {
