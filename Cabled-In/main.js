@@ -1409,11 +1409,20 @@ class Camera2D {
   }
 
   update(target, dt) {
-    const lookaheadX = target.vx * CONFIG.CAMERA.LOOKAHEAD_FACTOR;
-    const lookaheadY = target.vy * CONFIG.CAMERA.LOOKAHEAD_FACTOR;
+    if (typeof target === 'number') {
+      dt = target;
+      target = null;
+    }
+    const tx = (target && typeof target.x === 'number') ? target.x : this.targetX;
+    const ty = (target && typeof target.y === 'number') ? target.y : this.targetY;
+    const tvx = (target && typeof target.vx === 'number') ? target.vx : 0;
+    const tvy = (target && typeof target.vy === 'number') ? target.vy : 0;
 
-    this.targetX = target.x + lookaheadX;
-    this.targetY = target.y + lookaheadY;
+    const lookaheadX = tvx * CONFIG.CAMERA.LOOKAHEAD_FACTOR;
+    const lookaheadY = tvy * CONFIG.CAMERA.LOOKAHEAD_FACTOR;
+
+    this.targetX = tx + lookaheadX;
+    this.targetY = ty + lookaheadY;
 
     this.x += (this.targetX - this.x) * CONFIG.CAMERA.LERP_SPEED;
     this.y += (this.targetY - this.y) * CONFIG.CAMERA.LERP_SPEED;
@@ -1423,14 +1432,17 @@ class Camera2D {
     this.x = Math.max(halfW, Math.min(CONFIG.WORLD.WIDTH - halfW, this.x));
     this.y = Math.max(halfH, Math.min(CONFIG.WORLD.HEIGHT - halfH, this.y));
 
+    if (isNaN(this.x)) this.x = CONFIG.WORLD.WIDTH / 2;
+    if (isNaN(this.y)) this.y = CONFIG.WORLD.HEIGHT / 2;
+
     // Apply visceral screen shake
     if (this.shakeDuration > 0) {
-      this.shakeDuration -= dt;
+      this.shakeDuration -= (dt || 0.016);
       const ox = (Math.random() * 2 - 1) * this.shakeIntensity;
       const oy = (Math.random() * 2 - 1) * this.shakeIntensity;
       this.x += ox;
       this.y += oy;
-      this.shakeIntensity = Math.max(0, this.shakeIntensity - 24 * dt);
+      this.shakeIntensity = Math.max(0, this.shakeIntensity - 24 * (dt || 0.016));
     }
   }
 
@@ -11609,7 +11621,7 @@ class Game {
       const time = performance.now() * 0.0003;
       this.camera.targetX = CONFIG.WORLD.WIDTH / 2 + Math.cos(time) * 450;
       this.camera.targetY = CONFIG.WORLD.HEIGHT / 2 + Math.sin(time * 0.7) * 300;
-      this.camera.update(dt, 0, 0);
+      this.camera.update(this.camera, dt);
       this.particles.update(dt);
       return;
     }
@@ -11640,7 +11652,7 @@ class Game {
       if (this.interactiveTutorial.isFrozen) {
         this.camera.targetX = this.player.x;
         this.camera.targetY = this.player.y;
-        this.camera.update(dt, 0, 0);
+        this.camera.update(this.player, dt);
         this.particles.update(dt);
         return; // Timers, racks, entity movements frozen for tutorial explanation!
       }
